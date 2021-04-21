@@ -37,7 +37,7 @@ inline std::string CXX_VER =
 
 inline std::string BUILD_SYSTEM_VERSION = "5.4.112-1-MANJARO";
 inline std::string BUILD_SYSTEM_NAME = "Linux";
-inline std::string BUILD_UTC_TIMESTAMP = "2021-04-20T02:31:34Z";
+inline std::string BUILD_UTC_TIMESTAMP = "2021-04-20T03:40:27Z";
 
 
 } // namespace DR
