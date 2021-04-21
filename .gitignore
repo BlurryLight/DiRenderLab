@@ -36,3 +36,4 @@ build
 *json
 *.user
 images/
+cmake_vars.h
