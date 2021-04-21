@@ -10,6 +10,7 @@
 #include <glm/gtc/type_ptr.hpp>
 
 #include "glsupport.hpp"
+#include "utils/resource_path_searcher.h"
 using pd::Camera;
 using pd::Shader;
 
@@ -90,11 +91,18 @@ int main() {
     // -----------------------------
     glEnable(GL_DEPTH_TEST);
 
+    DR::ResourcePathSearcher resMgr;
+    resMgr.add_path(decltype(resMgr)::root_path / "resources" / "shaders");
+    resMgr.add_path(decltype(resMgr)::root_path / "resources" / "textures");
     // build and compile shaders
     // -------------------------
-    Shader shader("3.1.2.shadow_mapping.vs", "3.1.2.shadow_mapping.fs");
-    Shader simpleDepthShader("3.1.2.shadow_mapping_depth.vs", "3.1.2.shadow_mapping_depth.fs");
-    Shader debugDepthQuad("3.1.2.debug_quad.vs", "3.1.2.debug_quad_depth.fs");
+    Shader shader(
+            resMgr.find_path("3.1.2.shadow_mapping.vs").c_str(),
+            resMgr.find_path("3.1.2.shadow_mapping.fs").c_str());
+    Shader simpleDepthShader(resMgr.find_path("3.1.2.shadow_mapping_depth.vs").c_str(),
+                             resMgr.find_path("3.1.2.shadow_mapping_depth.fs").c_str());
+    Shader debugDepthQuad(resMgr.find_path("3.1.2.debug_quad.vs").c_str(),
+                          resMgr.find_path("3.1.2.debug_quad_depth.fs").c_str());
 
     // set up vertex data (and buffer(s)) and configure vertex attributes
     // ------------------------------------------------------------------
@@ -124,7 +132,7 @@ int main() {
 
     // load textures
     // -------------
-    unsigned int woodTexture = loadTexture("wood.png");
+    unsigned int woodTexture = loadTexture(resMgr.find_path("wood.png").c_str());
 
     // configure depth map FBO
     // -----------------------
@@ -317,13 +325,13 @@ void renderCube() {
                 -1.0f, -1.0f, -1.0f, -1.0f, 0.0f, 0.0f, 0.0f, 1.0f,// bottom-left
                 -1.0f, -1.0f, 1.0f, -1.0f, 0.0f, 0.0f, 0.0f, 0.0f, // bottom-right
                 -1.0f, 1.0f, 1.0f, -1.0f, 0.0f, 0.0f, 1.0f, 0.0f,  // top-right
-                                                                   // right face
-                1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f,    // top-left
-                1.0f, -1.0f, -1.0f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f,  // bottom-right
-                1.0f, 1.0f, -1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f,   // top-right
-                1.0f, -1.0f, -1.0f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f,  // bottom-right
-                1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f,    // top-left
-                1.0f, -1.0f, 1.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f,   // bottom-left
+                // right face
+                1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f,  // top-left
+                1.0f, -1.0f, -1.0f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f,// bottom-right
+                1.0f, 1.0f, -1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, // top-right
+                1.0f, -1.0f, -1.0f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f,// bottom-right
+                1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f,  // top-left
+                1.0f, -1.0f, 1.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, // bottom-left
                 // bottom face
                 -1.0f, -1.0f, -1.0f, 0.0f, -1.0f, 0.0f, 0.0f, 1.0f,// top-right
                 1.0f, -1.0f, -1.0f, 0.0f, -1.0f, 0.0f, 1.0f, 1.0f, // top-left

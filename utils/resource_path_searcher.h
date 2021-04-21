@@ -9,7 +9,7 @@ namespace fs = std::experimental::filesystem;
 #endif
 
 #include <string>
-#include <vector>
+#include <set>
 namespace DR {
 
     class ResourcePathSearcher {
@@ -19,7 +19,7 @@ namespace DR {
 #else
         using Path = std::experimental::filesystem::path;
 #endif
-        std::vector<Path> search_paths_;
+        std::set<Path> search_paths_;
 
     public:
         static Path root_path;
@@ -28,8 +28,9 @@ namespace DR {
         ResourcePathSearcher &operator=(const ResourcePathSearcher &) = delete;
         ResourcePathSearcher(ResourcePathSearcher &&) = delete;
         void add_path(const std::string &path);
+        void add_path(const Path &paths);
         // pass a vector such as {"src","cores","xxx.cc"}
-        std::string find_path(std::vector<std::string> filenames) const;
+        std::string find_path(const std::vector<std::string>& paths) const;
         std::string find_path(const std::string &filename) const;
     };
 }// namespace DR
