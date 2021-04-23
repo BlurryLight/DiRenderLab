@@ -1,6 +1,6 @@
 #pragma once
 #include <chrono>
-namespace DR {
+namespace DRL {
 
     class HRTimer {
     public:
@@ -17,4 +17,4 @@ namespace DR {
         decltype(clock_::now()) start_;
         decltype(clock_::now()) end_;
     };
-}// namespace DR
+}// namespace DRL

@@ -8,9 +8,9 @@ namespace fs = std::filesystem;
 namespace fs = std::experimental::filesystem;
 #endif
 
-#include <string>
 #include <set>
-namespace DR {
+#include <string>
+namespace DRL {
 
     class ResourcePathSearcher {
     private:
@@ -30,7 +30,7 @@ namespace DR {
         void add_path(const std::string &path);
         void add_path(const Path &paths);
         // pass a vector such as {"src","cores","xxx.cc"}
-        std::string find_path(const std::vector<std::string>& paths) const;
+        std::string find_path(const std::vector<std::string> &paths) const;
         std::string find_path(const std::string &filename) const;
     };
-}// namespace DR
+}// namespace DRL

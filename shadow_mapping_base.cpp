@@ -9,10 +9,10 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-#include "glsupport.hpp"
+#include "GLwrapper/glsupport.hpp"
 #include "utils/resource_path_searcher.h"
-using pd::Camera;
-using pd::Shader;
+using DRL::Camera;
+using DRL::Shader;
 
 #include <iostream>
 
@@ -21,7 +21,7 @@ void mouse_callback(GLFWwindow *window, double xpos, double ypos);
 void scroll_callback(GLFWwindow *window, double xoffset, double yoffset);
 void processInput(GLFWwindow *window);
 unsigned int loadTexture(const char *path);
-void renderScene(const pd::Shader &shader);
+void renderScene(const DRL::Shader &shader);
 void renderCube();
 void renderQuad();
 
@@ -30,7 +30,7 @@ const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 600;
 
 // camera
-pd::Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
+DRL::Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
 float lastX = (float) SCR_WIDTH / 2.0;
 float lastY = (float) SCR_HEIGHT / 2.0;
 bool firstMouse = true;
@@ -86,14 +86,14 @@ int main() {
         std::cout << "Failed to initialize GLAD" << std::endl;
         return -1;
     }
-    glad_set_post_callback(pd::PostCallbackFunc);
+    glad_set_post_callback(DRL::PostCallbackFunc);
 
     int flags;
     glGetIntegerv(GL_CONTEXT_FLAGS, &flags);
     if (flags & GL_CONTEXT_FLAG_DEBUG_BIT) {
         glEnable(GL_DEBUG_OUTPUT);
         glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);// makes sure errors are displayed synchronously
-        glDebugMessageCallback(pd::glDebugOutput, nullptr);
+        glDebugMessageCallback(DRL::glDebugOutput, nullptr);
         glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, nullptr, GL_TRUE);
     }
     const char *glsl_verson = "#version 330";
@@ -111,7 +111,7 @@ int main() {
     // -----------------------------
     glEnable(GL_DEPTH_TEST);
 
-    DR::ResourcePathSearcher resMgr;
+    DRL::ResourcePathSearcher resMgr;
     resMgr.add_path(decltype(resMgr)::root_path / "resources" / "shaders");
     resMgr.add_path(decltype(resMgr)::root_path / "resources" / "textures");
     // build and compile shaders
@@ -163,7 +163,7 @@ int main() {
     unsigned int depthMap;
     glGenTextures(1, &depthMap);
     glBindTexture(GL_TEXTURE_2D, depthMap);
-    glTexImage2D(GL_TEXTURE, 0, GL_DEPTH_COMPONENT, SHADOW_WIDTH, SHADOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, SHADOW_WIDTH, SHADOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
@@ -441,13 +441,13 @@ void processInput(GLFWwindow *window) {
         glfwSetWindowShouldClose(window, true);
 
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-        camera.ProcessKeyboard(pd::FORWARD, deltaTime);
+        camera.ProcessKeyboard(DRL::FORWARD, deltaTime);
     if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-        camera.ProcessKeyboard(pd::BACKWARD, deltaTime);
+        camera.ProcessKeyboard(DRL::BACKWARD, deltaTime);
     if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-        camera.ProcessKeyboard(pd::LEFT, deltaTime);
+        camera.ProcessKeyboard(DRL::LEFT, deltaTime);
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-        camera.ProcessKeyboard(pd::RIGHT, deltaTime);
+        camera.ProcessKeyboard(DRL::RIGHT, deltaTime);
 }
 
 // glfw: whenever the window size changed (by OS or user resize) this callback function executes
