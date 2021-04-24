@@ -3,6 +3,7 @@
 //
 
 #include "program.hh"
+#include "glm/gtc/type_ptr.hpp"
 using namespace DRL;
 void Program::link() {
     AssertLog(!linked_, "Program {} linked multiple times!", obj_.handle());
@@ -25,10 +26,10 @@ void Program::link() {
     }
     linked_ = true;
 }
-Program::Program(std::initializer_list<std::reference_wrapper<const Shader1>> shaders) {
+Program::Program(std::initializer_list<std::reference_wrapper<const Shader>> shaders) {
     this->attach_shaders(shaders);
 }
-void Program::attach_shaders(std::initializer_list<std::reference_wrapper<const Shader1>> shaders) {
+void Program::attach_shaders(std::initializer_list<std::reference_wrapper<const Shader>> shaders) {
     // shader is a const reference
     AssertLog(!linked_, "AttachShader on an linked program!");
     for (auto shader : shaders) {
@@ -46,4 +47,37 @@ void Program::attach_shaders(std::initializer_list<std::reference_wrapper<const 
         }
         glAttachShader(obj_, shader_handle);
     }
+}
+//from cppreference
+// magic here
+template<class... Ts>
+struct overloaded : Ts... { using Ts::operator()...; };
+template<class... Ts>
+overloaded(Ts...) -> overloaded<Ts...>;
+void Program::set_uniform(const std::string_view name, const Program::Uniform_t &value) const {
+    AssertLog(used_, "Program {} needs to be used before setting value!");
+    GLint loc = glGetUniformLocation(obj_, name.data());
+    AssertLog(loc != -1, "Program {} set value {} failed because "
+                         "it does not correspond to an active uniform variable.",
+              obj_, name);
+    // code from https://github.com/rioki/glow/blob/master/glow/Shader.cpp
+    std::visit(overloaded{
+                       [&](bool v) { glUniform1i(loc, v); },
+                       [&](int v) { glUniform1i(loc, v); },
+                       [&](glm::uint v) { glUniform1i(loc, v); },
+                       [&](float v) { glUniform1f(loc, v); },
+                       //                       [&](const glm::ivec2 v) { glUniform2i(loc, v.x, v.y); },
+                       //                       [&](const glm::uvec2 v) { glUniform2i(loc, v.x, v.y); },
+                       [&](const glm::vec2 v) { glUniform2f(loc, v.x, v.y); },
+                       //                       [&](const glm::ivec3 v) { glUniform3i(loc, v.x, v.y, v.z); },
+                       //                       [&](const glm::uvec3 v) { glUniform3i(loc, v.x, v.y, v.z); },
+                       [&](const glm::vec3 v) { glUniform3f(loc, v.x, v.y, v.z); },
+                       //                       [&](const glm::ivec4 v) { glUniform4i(loc, v.x, v.y, v.z, v.w); },
+                       //                       [&](const glm::uvec4 v) { glUniform4i(loc, v.x, v.y, v.z, v.w); },
+                       [&](const glm::vec4 v) { glUniform4f(loc, v.x, v.y, v.z, v.w); },
+                       [&](const glm::mat2 v) { glUniformMatrix2fv(loc, 1u, GL_FALSE, glm::value_ptr(v)); },
+                       [&](const glm::mat3 v) { glUniformMatrix3fv(loc, 1u, GL_FALSE, glm::value_ptr(v)); },
+                       [&](const glm::mat4 v) { glUniformMatrix4fv(loc, 1u, GL_FALSE, glm::value_ptr(v)); },
+               },
+               value);
 }

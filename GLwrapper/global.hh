@@ -17,6 +17,14 @@ namespace DRL {
             std::abort();
         }
     }
+
+    template<typename String, typename... Args>
+    inline void AssertWarning(bool condition, const String &fmt, Args &&...args) {
+        if (!condition) {
+            std::string fmtstring = std::string("Assertion Failed: ") + std::string(fmt);
+            spdlog::warn(fmtstring, std::forward<Args>(args)...);
+        }
+    }
 }// namespace DRL
 
 ////fwd declaration

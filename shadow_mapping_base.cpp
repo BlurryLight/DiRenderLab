@@ -10,6 +10,7 @@
 #include <glm/gtc/type_ptr.hpp>
 
 #include "GLwrapper/glsupport.hpp"
+#include "GLwrapper/program.hh"
 #include "utils/resource_path_searcher.h"
 using DRL::Camera;
 using DRL::Shader;
@@ -21,7 +22,7 @@ void mouse_callback(GLFWwindow *window, double xpos, double ypos);
 void scroll_callback(GLFWwindow *window, double xoffset, double yoffset);
 void processInput(GLFWwindow *window);
 unsigned int loadTexture(const char *path);
-void renderScene(const DRL::Shader &shader);
+void renderScene(const DRL::Program &shader);
 void renderCube();
 void renderQuad();
 
@@ -116,13 +117,28 @@ int main() {
     resMgr.add_path(decltype(resMgr)::root_path / "resources" / "textures");
     // build and compile shaders
     // -------------------------
-    Shader shader(
-            resMgr.find_path("3.1.2.shadow_mapping.vs").c_str(),
-            resMgr.find_path("3.1.2.shadow_mapping.fs").c_str());
-    Shader simpleDepthShader(resMgr.find_path("3.1.2.shadow_mapping_depth.vs").c_str(),
-                             resMgr.find_path("3.1.2.shadow_mapping_depth.fs").c_str());
-    Shader debugDepthQuad(resMgr.find_path("3.1.2.debug_quad.vs").c_str(),
-                          resMgr.find_path("3.1.2.debug_quad_depth.fs").c_str());
+    DRL::Program shader;
+    {
+        Shader vshader(GL_VERTEX_SHADER, resMgr.find_path("3.1.2.shadow_mapping.vs"));
+        Shader fshader(GL_FRAGMENT_SHADER, resMgr.find_path("3.1.2.shadow_mapping.fs"));
+        shader.attach_shaders({vshader, fshader});
+        shader.link();
+    }
+    DRL::Program simpleDepthShader;
+    {
+        Shader vshader(GL_VERTEX_SHADER, resMgr.find_path("3.1.2.shadow_mapping_depth.vs"));
+        Shader fshader(GL_FRAGMENT_SHADER, resMgr.find_path("3.1.2.shadow_mapping_depth.fs"));
+        simpleDepthShader.attach_shaders({vshader, fshader});
+        simpleDepthShader.link();
+    }
+
+    //    Shader shader(
+    //            resMgr.find_path("3.1.2.shadow_mapping.vs").c_str(),
+    //            resMgr.find_path("3.1.2.shadow_mapping.fs").c_str());
+    //    Shader simpleDepthShader(resMgr.find_path("3.1.2.shadow_mapping_depth.vs").c_str(),
+    //                             resMgr.find_path("3.1.2.shadow_mapping_depth.fs").c_str());
+    //    Shader debugDepthQuad(resMgr.find_path("3.1.2.debug_quad.vs").c_str(),
+    //                          resMgr.find_path("3.1.2.debug_quad_depth.fs").c_str());
 
     // set up vertex data (and buffer(s)) and configure vertex attributes
     // ------------------------------------------------------------------
@@ -152,7 +168,7 @@ int main() {
 
     // load textures
     // -------------
-    unsigned int woodTexture = loadTexture(resMgr.find_path("wood.png").c_str());
+    unsigned int woodTexture = loadTexture(resMgr.find_path("wood.png").string().c_str());
 
     // configure depth map FBO
     // -----------------------
@@ -179,10 +195,10 @@ int main() {
     // shader configuration
     // --------------------
     shader.use();
-    shader.setInt("diffuseTexture", 0);
-    shader.setInt("shadowMap", 1);
-    debugDepthQuad.use();
-    debugDepthQuad.setInt("depthMap", 0);
+    shader.set_uniform("diffuseTexture", 0);
+    shader.set_uniform("shadowMap", 1);
+    //    debugDepthQuad.use();
+    //    debugDepthQuad.setInt("depthMap", 0);
 
     // lighting info
     // -------------
@@ -228,7 +244,7 @@ int main() {
         lightSpaceMatrix = lightProjection * lightView;
         // render scene from light's point of view
         simpleDepthShader.use();
-        simpleDepthShader.setMat4("lightSpaceMatrix", lightSpaceMatrix);
+        simpleDepthShader.set_uniform("lightSpaceMatrix", lightSpaceMatrix);
 
         glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
         glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
@@ -249,12 +265,12 @@ int main() {
         shader.use();
         glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float) SCR_WIDTH / (float) SCR_HEIGHT, 0.1f, 100.0f);
         glm::mat4 view = camera.GetViewMatrix();
-        shader.setMat4("projection", projection);
-        shader.setMat4("view", view);
+        shader.set_uniform("projection", projection);
+        shader.set_uniform("view", view);
         // set light uniforms
-        shader.setVec3("viewPos", camera.Position);
-        shader.setVec3("lightPos", lightPos);
-        shader.setMat4("lightSpaceMatrix", lightSpaceMatrix);
+        shader.set_uniform("viewPos", camera.Position);
+        shader.set_uniform("lightPos", lightPos);
+        shader.set_uniform("lightSpaceMatrix", lightSpaceMatrix);
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, woodTexture);
         glActiveTexture(GL_TEXTURE1);
@@ -263,11 +279,11 @@ int main() {
 
         // render Depth map to quad for visual debugging
         // ---------------------------------------------
-        debugDepthQuad.use();
-        debugDepthQuad.setFloat("near_plane", near_plane);
-        debugDepthQuad.setFloat("far_plane", far_plane);
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, depthMap);
+        //        debugDepthQuad.use();
+        //        debugDepthQuad.setFloat("near_plane", near_plane);
+        //        debugDepthQuad.setFloat("far_plane", far_plane);
+        //        glActiveTexture(GL_TEXTURE0);
+        //        glBindTexture(GL_TEXTURE_2D, depthMap);
         //renderQuad();
 
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
@@ -290,28 +306,28 @@ int main() {
 
 // renders the 3D scene
 // --------------------
-void renderScene(const Shader &shader) {
+void renderScene(const DRL::Program &shader) {
     // floor
     glm::mat4 model = glm::mat4(1.0f);
-    shader.setMat4("model", model);
+    shader.set_uniform("model", model);
     glBindVertexArray(planeVAO);
     glDrawArrays(GL_TRIANGLES, 0, 6);
     // cubes
     model = glm::mat4(1.0f);
     model = glm::translate(model, glm::vec3(0.0f, 1.5f, 0.0));
     model = glm::scale(model, glm::vec3(0.5f));
-    shader.setMat4("model", model);
+    shader.set_uniform("model", model);
     renderCube();
     model = glm::mat4(1.0f);
     model = glm::translate(model, glm::vec3(2.0f, 0.0f, 1.0));
     model = glm::scale(model, glm::vec3(0.5f));
-    shader.setMat4("model", model);
+    shader.set_uniform("model", model);
     renderCube();
     model = glm::mat4(1.0f);
     model = glm::translate(model, glm::vec3(-1.0f, 0.0f, 2.0));
     model = glm::rotate(model, glm::radians(60.0f), glm::normalize(glm::vec3(1.0, 0.0, 1.0)));
     model = glm::scale(model, glm::vec3(0.25));
-    shader.setMat4("model", model);
+    shader.set_uniform("model", model);
     renderCube();
 }
 

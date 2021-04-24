@@ -68,6 +68,9 @@ namespace DRL {
         ~ProgramObj() override {
             if (handle()) {
                 spdlog::warn("RAII is destroying {} Program handle! Be cautious!", handle());
+                // There is a strange error here.
+                // glGetError will report it is a invalid operation.
+                // According to the latest OpenGL 4.5 reference, glDeleteProgram should never return GL_INVALID_OPERATION.
                 glDeleteProgram(handle());
                 handle_ = 0;
             }

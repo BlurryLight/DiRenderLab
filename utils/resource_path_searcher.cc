@@ -15,7 +15,7 @@ void ResourcePathSearcher::add_path(const std::string &path) {
     search_paths_.emplace(p);
 }
 
-std::string ResourcePathSearcher::find_path(const std::string &filename) const {
+fs::path ResourcePathSearcher::find_path(const std::string &filename) const {
     for (const Path &p : search_paths_) {
         auto path = p / filename;
         if (fs::exists(path)) {
@@ -24,15 +24,15 @@ std::string ResourcePathSearcher::find_path(const std::string &filename) const {
             // in UTF16LE To Handle this problem will need complex machanism like
             // writing wstring overloads for all related functions.I won't bother to
             // do that.
-            return path.is_absolute() ? path.u8string()
-                                      : fs::absolute(path).u8string();
+            return path.is_absolute() ? path
+                                      : fs::absolute(path);
         }
     }
     throw std::runtime_error("ResourcePathSearch cannot find " +
                              std::string(filename));
 }
 
-std::string
+fs::path
 ResourcePathSearcher::find_path(const std::vector<std::string> &filenames) const {
     Path ps;
     for (const auto &i : filenames) {
@@ -43,8 +43,8 @@ ResourcePathSearcher::find_path(const std::vector<std::string> &filenames) const
         auto path = p / ps;
         if (fs::exists(path)) {
             std::cout << "Resource: " << path << " found!" << std::endl;
-            return path.is_absolute() ? path.u8string()
-                                      : fs::absolute(path).u8string();
+            return path.is_absolute() ? path
+                                      : fs::absolute(path);
         }
     }
     throw std::runtime_error("ResourcePathSearch cannot find " +

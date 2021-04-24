@@ -30,7 +30,7 @@ namespace DRL {
         void add_path(const std::string &path);
         void add_path(const Path &paths);
         // pass a vector such as {"src","cores","xxx.cc"}
-        std::string find_path(const std::vector<std::string> &paths) const;
-        std::string find_path(const std::string &filename) const;
+        fs::path find_path(const std::vector<std::string> &paths) const;
+        fs::path find_path(const std::string &filename) const;
     };
 }// namespace DRL

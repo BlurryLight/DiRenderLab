@@ -8,33 +8,10 @@
 #include "globject.hh"
 #include "shader.hh"
 #include <bitset>
+#include <glm/glm.hpp>
+#include <variant>
 namespace DRL {
-    /*
-    class Shader1 {
-    private:
-        std::string content_{};
-
-    protected:
-        // a flag need to be checked before using
-        bool compiled_ = false;
-        ShaderObj obj_;//RAII handle
-        GLenum type_;
-
-    public:
-        ~Shader1() {
-            // It maybe a bug that a shader was created but never compiled!
-            AssertLog(compiled_, "Shader {} is never used!");
-        }
-        operator GLuint() const { return obj_.handle(); }
-        [[nodiscard]] GLuint handle() const { return obj_.handle(); }
-        Shader1(Shader1 &&other) = default;
-        Shader1 &operator=(Shader1 &&) = default;
-        // the default behaviour is compile the shader in constructor
-        Shader1(GLenum type, const std::string &content, bool compile = true);
-        Shader1(GLenum type, const fs::path &path, bool compile = true);
-        void compile() const;
-    };
-    */
+    class Texture;
     class Program {
     private:
         // vertex, geometry, frag shaders
@@ -44,22 +21,43 @@ namespace DRL {
     protected:
         ProgramObj obj_;
         bool linked_ = false;
+        bool used_ = false;
+
+        using Uniform_t = std::variant<
+                bool, int, unsigned int, float,
+                glm::mat3, glm::mat4, glm::vec2, glm::vec3, glm::vec4>;
 
     public:
         ~Program() {
-            AssertLog(linked_, "Program {} is never linked!");
+            AssertLog(linked_, "Program {} is never linked!", obj_);
+            // just warning. Because when the process is ending we don't need to unbind current program.
+            AssertWarning(!used_, "Program {} is using when destroying!", obj_);
         }
         operator GLuint() const { return obj_.handle(); }
         [[nodiscard]] GLuint handle() const { return obj_.handle(); }
         Program(Program &&other) = default;
         Program &operator=(Program &&) = default;
         Program() = default;
-        void attach_shaders(std::initializer_list<std::reference_wrapper<const Shader1>> shaders);
+        void attach_shaders(std::initializer_list<std::reference_wrapper<const Shader>> shaders);
 
-        Program(std::initializer_list<std::reference_wrapper<const Shader1>> shaders);
+        Program(std::initializer_list<std::reference_wrapper<const Shader>> shaders);
         void link();
         [[nodiscard]] bool linked() const { return linked_; }
-        void use() { glUseProgram(obj_); }
+        [[nodiscard]] bool isBounded() const { return used_; }
+        void use() {
+            AssertLog(linked(), "Program {} uses before linking!", obj_);
+            // this condition maybe too tough.
+            // we need a use_guard<Program> just like std::lock_guard<std::mutex>
+            // AssertWarning(!used_, "Program {} is using!", obj_);
+            glUseProgram(obj_);
+            used_ = true;
+        }
+        void unuse() {
+            AssertLog(used_, "Program {} is not using!", obj_);
+            glUseProgram(0);
+            used_ = false;
+        }
+        void set_uniform(const std::string_view name, const Uniform_t &value) const;
     };
 }// namespace DRL
 

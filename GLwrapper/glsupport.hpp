@@ -1,5 +1,6 @@
 #pragma once
 
+#include "program.hh"
 #include "shader.hh"
 #include <GLFW/glfw3.h>
 #include <assimp/Importer.hpp>
@@ -200,7 +201,7 @@ namespace DRL {
         }
 
         // render the mesh
-        void Draw(Shader shader) {
+        void Draw(const Program &program) {
             // bind appropriate textures
             unsigned int diffuseNr = 1;
             unsigned int specularNr = 1;
@@ -221,7 +222,7 @@ namespace DRL {
                     number = std::to_string(heightNr++);// transfer unsigned int to stream
 
                 // now set the sampler to the correct texture unit
-                glUniform1i(glGetUniformLocation(shader.ID, (name + number).c_str()), i);
+                glUniform1i(glGetUniformLocation(program.handle(), (name + number).c_str()), i);
                 // and finally bind the texture
                 glBindTexture(GL_TEXTURE_2D, textures[i].id);
             }
@@ -292,9 +293,9 @@ namespace DRL {
         }
 
         // draws the model, and thus all its meshes
-        void Draw(Shader shader) {
+        void Draw(const Program &prog) {
             for (unsigned int i = 0; i < meshes.size(); i++)
-                meshes[i].Draw(shader);
+                meshes[i].Draw(prog);
         }
 
     private:
@@ -677,7 +678,7 @@ namespace DRL {
         (void) funcptr;
         (void) len_args;
         GLenum errorCode;
-        while ((errorCode = glad_glGetError()) != GL_NO_ERROR) {
+        if ((errorCode = glad_glGetError()) != GL_NO_ERROR) {
             std::string error;
             switch (errorCode) {
                 case GL_INVALID_ENUM:
