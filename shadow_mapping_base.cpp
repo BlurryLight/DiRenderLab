@@ -11,6 +11,8 @@
 
 #include "GLwrapper/glsupport.hpp"
 #include "GLwrapper/program.hh"
+#include "GLwrapper/vertex_array.h"
+#include "GLwrapper/vertex_buffer.hh"
 #include "utils/resource_path_searcher.h"
 using DRL::Camera;
 using DRL::Shader;
@@ -41,7 +43,7 @@ float deltaTime = 0.0f;
 float lastFrame = 0.0f;
 
 // meshes
-unsigned int planeVAO;
+DRL::VertexArray *planeVAO;
 
 int main() {
     //spdlog init
@@ -152,19 +154,29 @@ int main() {
             -25.0f, -0.5f, -25.0f, 0.0f, 1.0f, 0.0f, 0.0f, 25.0f,
             25.0f, -0.5f, -25.0f, 0.0f, 1.0f, 0.0f, 25.0f, 25.0f};
     // plane VAO
-    unsigned int planeVBO;
-    glGenVertexArrays(1, &planeVAO);
-    glGenBuffers(1, &planeVBO);
-    glBindVertexArray(planeVAO);
-    glBindBuffer(GL_ARRAY_BUFFER, planeVBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(planeVertices), planeVertices, GL_STATIC_DRAW);
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *) 0);
-    glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *) (3 * sizeof(float)));
-    glEnableVertexAttribArray(2);
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *) (6 * sizeof(float)));
-    glBindVertexArray(0);
+
+    DRL::VertexBuffer planeVBO(planeVertices, sizeof(planeVertices), DRL::kStaticDraw);
+    //    DRL::VertexArray planeVAO;
+    planeVAO = new DRL::VertexArray();
+    planeVAO->lazy_bind_attrib(0, GL_FLOAT, 3, 0);
+    planeVAO->lazy_bind_attrib(1, GL_FLOAT, 3, 3);
+    planeVAO->lazy_bind_attrib(2, GL_FLOAT, 2, 6);
+    planeVAO->bind(planeVBO, 0, 8 * sizeof(GL_FLOAT));
+
+    //    unsigned int planeVBO;
+    //    glGenVertexArrays(1, &planeVAO);
+    //    glGenBuffers(1, &planeVBO);
+    //    glBindVertexArray(planeVAO);
+    //    glBindBuffer(GL_ARRAY_BUFFER, planeVBO);
+    //    glBufferData(GL_ARRAY_BUFFER, sizeof(planeVertices), planeVertices, GL_STATIC_DRAW);
+    //    glEnableVertexAttribArray(0);
+    //    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *) 0);
+    //    glEnableVertexAttribArray(1);
+    //    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *) (3 * sizeof(float)));
+    //    glEnableVertexAttribArray(2);
+    //    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *) (6 * sizeof(float)));
+    //
+    //    glBindVertexArray(0);
 
     // load textures
     // -------------
@@ -295,8 +307,8 @@ int main() {
 
     // optional: de-allocate all resources once they've outlived their purpose:
     // ------------------------------------------------------------------------
-    glDeleteVertexArrays(1, &planeVAO);
-    glDeleteBuffers(1, &planeVBO);
+    //    glDeleteVertexArrays(1, &planeVAO);
+    //    glDeleteBuffers(1, &planeVBO);
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
     ImGui::DestroyContext();
@@ -310,7 +322,7 @@ void renderScene(const DRL::Program &shader) {
     // floor
     glm::mat4 model = glm::mat4(1.0f);
     shader.set_uniform("model", model);
-    glBindVertexArray(planeVAO);
+    glBindVertexArray(*planeVAO);
     glDrawArrays(GL_TRIANGLES, 0, 6);
     // cubes
     model = glm::mat4(1.0f);

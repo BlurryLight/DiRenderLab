@@ -20,7 +20,7 @@ namespace DRL {
             return handle_;
         }
 
-        // no default construction is allowed!
+        GLObject() = default;
         explicit GLObject(GLuint handle) {
             AssertLog(handle, "Handle should be valid value!");
             handle_ = handle;
@@ -77,6 +77,41 @@ namespace DRL {
         }
         ProgramObj(ProgramObj &&other) noexcept : GLObject(std::move(other)) {}
         ProgramObj &operator=(ProgramObj &&other) noexcept {
+            GLObject::operator=(std::move(other));
+            return *this;
+        }
+    };
+    class VertexBufferObject : public GLObject {
+    public:
+        VertexBufferObject() : GLObject() {
+            glCreateBuffers(1, &handle_);
+        }
+        ~VertexBufferObject() override {
+            if (handle()) {
+                glDeleteBuffers(1, &handle_);
+                handle_ = 0;
+            }
+        }
+        VertexBufferObject(VertexBufferObject &&other) noexcept : GLObject(std::move(other)) {}
+        VertexBufferObject &operator=(VertexBufferObject &&other) noexcept {
+            GLObject::operator=(std::move(other));
+            return *this;
+        }
+    };
+
+    class VertexArrayObject : public GLObject {
+    public:
+        VertexArrayObject() : GLObject() {
+            glCreateVertexArrays(1, &handle_);
+        }
+        ~VertexArrayObject() override {
+            if (handle()) {
+                glDeleteVertexArrays(1, &handle_);
+                handle_ = 0;
+            }
+        }
+        VertexArrayObject(VertexArrayObject &&other) noexcept : GLObject(std::move(other)) {}
+        VertexArrayObject &operator=(VertexArrayObject &&other) noexcept {
             GLObject::operator=(std::move(other));
             return *this;
         }
