@@ -17,7 +17,7 @@ file(GLOB SHADERS *.vs *.fs *.vert *.frag)
 file(COPY ${SHADERS}
         DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 set(SOURCE_LIST shadow_mapping_base.cpp GLwrapper/globject.cc GLwrapper/globject.hh)
-set(HEADER_LIST GLwrapper/glsupport.hpp GLwrapper/shader.cc GLwrapper/shader.hh GLwrapper/global.hh)
+set(HEADER_LIST GLwrapper/glsupport.hpp GLwrapper/shader.cc GLwrapper/shader.hh GLwrapper/global.hh GLwrapper/program.cc GLwrapper/program.hh)
 file(GLOB IMGUI_SOURCE "${CMAKE_CURRENT_SOURCE_DIR}/third_party/imgui/*")
 file(GLOB THIRD_PARTY
         third_party/*.c third_party/*.cc third_party/*.h utils/*.cc utils/*.h

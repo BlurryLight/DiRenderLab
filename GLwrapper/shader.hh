@@ -11,21 +11,48 @@
 #include <string>
 namespace DRL {
 
+    //current we only support v,g,f shader
+    enum ShaderType { kVShader = 0,
+                      kGShader = 1,
+                      kFShader = 2,
+                      kAdvancedShader = 3 };
+    inline ShaderType MapGLEnumToShaderType(GLenum t) {
+        if (t == GL_VERTEX_SHADER) return kVShader;
+        else if (t == GL_FRAGMENT_SHADER)
+            return kFShader;
+        else if (t == GL_GEOMETRY_SHADER)
+            return kGShader;
+        else
+            return kAdvancedShader;
+    }
+    inline std::string MapShaderTypeToString(ShaderType t) {
+        switch (t) {
+            case kVShader:
+                return {"VShader"};
+            case kFShader:
+                return {"FShader"};
+            case kGShader:
+                return {"GShader"};
+            case kAdvancedShader:
+                return {"AdvancedShader"};
+        }
+    }
 
     class Shader1 {
     private:
         std::string content_{};
 
     protected:
-        // a flag need to be checked before using
         bool compiled_ = false;
+        // a flag need to be checked before using
         ShaderObj obj_;//RAII handle
-        GLenum type_;
+        ShaderType type_;
 
     public:
         ~Shader1() {
             // It maybe a bug that a shader was created but never compiled!
-            AssertLog(compiled_, "Shader {} is never used!");
+            // check it is compiled or be moved
+            AssertLog(compiled_ || (obj_.handle() == 0), "Shader {} is never compiled!");
         }
         operator GLuint() const { return obj_.handle(); }
         [[nodiscard]] GLuint handle() const { return obj_.handle(); }
@@ -34,28 +61,17 @@ namespace DRL {
         // the default behaviour is compile the shader in constructor
         Shader1(GLenum type, const std::string &content, bool compile = true);
         Shader1(GLenum type, const fs::path &path, bool compile = true);
-        void compile() const {
-            AssertLog(!compiled_, "Shader {} compiled multiple times!", obj_.handle());
-            auto content_ptr = content_.c_str();
-            glShaderSource(obj_, 1, &content_ptr, nullptr);
-            glCompileShader(obj_);
-            GLint status;
-            glGetShaderiv(obj_, GL_COMPILE_STATUS, &status);
-            if (status != GL_TRUE) {
-                GLchar infoLog[1024];
-                glGetShaderInfoLog(obj_, 1024, nullptr, infoLog);
-                spdlog::error("{} SHADER_COMPILATION_ERROR: {}", obj_, infoLog);
-                spdlog::shutdown();
-                std::abort();
-            }
-        }
+        void compile();
+        [[nodiscard]] bool compiled() const { return compiled_; }
+        [[nodiscard]] ShaderType type() const { return type_; }
     };
 
     // A container has shader string
-    //    class ShaderContent
+    class Program;
     class Shader {
     public:
         unsigned int ID;
+        Program *program;
         // constructor generates the shader on the fly
         // ------------------------------------------------------------------------
         Shader(const char *vertexPath, const char *fragmentPath, const char *geometryPath = nullptr);

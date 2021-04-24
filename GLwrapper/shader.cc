@@ -3,6 +3,7 @@
 //
 
 #include "shader.hh"
+#include "program.hh"
 #include <fstream>
 #include <glad/glad.h>
 #include <iostream>
@@ -38,18 +39,19 @@ static std::string LoadShaderFromFile(const std::string &path) {
 DRL::Shader::Shader(const char *vertexPath, const char *fragmentPath, const char *geometryPath) {
     auto vshader = Shader1(GL_VERTEX_SHADER, fs::path(vertexPath));
     auto fshader = Shader1(GL_FRAGMENT_SHADER, fs::path(fragmentPath));
-    vshader.compile();
-    fshader.compile();
     ID = glCreateProgram();
     if (geometryPath != nullptr) {
         auto gshader = Shader1(GL_GEOMETRY_SHADER, fs::path(geometryPath));
         gshader.compile();
         glAttachShader(ID, gshader);
     }
-    glAttachShader(ID, vshader);
-    glAttachShader(ID, fshader);
-    glLinkProgram(ID);
-    checkCompileErrors(ID, "PROGRAM");
+    program = new Program({vshader, fshader});
+    program->link();
+    ID = program->handle();
+    ////    glAttachShader(ID, vshader);
+    ////    glAttachShader(ID, fshader);
+    ////    glLinkProgram(ID);
+    //    checkCompileErrors(ID, "PROGRAM");
 }
 void Shader::use() {
     glUseProgram(ID);
@@ -110,12 +112,12 @@ void Shader::checkCompileErrors(GLuint shader, std::string type) {
     }
 }
 Shader1::Shader1(GLenum type, const std::string &content, bool compile)
-    : obj_(type), content_(content), type_(type) {
+    : obj_(type), content_(content), type_(MapGLEnumToShaderType(type)) {
     if (compile)
         this->compile();
 }
 Shader1::Shader1(GLenum type, const fs::path &path, bool compile)
-    : obj_(type), content_(LoadShaderFromFile(path)), type_(type) {
+    : obj_(type), content_(LoadShaderFromFile(path)), type_(MapGLEnumToShaderType(type)) {
 #ifndef NDEBUG
     std::vector<std::string> vsuffix{".vert", ".vs"};
     std::vector<std::string> fsuffix{".frag", ".fs"};
@@ -154,4 +156,23 @@ Shader1::Shader1(GLenum type, const fs::path &path, bool compile)
 #endif
     if (compile)
         this->compile();
+}
+void Shader1::compile() {
+    AssertLog(!compiled_, "Shader {} compiled multiple times!", obj_.handle());
+    auto content_ptr = content_.c_str();
+    glShaderSource(obj_, 1, &content_ptr, nullptr);
+    glCompileShader(obj_);
+    GLint status;
+    glGetShaderiv(obj_, GL_COMPILE_STATUS, &status);
+    if (status != GL_TRUE) {
+        GLint maxLength = 0;
+        glGetShaderiv(obj_, GL_INFO_LOG_LENGTH, &maxLength);
+        // The maxLength includes the NULL character
+        std::string infoLog(maxLength, '0');
+        glGetShaderInfoLog(obj_, maxLength, nullptr, infoLog.data());
+        spdlog::error("{} SHADER_COMPILATION_ERROR: {}", obj_, infoLog);
+        spdlog::shutdown();
+        std::abort();
+    }
+    compiled_ = true;
 }

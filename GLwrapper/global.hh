@@ -19,4 +19,10 @@ namespace DRL {
     }
 }// namespace DRL
 
+////fwd declaration
+//namespace fs {
+//    class path;
+//}
+
+
 #endif//DIRENDERLAB_GLOBAL_HH

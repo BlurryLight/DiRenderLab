@@ -12,7 +12,7 @@
 namespace DRL {
 
     class GLObject {
-    private:
+    protected:
         GLuint handle_ = 0;
 
     public:
@@ -47,10 +47,35 @@ namespace DRL {
     public:
         explicit ShaderObj(GLenum type) : GLObject(glCreateShader(type)) {
         }
-        ShaderObj(ShaderObj &&) = default;
-        ShaderObj &operator=(ShaderObj &&) = default;
+        ShaderObj(ShaderObj &&other) noexcept : GLObject(std::move(other)) {}
+        ShaderObj &operator=(ShaderObj &&other) noexcept {
+            GLObject::operator=(std::move(other));
+            return *this;
+        }
         ~ShaderObj() override {
-            glDeleteShader(handle());
+            if (handle()) {
+                spdlog::warn("RAII is destroying {} Shader handle! Be cautious!", handle());
+                glDeleteShader(handle());
+                handle_ = 0;
+            }
+        }
+    };
+
+    class ProgramObj : public GLObject {
+    public:
+        ProgramObj() : GLObject(glCreateProgram()) {
+        }
+        ~ProgramObj() override {
+            if (handle()) {
+                spdlog::warn("RAII is destroying {} Program handle! Be cautious!", handle());
+                glDeleteProgram(handle());
+                handle_ = 0;
+            }
+        }
+        ProgramObj(ProgramObj &&other) noexcept : GLObject(std::move(other)) {}
+        ProgramObj &operator=(ProgramObj &&other) noexcept {
+            GLObject::operator=(std::move(other));
+            return *this;
         }
     };
 }// namespace DRL
