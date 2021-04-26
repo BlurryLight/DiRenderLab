@@ -116,6 +116,23 @@ namespace DRL {
             return *this;
         }
     };
+    class TextureObject : public GLObject {
+    public:
+        TextureObject() : GLObject() {
+            glCreateTextures(GL_TEXTURE_2D, 1, &handle_);
+        }
+        ~TextureObject() {
+            if (handle()) {
+                glDeleteTextures(1, &handle_);
+                handle_ = 0;
+            }
+        }
+        TextureObject(TextureObject &&other) noexcept : GLObject(std::move(other)) {}
+        TextureObject &operator=(TextureObject &&other) noexcept {
+            GLObject::operator=(std::move(other));
+            return *this;
+        }
+    };
 }// namespace DRL
 
 #endif//DIRENDERLAB_GLOBJECT_HH
