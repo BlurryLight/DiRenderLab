@@ -2,6 +2,7 @@
 
 #include "program.hh"
 #include "shader.hh"
+#include "vertex_array.h"
 #include <GLFW/glfw3.h>
 #include <assimp/Importer.hpp>
 #include <assimp/postprocess.h>
@@ -51,7 +52,8 @@ namespace DRL {
     inline unsigned int cubeVBO = 0;
     inline unsigned int quadVAO = 0;
     inline unsigned int quadVBO = 0;
-    inline unsigned int sphereVAO = 0;
+    //    inline unsigned int sphereVAO = 0;
+    inline VertexArray *sphereVAO = nullptr;
     inline unsigned int sphereIndexSize = 0;
     inline unsigned int TextureFromFile(const char *path, const std::string &directory = "", bool gamma = false, bool flip = false);
     inline void renderQuad();
@@ -589,12 +591,11 @@ namespace DRL {
         glBindVertexArray(0);
     }
     inline void renderSphere() {
-        if (sphereVAO == 0) {
-            glGenVertexArrays(1, &sphereVAO);
+        if (sphereVAO == nullptr) {
+            sphereVAO = new VertexArray();
 
-            unsigned int vbo, ebo;
-            glGenBuffers(1, &vbo);
-            glGenBuffers(1, &ebo);
+            VertexBuffer vbo;
+            ElementBuffer ebo;
 
             std::vector<glm::vec3> positions;
             std::vector<glm::vec2> uv;
@@ -651,23 +652,17 @@ namespace DRL {
                     data.push_back(uv[i].y);
                 }
             }
-            glBindVertexArray(sphereVAO);
-            glBindBuffer(GL_ARRAY_BUFFER, vbo);
-            glBufferData(GL_ARRAY_BUFFER, data.size() * sizeof(float), &data[0], GL_STATIC_DRAW);
-            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-            glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), &indices[0], GL_STATIC_DRAW);
-            float stride = (3 + 2 + 3) * sizeof(float);
-            glEnableVertexAttribArray(0);
-            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, stride, (void *) 0);
-            glEnableVertexAttribArray(1);
-            glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, stride, (void *) (3 * sizeof(float)));
-            glEnableVertexAttribArray(2);
-            glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, stride, (void *) (6 * sizeof(float)));
+            vbo.upload_data(data.data(), data.size() * sizeof(float), kStaticDraw);
+            ebo.upload_data(indices.data(), indices.size() * sizeof(float), kStaticDraw);
+            int stride = (3 + 2 + 3);
+            sphereVAO->lazy_bind_attrib(0, GL_FLOAT, 3, 0);
+            sphereVAO->lazy_bind_attrib(1, GL_FLOAT, 3, 3);
+            sphereVAO->lazy_bind_attrib(2, GL_FLOAT, 2, 6);
+            sphereVAO->update_bind(vbo, ebo, 0, stride);
         }
 
-        glBindVertexArray(sphereVAO);
-        glDrawElements(GL_TRIANGLE_STRIP, sphereIndexSize, GL_UNSIGNED_INT, 0);
-        glBindVertexArray(0);
+        bind_guard<VertexArray> gd(*sphereVAO);
+        sphereVAO->draw(GL_TRIANGLE_STRIP, sphereIndexSize, GL_UNSIGNED_INT, nullptr);
     }
     inline float lerp(float a, float b, float t) {
         return a * (1 - t) + b * t;

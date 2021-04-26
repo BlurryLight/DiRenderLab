@@ -161,7 +161,7 @@ int main() {
     planeVAO->lazy_bind_attrib(0, GL_FLOAT, 3, 0);
     planeVAO->lazy_bind_attrib(1, GL_FLOAT, 3, 3);
     planeVAO->lazy_bind_attrib(2, GL_FLOAT, 2, 6);
-    planeVAO->update_bind(planeVBO, 0, 8 * sizeof(GL_FLOAT));
+    planeVAO->update_bind(planeVBO, 0, 8);
 
     //    unsigned int planeVBO;
     //    glGenVertexArrays(1, &planeVAO);
@@ -344,7 +344,8 @@ void renderScene(const DRL::Program &shader) {
     model = glm::rotate(model, glm::radians(60.0f), glm::normalize(glm::vec3(1.0, 0.0, 1.0)));
     model = glm::scale(model, glm::vec3(0.25));
     shader.set_uniform("model", model);
-    renderCube();
+    //    renderCube();
+    DRL::renderSphere();
 }
 
 

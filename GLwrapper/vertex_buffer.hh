@@ -28,12 +28,15 @@ namespace DRL {
         VertexBuffer(VertexBuffer &&other) = default;
         VertexBuffer &operator=(VertexBuffer &&) = default;
         VertexBuffer() = default;
-        VertexBuffer(const void *data, size_t length, BufferUsage usage) {
-            upload_data(data, length, usage);
+        VertexBuffer(const void *data, size_t bytes_length, BufferUsage usage) {
+            upload_data(data, bytes_length, usage);
         }
-        void upload_data(const void *data, size_t length, BufferUsage usage) const {
-            glNamedBufferData(obj_, length, data, usage);
+        void upload_data(const void *data, size_t bytes_length, BufferUsage usage) const {
+            glNamedBufferData(obj_, bytes_length, data, usage);
         }
+    };
+
+    class ElementBuffer : public VertexBuffer {
     };
 }// namespace DRL
 
