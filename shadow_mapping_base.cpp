@@ -60,11 +60,10 @@ int main() {
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 5);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+#ifndef NDEBUG
     glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, true);
-
-#ifdef __APPLE__
-    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 #endif
+
 
     // glfw window creation
     // --------------------
@@ -90,6 +89,7 @@ int main() {
     }
     glad_set_post_callback(DRL::PostCallbackFunc);
 
+#ifndef NDEBUG
     int flags;
     glGetIntegerv(GL_CONTEXT_FLAGS, &flags);
     if (flags & GL_CONTEXT_FLAG_DEBUG_BIT) {
@@ -98,6 +98,7 @@ int main() {
         glDebugMessageCallback(DRL::glDebugOutput, nullptr);
         glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, nullptr, GL_TRUE);
     }
+#endif
     const char *glsl_verson = "#version 330";
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
@@ -133,13 +134,13 @@ int main() {
         simpleDepthShader.link();
     }
 
-    //    Shader shader(
-    //            resMgr.find_path("3.1.2.shadow_mapping.vs").c_str(),
-    //            resMgr.find_path("3.1.2.shadow_mapping.fs").c_str());
-    //    Shader simpleDepthShader(resMgr.find_path("3.1.2.shadow_mapping_depth.vs").c_str(),
-    //                             resMgr.find_path("3.1.2.shadow_mapping_depth.fs").c_str());
-    //    Shader debugDepthQuad(resMgr.find_path("3.1.2.debug_quad.vs").c_str(),
-    //                          resMgr.find_path("3.1.2.debug_quad_depth.fs").c_str());
+    DRL::Program DepthMapShader;
+    {
+        Shader vshader(GL_VERTEX_SHADER, resMgr.find_path("3.1.2.debug_quad.vs"));
+        Shader fshader(GL_FRAGMENT_SHADER, resMgr.find_path("3.1.2.debug_quad_depth.fs"));
+        DepthMapShader.attach_shaders({vshader, fshader});
+        DepthMapShader.link();
+    }
 
     // set up vertex data (and buffer(s)) and configure vertex attributes
     // ------------------------------------------------------------------
@@ -162,20 +163,6 @@ int main() {
     planeVAO->lazy_bind_attrib(2, GL_FLOAT, 2, 6);
     planeVAO->update_bind(planeVBO, 0, 8);
 
-    //    unsigned int planeVBO;
-    //    glGenVertexArrays(1, &planeVAO);
-    //    glGenBuffers(1, &planeVBO);
-    //    glBindVertexArray(planeVAO);
-    //    glBindBuffer(GL_ARRAY_BUFFER, planeVBO);
-    //    glBufferData(GL_ARRAY_BUFFER, sizeof(planeVertices), planeVertices, GL_STATIC_DRAW);
-    //    glEnableVertexAttribArray(0);
-    //    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *) 0);
-    //    glEnableVertexAttribArray(1);
-    //    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *) (3 * sizeof(float)));
-    //    glEnableVertexAttribArray(2);
-    //    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *) (6 * sizeof(float)));
-    //
-    //    glBindVertexArray(0);
 
     // load textures
     // -------------
@@ -284,16 +271,18 @@ int main() {
         //        glActiveTexture(GL_TEXTURE1);
         //        glBindTexture(GL_TEXTURE_2D, depthMap);
         renderScene(shader);
+        depthMap.unbind();
 
         // render Depth map to quad for visual debugging
         // ---------------------------------------------
-        //        debugDepthQuad.use();
-        //        debugDepthQuad.setFloat("near_plane", near_plane);
-        //        debugDepthQuad.setFloat("far_plane", far_plane);
+        //        DepthMapShader.use();
+        //        DepthMapShader.set_uniform("near_plane", near_plane);
+        //        DepthMapShader.set_uniform("far_plane", far_plane);
+        //        depthMap.set_slot(0);
+        //        depthMap.bind();
         //        glActiveTexture(GL_TEXTURE0);
         //        glBindTexture(GL_TEXTURE_2D, depthMap);
-        //renderQuad();
-
+        //        DRL::renderQuad();
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
         // -------------------------------------------------------------------------------
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());

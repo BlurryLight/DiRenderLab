@@ -17,6 +17,7 @@ namespace DRL {
     protected:
         TextureObject obj_;
         bool bounded_ = false;
+        bool first_bounded = false;
         bool updated_ = false;
         int slot_ = 0;
 
@@ -57,6 +58,7 @@ namespace DRL {
             AssertLog(updated_, "Texture {} has not been updated!", obj_.handle());
             glBindTextureUnit(slot_, obj_);
             bounded_ = true;
+            first_bounded = true;
         }
 
         void unbind() {
@@ -69,7 +71,7 @@ namespace DRL {
     public:
         Texture2D() = default;
         ~Texture2D() {
-            AssertLog(bounded_ || (obj_.handle() == 0), "Texture2D {} is never bounded!");
+            AssertLog(first_bounded || (obj_.handle() == 0), "Texture2D {} is never bounded!", obj_);
         }
         Texture2D(const fs::path &path, bool gamma, bool flip);
         Texture2D(int width, int height, GLenum format, GLenum type, const void *data);
