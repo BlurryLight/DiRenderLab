@@ -161,7 +161,7 @@ int main() {
     planeVAO->lazy_bind_attrib(0, GL_FLOAT, 3, 0);
     planeVAO->lazy_bind_attrib(1, GL_FLOAT, 3, 3);
     planeVAO->lazy_bind_attrib(2, GL_FLOAT, 2, 6);
-    planeVAO->bind(planeVBO, 0, 8 * sizeof(GL_FLOAT));
+    planeVAO->update_bind(planeVBO, 0, 8 * sizeof(GL_FLOAT));
 
     //    unsigned int planeVBO;
     //    glGenVertexArrays(1, &planeVAO);
@@ -322,8 +322,12 @@ void renderScene(const DRL::Program &shader) {
     // floor
     glm::mat4 model = glm::mat4(1.0f);
     shader.set_uniform("model", model);
-    glBindVertexArray(*planeVAO);
-    glDrawArrays(GL_TRIANGLES, 0, 6);
+    {
+        DRL::bind_guard gd(*planeVAO);
+        planeVAO->draw(GL_TRIANGLES, 0, 6);
+    }
+    //    glBindVertexArray(*planeVAO);
+    //    glDrawArrays(GL_TRIANGLES, 0, 6);
     // cubes
     model = glm::mat4(1.0f);
     model = glm::translate(model, glm::vec3(0.0f, 1.5f, 0.0));

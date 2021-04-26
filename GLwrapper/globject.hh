@@ -39,7 +39,7 @@ namespace DRL {
             other.handle_ = 0;
             return *this;
         }
-        virtual ~GLObject() = default;
+        ~GLObject() = default;
         [[nodiscard]] GLuint handle() const { return handle_; }
     };
 
@@ -52,7 +52,7 @@ namespace DRL {
             GLObject::operator=(std::move(other));
             return *this;
         }
-        ~ShaderObj() override {
+        ~ShaderObj() {
             if (handle()) {
                 spdlog::warn("RAII is destroying {} Shader handle! Be cautious!", handle());
                 glDeleteShader(handle());
@@ -65,7 +65,7 @@ namespace DRL {
     public:
         ProgramObj() : GLObject(glCreateProgram()) {
         }
-        ~ProgramObj() override {
+        ~ProgramObj() {
             if (handle()) {
                 spdlog::warn("RAII is destroying {} Program handle! Be cautious!", handle());
                 // There is a strange error here.
@@ -86,7 +86,7 @@ namespace DRL {
         VertexBufferObject() : GLObject() {
             glCreateBuffers(1, &handle_);
         }
-        ~VertexBufferObject() override {
+        ~VertexBufferObject() {
             if (handle()) {
                 glDeleteBuffers(1, &handle_);
                 handle_ = 0;
@@ -104,7 +104,7 @@ namespace DRL {
         VertexArrayObject() : GLObject() {
             glCreateVertexArrays(1, &handle_);
         }
-        ~VertexArrayObject() override {
+        ~VertexArrayObject() {
             if (handle()) {
                 glDeleteVertexArrays(1, &handle_);
                 handle_ = 0;
