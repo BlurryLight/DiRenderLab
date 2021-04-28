@@ -25,6 +25,22 @@ uniform float uPCSSLightSize= 10.0;
 #define PI 3.141592653589793
 #define PI2 6.283185307179586
 #define NUM_RINGS 10
+
+vec4 pack_depth(const in float depth)
+{
+    const vec4 bit_shift = vec4(256.0*256.0*256.0, 256.0*256.0, 256.0, 1.0);
+    const vec4 bit_mask  = vec4(0.0, 1.0/256.0, 1.0/256.0, 1.0/256.0);
+    vec4 res = fract(depth * bit_shift);
+    res -= res.xxyz * bit_mask;
+    return res;
+}
+
+float unpack_depth(const in vec4 rgba_depth)
+{
+    const vec4 bit_shift = vec4(1.0/(256.0*256.0*256.0), 1.0/(256.0*256.0), 1.0/256.0, 1.0);
+    float depth = dot(rgba_depth, bit_shift);
+    return depth;
+}
 vec2 poissonDisk[NUM_SAMPLES];
 float rand_1to1(float x) {
     // -1 -1
@@ -79,13 +95,13 @@ float PCF(vec3 projCoords, float filterSize) {
     float currentDepth = projCoords.z;
     vec3 lightDir = normalize(lightPos - fs_in.FragPos);
     vec3 normal = normalize(fs_in.Normal);
-    float bias = uBias * max((1.0 - max(dot(normal, lightDir), 0.0)), 0.03);
+    float bias = uBias * max((1.0 - max(dot(normal, lightDir), 0.0)), 0.2);
     for (int i = 0; i < NUM_SAMPLES;i++)
     {
         vec2 offset =  filterSize *  poissonDisk[i] * texelSize;
         vec2 jittered_coords = projCoords.xy + offset;
         float closestDepth = texture2D(shadowMap, jittered_coords).r;
-        if (closestDepth <= EPS) closestDepth = 1.0;
+        //        if (closestDepth <= EPS) closestDepth = 1.0;
         num_sumple += (currentDepth - bias) > closestDepth ? 0 : 1;
     }
     return float(num_sumple) / float(NUM_SAMPLES);

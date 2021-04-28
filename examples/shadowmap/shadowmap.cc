@@ -173,19 +173,20 @@ int main() {
     // -----------------------
     const unsigned int SHADOW_WIDTH = 2048, SHADOW_HEIGHT = 2048;
     unsigned int depthMapFBO;
-    glGenFramebuffers(1, &depthMapFBO);
+    //    glGenFramebuffers(1, &depthMapFBO);
+    glCreateFramebuffers(1, &depthMapFBO);
     // create depth texture
 
-    DRL::Texture2D depthMap(SHADOW_WIDTH, SHADOW_HEIGHT, GL_DEPTH_COMPONENT24, GL_FLOAT, nullptr);
+    DRL::Texture2D depthMap(SHADOW_WIDTH, SHADOW_HEIGHT, GL_DEPTH_COMPONENT32F, GL_FLOAT, nullptr);
     depthMap.set_wrap_s(GL_CLAMP_TO_EDGE);
     depthMap.set_wrap_t(GL_CLAMP_TO_EDGE);
     depthMap.bind();
 
-    glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthMap, 0);
-    glDrawBuffer(GL_NONE);
-    glReadBuffer(GL_NONE);
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glNamedFramebufferTexture(depthMapFBO, GL_DEPTH_ATTACHMENT, depthMap, 0);
+    glNamedFramebufferDrawBuffer(depthMapFBO, GL_NONE);
+    glNamedFramebufferDrawBuffer(depthMapFBO, GL_NONE);
+    glNamedFramebufferReadBuffer(depthMapFBO, GL_NONE);
+    assert(glCheckNamedFramebufferStatus(depthMapFBO, GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);
 
 
     // shader configuration
@@ -252,11 +253,11 @@ int main() {
         // --------------------------------------------------------------
         glm::mat4 lightProjection, lightView;
         glm::mat4 lightSpaceMatrix;
-        float near_plane = 1.0f, far_plane = 20.0f;
-        lightProjection = glm::ortho(-30.0f, 10.0f, -30.0f, 30.0f, near_plane, far_plane);
+        float near_plane = 1.0f, far_plane = 50.0f;
+        lightProjection = glm::ortho(-50.0f, 50.0f, -50.0f, 50.0f, near_plane, far_plane);
         auto lightPosNew = lightPos + glm::vec3(
-                                              1 * glm::sin(glfwGetTime()),
-                                              0,
+                                              5 * glm::sin(glfwGetTime()),
+                                              20,
                                               5 * glm::sin(glfwGetTime()));
         lightView = glm::lookAt(lightPosNew, glm::vec3(0.0f), glm::vec3(0.0, 1.0, 0.0));
         lightSpaceMatrix = lightProjection * lightView;

@@ -18,10 +18,10 @@ set(HEADER_LIST GLwrapper/glsupport.hh GLwrapper/shader.cc GLwrapper/shader.hh G
 file(GLOB IMGUI_SOURCE "${CMAKE_CURRENT_SOURCE_DIR}/third_party/imgui/*")
 file(GLOB THIRD_PARTY
         third_party/*.c third_party/*.cc third_party/*.h utils/*.cc utils/*.h
-        third_party/glad/*
         )
 message(${THIRD_PARTY})
 include_directories("third_party")
+add_subdirectory(third_party/glad)
 
 set(EXAMPLES
         imgui_example
@@ -33,6 +33,7 @@ foreach (EXAMPLE ${EXAMPLES})
     target_include_directories(${EXAMPLE} PRIVATE ${CMAKE_SOURCE_DIR})
     target_compile_definitions(${EXAMPLE} PRIVATE -DIMGUI_IMPL_OPENGL_LOADER_GLAD)
     target_link_libraries(${EXAMPLE} PRIVATE
+            glad
             glfw
             ${CMAKE_DL_LIBS}
             spdlog::spdlog
