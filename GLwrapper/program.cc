@@ -81,3 +81,20 @@ void Program::set_uniform(const std::string_view name, const Program::Uniform_t 
                },
                value);
 }
+
+Program DRL::make_program(const fs::path &vpath, std::optional<const fs::path> fpath, std::optional<const fs::path> gpath) {
+    DRL::Program prog;
+    Shader vshader(GL_VERTEX_SHADER, vpath);
+    prog.attach_shaders({vshader});
+    if (fpath.has_value()) {
+        Shader fshader(GL_FRAGMENT_SHADER, *fpath);
+        prog.attach_shaders({fshader});
+    }
+
+    if (gpath.has_value()) {
+        Shader gshader(GL_GEOMETRY_SHADER, *gpath);
+        prog.attach_shaders({gshader});
+    }
+    prog.link();
+    return prog;
+}

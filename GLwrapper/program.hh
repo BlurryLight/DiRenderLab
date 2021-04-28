@@ -9,6 +9,7 @@
 #include "shader.hh"
 #include <bitset>
 #include <glm/glm.hpp>
+#include <optional>
 #include <variant>
 namespace DRL {
     class Texture;
@@ -59,6 +60,9 @@ namespace DRL {
         }
         void set_uniform(const std::string_view name, const Uniform_t &value) const;
     };
+    Program make_program(const fs::path &vpath,
+                         std::optional<const fs::path> fpath = std::nullopt,
+                         std::optional<const fs::path> gpath = std::nullopt);
 }// namespace DRL
 
 

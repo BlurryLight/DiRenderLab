@@ -6,6 +6,8 @@
 #define DIRENDERLAB_TEXTURE_HH
 #include "../utils/resource_path_searcher.h"
 #include "globject.hh"
+#include "program.hh"
+
 
 namespace DRL {
     //    enum class TextureType {

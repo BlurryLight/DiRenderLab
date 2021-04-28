@@ -24,12 +24,15 @@ using DRL::Shader;
 void framebuffer_size_callback(GLFWwindow *window, int width, int height);
 void mouse_callback(GLFWwindow *window, double xpos, double ypos);
 void scroll_callback(GLFWwindow *window, double xoffset, double yoffset);
+void key_callback(GLFWwindow *window, int key, int scancode, int action,
+                  int mods);
+static bool AllowMouseMove = true;
 void processInput(GLFWwindow *window);
 void renderScene(const DRL::Program &shader);
 
 // settings
-const unsigned int SCR_WIDTH = 800;
-const unsigned int SCR_HEIGHT = 600;
+const unsigned int SCR_WIDTH = 1600;
+const unsigned int SCR_HEIGHT = 900;
 
 // camera
 DRL::Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
@@ -76,6 +79,7 @@ int main() {
     glfwMakeContextCurrent(window);
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
     glfwSetCursorPosCallback(window, mouse_callback);
+    glfwSetKeyCallback(window, key_callback);
     glfwSetScrollCallback(window, scroll_callback);
 
     // tell GLFW to capture our mouse
@@ -119,28 +123,16 @@ int main() {
     resMgr.add_path(decltype(resMgr)::root_path / "resources" / "textures");
     // build and compile shaders
     // -------------------------
-    DRL::Program shader;
-    {
-        Shader vshader(GL_VERTEX_SHADER, resMgr.find_path("shadow_mapping.vert"));
-        Shader fshader(GL_FRAGMENT_SHADER, resMgr.find_path("shadow_mapping.frag"));
-        shader.attach_shaders({vshader, fshader});
-        shader.link();
-    }
-    DRL::Program simpleDepthShader;
-    {
-        Shader vshader(GL_VERTEX_SHADER, resMgr.find_path("shadow_mapping_depth.vert"));
-        Shader fshader(GL_FRAGMENT_SHADER, resMgr.find_path("shadow_mapping_depth.frag"));
-        simpleDepthShader.attach_shaders({vshader, fshader});
-        simpleDepthShader.link();
-    }
+    DRL::Program shader = DRL::make_program(
+            resMgr.find_path("shadow_mapping.vert"),
+            resMgr.find_path("shadow_mapping.frag"));
+    DRL::Program simpleDepthShader = DRL::make_program(
+            resMgr.find_path("shadow_mapping_depth.vert"),
+            resMgr.find_path("shadow_mapping_depth.frag"));
 
-    DRL::Program DepthMapShader;
-    {
-        Shader vshader(GL_VERTEX_SHADER, resMgr.find_path("debug_quad.vert"));
-        Shader fshader(GL_FRAGMENT_SHADER, resMgr.find_path("debug_quad_depth.frag"));
-        DepthMapShader.attach_shaders({vshader, fshader});
-        DepthMapShader.link();
-    }
+    DRL::Program DepthMapShader = DRL::make_program(
+            resMgr.find_path("debug_quad.vert"),
+            resMgr.find_path("debug_quad_depth.frag"));
 
     // set up vertex data (and buffer(s)) and configure vertex attributes
     // ------------------------------------------------------------------
@@ -170,12 +162,14 @@ int main() {
 
     // configure depth map FBO
     // -----------------------
-    const unsigned int SHADOW_WIDTH = 1024, SHADOW_HEIGHT = 1024;
+    const unsigned int SHADOW_WIDTH = 2048, SHADOW_HEIGHT = 2048;
     unsigned int depthMapFBO;
     glGenFramebuffers(1, &depthMapFBO);
     // create depth texture
 
     DRL::Texture2D depthMap(SHADOW_WIDTH, SHADOW_HEIGHT, GL_DEPTH_COMPONENT24, GL_FLOAT, nullptr);
+    depthMap.set_wrap_s(GL_CLAMP_TO_EDGE);
+    depthMap.set_wrap_t(GL_CLAMP_TO_EDGE);
     depthMap.bind();
 
     glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
@@ -196,6 +190,7 @@ int main() {
     // -------------
     glm::vec3 lightPos(-2.0f, 4.0f, -1.0f);
 
+    float uBias = 0.05;
     // render loop
     // -----------
     while (!glfwWindowShouldClose(window)) {
@@ -203,9 +198,10 @@ int main() {
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
         {
-            ImGui::Begin("Background Color");// Create a window called "Hello,
+            ImGui::Begin("Background Color", 0);// Create a window called "Hello,
             ImGui::Text("Application average %.3f ms/frame (%.1f FPS)",
                         1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+            ImGui::SliderFloat("ShadowMap bias", &uBias, 0.0f, 1.0f, "bias = %.3f");
             ImGui::End();
         }
         ImGui::Render();
@@ -262,6 +258,7 @@ int main() {
         shader.set_uniform("viewPos", camera.Position);
         shader.set_uniform("lightPos", lightPos);
         shader.set_uniform("lightSpaceMatrix", lightSpaceMatrix);
+        shader.set_uniform("uBias", uBias);
         woodTexture.set_slot(0);
         woodTexture.bind();
         depthMap.set_slot(1);
@@ -362,23 +359,38 @@ void framebuffer_size_callback(GLFWwindow *window, int width, int height) {
 // glfw: whenever the mouse moves, this callback is called
 // -------------------------------------------------------
 void mouse_callback(GLFWwindow *window, double xpos, double ypos) {
-    if (firstMouse) {
+    if (AllowMouseMove) {
+
+        if (firstMouse) {
+            lastX = xpos;
+            lastY = ypos;
+            firstMouse = false;
+        }
+
+        float xoffset = xpos - lastX;
+        float yoffset = lastY - ypos;// reversed since y-coordinates go from bottom to top
+
         lastX = xpos;
         lastY = ypos;
-        firstMouse = false;
+
+        camera.ProcessMouseMovement(xoffset, yoffset);
+    } else {
+        firstMouse = true;
     }
-
-    float xoffset = xpos - lastX;
-    float yoffset = lastY - ypos;// reversed since y-coordinates go from bottom to top
-
-    lastX = xpos;
-    lastY = ypos;
-
-    camera.ProcessMouseMovement(xoffset, yoffset);
 }
 
 // glfw: whenever the mouse scroll wheel scrolls, this callback is called
 // ----------------------------------------------------------------------
 void scroll_callback(GLFWwindow *window, double xoffset, double yoffset) {
     camera.ProcessMouseScroll(yoffset);
+}
+void key_callback(GLFWwindow *window, int key, int scancode, int action,
+                  int mods) {
+    if (key == GLFW_KEY_SPACE && action == GLFW_PRESS) {
+        AllowMouseMove = !AllowMouseMove;
+        if (AllowMouseMove)
+            glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+        else
+            glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+    }
 }
