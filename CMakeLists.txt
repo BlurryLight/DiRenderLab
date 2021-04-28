@@ -24,10 +24,10 @@ message(${THIRD_PARTY})
 include_directories("third_party")
 
 set(EXAMPLES
+        imgui_example
         ssao
         shadowmap
         )
-
 foreach (EXAMPLE ${EXAMPLES})
     add_executable(${EXAMPLE} ${HEADER_LIST} ${THIRD_PARTY} ${IMGUI_SOURCE} ${SOURCE_LIST} examples/${EXAMPLE}/${EXAMPLE}.cc)
     target_include_directories(${EXAMPLE} PRIVATE ${CMAKE_SOURCE_DIR})
@@ -44,4 +44,5 @@ foreach (EXAMPLE ${EXAMPLES})
         target_link_libraries(${EXAMPLE} PRIVATE assimp)
     endif ()
 endforeach ()
+
 

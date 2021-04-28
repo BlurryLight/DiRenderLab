@@ -14,6 +14,12 @@ uniform sampler2D shadowMap;
 uniform vec3 lightPos;
 uniform vec3 viewPos;
 uniform float uBias = 0.05;
+uniform int uShadowMode = 0;
+//pcf
+uniform float uPCFFilterSize= 5.0;
+//pcss
+uniform float uPCSSBlockSize= 5.0;
+uniform float uPCSSLightSize= 10.0;
 #define NUM_SAMPLES 100
 #define EPS 1e-4
 #define PI 3.141592653589793
@@ -49,13 +55,15 @@ void poissonDiskSamples(const in vec2 randomSeed) {
 float ShadowCalculation(vec3 projCoords)
 {
     // get closest depth value from light's perspective (using [0,1] range fragPosLight as coords)
+    if (projCoords.z > 1.0) return 1.0;
     float closestDepth = texture(shadowMap, projCoords.xy).r;
+    if (closestDepth <= EPS) closestDepth = 1.0;
     // get depth of current fragment from light's perspective
     float currentDepth = projCoords.z;
     // check whether current frag pos is in shadow
     vec3 lightDir = normalize(lightPos - fs_in.FragPos);
     vec3 normal = normalize(fs_in.Normal);
-    float bias = uBias * (1.0 - max(dot(normal, lightDir), 0.0));
+    float bias = uBias * max((1.0 - max(dot(normal, lightDir), 0.0)), 0.03);
     //0 : blocked
     //1.0: visiable
     float shadow = currentDepth - bias> closestDepth  ? 0.0 : 1.0;
@@ -69,13 +77,16 @@ float PCF(vec3 projCoords, float filterSize) {
     float texelSize = 1.0 / texturesz.x;
     poissonDiskSamples(projCoords.xy);
     float currentDepth = projCoords.z;
+    vec3 lightDir = normalize(lightPos - fs_in.FragPos);
+    vec3 normal = normalize(fs_in.Normal);
+    float bias = uBias * max((1.0 - max(dot(normal, lightDir), 0.0)), 0.03);
     for (int i = 0; i < NUM_SAMPLES;i++)
     {
         vec2 offset =  filterSize *  poissonDisk[i] * texelSize;
         vec2 jittered_coords = projCoords.xy + offset;
         float closestDepth = texture2D(shadowMap, jittered_coords).r;
         if (closestDepth <= EPS) closestDepth = 1.0;
-        num_sumple += (currentDepth - uBias) > closestDepth ? 0 : 1;
+        num_sumple += (currentDepth - bias) > closestDepth ? 0 : 1;
     }
     return float(num_sumple) / float(NUM_SAMPLES);
 }
@@ -88,8 +99,7 @@ float findBlocker(vec2 uv, float zReceiver) {
     poissonDiskSamples(uv);
     vec2 texturesz = textureSize(shadowMap, 0);
     float texelSize = 1.0 / texturesz.x;
-    //    float filterSize = uPcssBlockSize;
-    float filterSize = 5;
+    float filterSize = uPCSSBlockSize;
     float bias = 0.02;
     for (int i = 0; i < NUM_SAMPLES;i++)
     {
@@ -109,8 +119,7 @@ float PCSS(vec3 projCoords){
 
     // STEP 1: avgblocker depth
     float avgBlockerDepth = findBlocker(projCoords.xy, projCoords.z);
-    //    float lightSize = uPcssLightSize;
-    float lightSize = 20;
+    float lightSize = uPCSSLightSize;
     // STEP 2: penumbra size
     float penmubraSize = lightSize * (projCoords.z - avgBlockerDepth) / avgBlockerDepth;
     // STEP 3: filtering
@@ -153,8 +162,18 @@ void main()
     vec3 projCoords = fs_in.FragPosLightSpace.xyz / fs_in.FragPosLightSpace.w;
     // transform to [0,1] range
     projCoords = projCoords * 0.5 + 0.5;
-    //    float visibility = ShadowCalculation(projCoords);
-    //    float visibility = PCF(projCoords, 5.0);
-    float visibility = PCSS(projCoords);
+    float visibility = 1.0;
+    if (uShadowMode == 0)
+    {
+        visibility = ShadowCalculation(projCoords);
+    }
+    else if (uShadowMode == 1)
+    {
+        visibility = PCF(projCoords, uPCFFilterSize);
+    }
+    else if (uShadowMode == 2)
+    {
+        visibility = PCSS(projCoords);
+    }
     FragColor = vec4(res.ambient + res.specular * visibility, 1.0);
 }

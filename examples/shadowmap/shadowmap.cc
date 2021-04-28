@@ -31,8 +31,8 @@ void processInput(GLFWwindow *window);
 void renderScene(const DRL::Program &shader);
 
 // settings
-const unsigned int SCR_WIDTH = 1600;
-const unsigned int SCR_HEIGHT = 900;
+static unsigned int SCR_WIDTH = 1600;
+static unsigned int SCR_HEIGHT = 900;
 
 // camera
 DRL::Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
@@ -47,6 +47,11 @@ float lastFrame = 0.0f;
 // meshes
 DRL::VertexArray *planeVAO;
 
+enum ShadowMode {
+    kShadowMap = 0,
+    kPCF = 1,
+    kPCSS = 2,
+};
 int main() {
     //spdlog init
     std::vector<spdlog::sink_ptr> sinks;
@@ -134,6 +139,10 @@ int main() {
             resMgr.find_path("debug_quad.vert"),
             resMgr.find_path("debug_quad_depth.frag"));
 
+    DRL::Program LightShader = DRL::make_program(
+            resMgr.find_path("shadow_mapping.vert"),
+            resMgr.find_path("light.frag"));
+
     // set up vertex data (and buffer(s)) and configure vertex attributes
     // ------------------------------------------------------------------
     float planeVertices[] = {
@@ -191,6 +200,10 @@ int main() {
     glm::vec3 lightPos(-2.0f, 4.0f, -1.0f);
 
     float uBias = 0.05;
+    float uPCFFilterSize = 5.0;
+    float uPCSSBlockSize = 5.0;
+    float uPCSSLightSize = 10.0;
+    int current_mode = kShadowMap;
     // render loop
     // -----------
     while (!glfwWindowShouldClose(window)) {
@@ -201,7 +214,20 @@ int main() {
             ImGui::Begin("Background Color", 0);// Create a window called "Hello,
             ImGui::Text("Application average %.3f ms/frame (%.1f FPS)",
                         1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
-            ImGui::SliderFloat("ShadowMap bias", &uBias, 0.0f, 1.0f, "bias = %.3f");
+            const char *modes[] = {"ShadowMap", "PCF", "PCSS"};
+            ImGui::Combo("ShadowModes", &current_mode, modes, IM_ARRAYSIZE(modes));
+            if (ImGui::CollapsingHeader("ShadowMap")) {
+                ImGui::SliderFloat("ShadowMap bias", &uBias, 0.0f, 1.0f, "%.3f");
+            }
+
+            if (ImGui::CollapsingHeader("PCF")) {
+                ImGui::SliderFloat("PCF filter size", &uPCFFilterSize, 0.0f, 20.0f, "%.3f");
+            }
+
+            if (ImGui::CollapsingHeader("PCSS")) {
+                ImGui::SliderFloat("PCSS block size", &uPCSSBlockSize, 0.0f, 20.0f, "%.3f");
+                ImGui::SliderFloat("PCSS light size", &uPCSSLightSize, 0.0f, 50.0f, "%.3f");
+            }
             ImGui::End();
         }
         ImGui::Render();
@@ -226,9 +252,13 @@ int main() {
         // --------------------------------------------------------------
         glm::mat4 lightProjection, lightView;
         glm::mat4 lightSpaceMatrix;
-        float near_plane = 1.0f, far_plane = 7.5f;
-        lightProjection = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, near_plane, far_plane);
-        lightView = glm::lookAt(lightPos, glm::vec3(0.0f), glm::vec3(0.0, 1.0, 0.0));
+        float near_plane = 1.0f, far_plane = 20.0f;
+        lightProjection = glm::ortho(-30.0f, 10.0f, -30.0f, 30.0f, near_plane, far_plane);
+        auto lightPosNew = lightPos + glm::vec3(
+                                              1 * glm::sin(glfwGetTime()),
+                                              0,
+                                              5 * glm::sin(glfwGetTime()));
+        lightView = glm::lookAt(lightPosNew, glm::vec3(0.0f), glm::vec3(0.0, 1.0, 0.0));
         lightSpaceMatrix = lightProjection * lightView;
         // render scene from light's point of view
         simpleDepthShader.use();
@@ -240,10 +270,6 @@ int main() {
         woodTexture.bind();
         renderScene(simpleDepthShader);
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-        // reset viewport
-        glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         // 2. render scene as normal using the generated depth/shadow map
         // --------------------------------------------------------------
@@ -258,17 +284,34 @@ int main() {
         shader.set_uniform("viewPos", camera.Position);
         shader.set_uniform("lightPos", lightPos);
         shader.set_uniform("lightSpaceMatrix", lightSpaceMatrix);
-        shader.set_uniform("uBias", uBias);
+        switch (current_mode) {
+            case kShadowMap:
+                shader.set_uniform("uBias", uBias);
+                break;
+            case kPCF:
+                shader.set_uniform("uPCFFilterSize", uPCFFilterSize);
+                break;
+            case kPCSS:
+                shader.set_uniform("uPCSSBlockSize", uPCSSBlockSize);
+                shader.set_uniform("uPCSSLightSize", uPCSSLightSize);
+                break;
+        }
+        shader.set_uniform("uShadowMode", current_mode);
         woodTexture.set_slot(0);
         woodTexture.bind();
         depthMap.set_slot(1);
         depthMap.bind();
-        //        glActiveTexture(GL_TEXTURE0);
-        //        glBindTexture(GL_TEXTURE_2D, woodTexture);
-        //        glActiveTexture(GL_TEXTURE1);
-        //        glBindTexture(GL_TEXTURE_2D, depthMap);
         renderScene(shader);
         depthMap.unbind();
+        //render the light
+        LightShader.use();
+        auto model = glm::mat4(1.0f);
+        model = glm::translate(model, lightPosNew);
+        model = glm::scale(model, glm::vec3(0.1f));
+        LightShader.set_uniform("model", model);
+        LightShader.set_uniform("projection", projection);
+        LightShader.set_uniform("view", view);
+        DRL::renderCube();
 
         // render Depth map to quad for visual debugging
         // ---------------------------------------------
@@ -353,6 +396,10 @@ void framebuffer_size_callback(GLFWwindow *window, int width, int height) {
     // make sure the viewport matches the new window dimensions; note that width and
     // height will be significantly larger than specified on retina displays.
     glViewport(0, 0, width, height);
+    SCR_WIDTH = width;
+    SCR_HEIGHT = height;
+    lastX = (float) SCR_WIDTH / 2.0;
+    lastY = (float) SCR_HEIGHT / 2.0;
 }
 
 
