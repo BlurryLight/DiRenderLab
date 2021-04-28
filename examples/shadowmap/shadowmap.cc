@@ -115,29 +115,29 @@ int main() {
     glEnable(GL_DEPTH_TEST);
 
     DRL::ResourcePathSearcher resMgr;
-    resMgr.add_path(decltype(resMgr)::root_path / "resources" / "shaders");
+    resMgr.add_path(decltype(resMgr)::root_path / "resources" / "shaders" / "shadowmap");
     resMgr.add_path(decltype(resMgr)::root_path / "resources" / "textures");
     // build and compile shaders
     // -------------------------
     DRL::Program shader;
     {
-        Shader vshader(GL_VERTEX_SHADER, resMgr.find_path("3.1.2.shadow_mapping.vs"));
-        Shader fshader(GL_FRAGMENT_SHADER, resMgr.find_path("3.1.2.shadow_mapping.fs"));
+        Shader vshader(GL_VERTEX_SHADER, resMgr.find_path("shadow_mapping.vert"));
+        Shader fshader(GL_FRAGMENT_SHADER, resMgr.find_path("shadow_mapping.frag"));
         shader.attach_shaders({vshader, fshader});
         shader.link();
     }
     DRL::Program simpleDepthShader;
     {
-        Shader vshader(GL_VERTEX_SHADER, resMgr.find_path("3.1.2.shadow_mapping_depth.vs"));
-        Shader fshader(GL_FRAGMENT_SHADER, resMgr.find_path("3.1.2.shadow_mapping_depth.fs"));
+        Shader vshader(GL_VERTEX_SHADER, resMgr.find_path("shadow_mapping_depth.vert"));
+        Shader fshader(GL_FRAGMENT_SHADER, resMgr.find_path("shadow_mapping_depth.frag"));
         simpleDepthShader.attach_shaders({vshader, fshader});
         simpleDepthShader.link();
     }
 
     DRL::Program DepthMapShader;
     {
-        Shader vshader(GL_VERTEX_SHADER, resMgr.find_path("3.1.2.debug_quad.vs"));
-        Shader fshader(GL_FRAGMENT_SHADER, resMgr.find_path("3.1.2.debug_quad_depth.fs"));
+        Shader vshader(GL_VERTEX_SHADER, resMgr.find_path("debug_quad.vert"));
+        Shader fshader(GL_FRAGMENT_SHADER, resMgr.find_path("debug_quad_depth.frag"));
         DepthMapShader.attach_shaders({vshader, fshader});
         DepthMapShader.link();
     }

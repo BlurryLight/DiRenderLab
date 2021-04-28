@@ -13,10 +13,7 @@ else ()
     find_package(PkgConfig REQUIRED)
     pkg_search_module(GLFW REQUIRED glfw3)
 endif (WIN32)
-file(GLOB SHADERS *.vs *.fs *.vert *.frag)
-file(COPY ${SHADERS}
-        DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
-set(SOURCE_LIST shadow_mapping_base.cpp GLwrapper/globject.cc GLwrapper/globject.hh)
+set(SOURCE_LIST GLwrapper/globject.cc GLwrapper/globject.hh)
 set(HEADER_LIST GLwrapper/glsupport.hh GLwrapper/shader.cc GLwrapper/shader.hh GLwrapper/global.hh GLwrapper/program.cc GLwrapper/program.hh GLwrapper/vertex_buffer.cc GLwrapper/vertex_buffer.hh GLwrapper/vertex_array.cpp GLwrapper/vertex_array.h GLwrapper/texture.cc GLwrapper/texture.hh GLwrapper/glsupport.cc GLwrapper/shapes.cc GLwrapper/shapes.hh)
 file(GLOB IMGUI_SOURCE "${CMAKE_CURRENT_SOURCE_DIR}/third_party/imgui/*")
 file(GLOB THIRD_PARTY
@@ -26,21 +23,25 @@ file(GLOB THIRD_PARTY
 message(${THIRD_PARTY})
 include_directories("third_party")
 
-add_executable(${PROJECT_NAME} ${HEADER_LIST} ${THIRD_PARTY} ${IMGUI_SOURCE} ${SOURCE_LIST})
-target_include_directories(${PROJECT_NAME} PRIVATE .)
-target_compile_definitions(${PROJECT_NAME} PRIVATE -DIMGUI_IMPL_OPENGL_LOADER_GLAD)
-target_link_libraries(${PROJECT_NAME} PRIVATE
-        glfw
-        ${CMAKE_DL_LIBS}
-        spdlog::spdlog
+set(EXAMPLES
+        ssao
+        shadowmap
         )
-if (WIN32)
-    target_link_libraries(${PROJECT_NAME} PRIVATE
-            assimp::assimp
+
+foreach (EXAMPLE ${EXAMPLES})
+    add_executable(${EXAMPLE} ${HEADER_LIST} ${THIRD_PARTY} ${IMGUI_SOURCE} ${SOURCE_LIST} examples/${EXAMPLE}/${EXAMPLE}.cc)
+    target_include_directories(${EXAMPLE} PRIVATE ${CMAKE_SOURCE_DIR})
+    target_compile_definitions(${EXAMPLE} PRIVATE -DIMGUI_IMPL_OPENGL_LOADER_GLAD)
+    target_link_libraries(${EXAMPLE} PRIVATE
+            glfw
+            ${CMAKE_DL_LIBS}
+            spdlog::spdlog
             )
-else ()
-    target_link_libraries(${PROJECT_NAME} PRIVATE
-            assimp
-            )
-endif ()
+    if (WIN32)
+        target_link_libraries(${EXAMPLE} PRIVATE assimp::assimp)
+        target_compile_options(${EXAMPLE} PRIVATE /utf-8)
+    else ()
+        target_link_libraries(${EXAMPLE} PRIVATE assimp)
+    endif ()
+endforeach ()
 
