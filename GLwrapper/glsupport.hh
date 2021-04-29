@@ -183,4 +183,65 @@ namespace DRL {
                                 const void *userParam);
     // clang-format on
 
+    class RenderBase {
+    private:
+        void InitWindow();
+
+    public:
+        struct BaseInfo {
+            std::string title = "DiRenderLab";
+            std::string glsl_version = "#version 450";
+            int width = 1600;
+            int height = 900;
+            int major_version = 4;
+            int minor_version = 5;
+            bool resizeable = true;
+#ifdef NDEBUG
+            bool debug = false;
+#else
+            bool debug = true;
+#endif
+        };
+
+    protected:
+        BaseInfo info_;
+        bool AllowMouseMove_ = true;
+        float lastX_ = (float) info_.width / 2.0;
+        float lastY_ = (float) info_.height / 2.0;
+        bool firstMouse_ = true;
+        float deltaTime_ = 0.0f;
+        float lastFrame_ = 0.0f;
+        GLFWwindow *window_ = nullptr;
+
+        virtual void on_resize(int width, int height);
+        virtual void on_key(int key, int scancode, int action, int mods);
+        ;
+        virtual void on_mouse_scroll(double xoffset, double yoffset);
+        ;
+        virtual void on_mouse_move(double xpos, double ypos);
+        ;
+        virtual void processInput();
+        virtual void shutdown() { /*some user-defined code here*/
+        }
+        virtual void render() = 0;
+        virtual void setup_states() {}
+
+    public:
+        std::unique_ptr<Camera> camera_ = nullptr;
+        // timing
+        RenderBase();
+        RenderBase::RenderBase(BaseInfo info);
+        virtual ~RenderBase();
+        virtual void loop() final;
+
+
+        //        void framebuffer_size_callback(GLFWwindow *window, int width, int height);
+        //        void mouse_callback(GLFWwindow *window, double xpos, double ypos);
+        //        void scroll_callback(GLFWwindow *window, double xoffset, double yoffset);
+        //        void key_callback(GLFWwindow *window, int key, int scancode, int action,
+        //                          int mods);
+        // settings
+
+        // camera
+    };
 }//namespace DRL

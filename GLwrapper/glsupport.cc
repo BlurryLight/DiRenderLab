@@ -2,7 +2,12 @@
 // Created by zhong on 2021/4/26.
 //
 
+#include <utility>
+
 #include "glsupport.hh"
+#include "third_party/imgui/imgui.h"
+#include "third_party/imgui/imgui_impl_glfw.h"
+#include "third_party/imgui/imgui_impl_opengl3.h"
 using namespace DRL;
 unsigned int DRL::TextureFromFile(const char *path, const std::string &directory, bool gamma, bool flip);
 float DRL::get_random_float(float min, float max) {
@@ -396,3 +401,159 @@ unsigned int DRL::TextureFromFile(const char *path, const std::string &directory
 
     return textureID;
 }
+RenderBase::RenderBase()
+: RenderBase(BaseInfo{}){}
+RenderBase::RenderBase(BaseInfo  info)
+:info_(std::move(info))
+{
+    InitWindow();
+}
+void RenderBase::InitWindow(){
+    // glfw: initialize and configure
+    // ------------------------------
+    glfwInit();
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, info_.major_version);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, info_.minor_version);
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, info_.debug);
+
+
+    // glfw window creation
+    // --------------------
+    GLFWwindow *window = glfwCreateWindow(info_.width, info_.height, info_.title.c_str(), NULL, NULL);
+    if (window == NULL) {
+        std::cout << "Failed to create GLFW window" << std::endl;
+        glfwTerminate();
+        std::abort();
+    }
+    window_ = window;
+    glfwSetWindowUserPointer(window,this);
+    glfwMakeContextCurrent(window);
+    glfwSwapInterval(0);
+    auto resize_cb = [](GLFWwindow* win,int width,int height)
+    {static_cast<RenderBase*>(glfwGetWindowUserPointer(win))->on_resize(width,height);};
+
+    auto mouse_cb =[](GLFWwindow* win,double xpos, double ypos)
+    {static_cast<RenderBase*>(glfwGetWindowUserPointer(win))->on_mouse_move(xpos,ypos);};
+
+    auto scroll_cb=[](GLFWwindow* win,double xoffset, double yoffset)
+    {static_cast<RenderBase*>(glfwGetWindowUserPointer(win))->on_mouse_scroll(xoffset,yoffset);};
+
+    auto key_cb=[](GLFWwindow* win,int key,int scancode,int action,int mods)
+    {static_cast<RenderBase*>(glfwGetWindowUserPointer(win))->on_key(key,scancode,action,mods);};
+
+    glfwSetFramebufferSizeCallback(window,resize_cb);
+    glfwSetCursorPosCallback(window, mouse_cb);
+    glfwSetKeyCallback(window, key_cb);
+    glfwSetScrollCallback(window, scroll_cb);
+
+    // tell GLFW to capture our mouse
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+
+    // glad: load all OpenGL function pointers
+    // ---------------------------------------
+    if (!gladLoadGLLoader((GLADloadproc) glfwGetProcAddress)) {
+        std::cout << "Failed to initialize GLAD" << std::endl;
+        std::abort();
+    }
+    if(info_.debug)
+        glad_set_post_callback(DRL::PostCallbackFunc);
+
+    if(info_.debug)
+    {
+        int flags;
+        glGetIntegerv(GL_CONTEXT_FLAGS, &flags);
+        if (flags & GL_CONTEXT_FLAG_DEBUG_BIT) {
+            glEnable(GL_DEBUG_OUTPUT);
+            glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);// makes sure errors are displayed synchronously
+            glDebugMessageCallback(DRL::glDebugOutput, nullptr);
+            glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, nullptr, GL_TRUE);
+        }
+    }
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGuiIO &io = ImGui::GetIO();
+    (void) io;
+    ImGui::StyleColorsDark();
+    ImGui_ImplGlfw_InitForOpenGL(window, true);
+    ImGui_ImplOpenGL3_Init(info_.glsl_version.c_str());
+
+}
+RenderBase::~RenderBase() {
+    ImGui_ImplOpenGL3_Shutdown();
+    ImGui_ImplGlfw_Shutdown();
+    ImGui::DestroyContext();
+    glfwTerminate();
+}
+void RenderBase::loop() {
+    AssertLog(bool(camera_),"Camera is uninitialized when loop");
+    setup_states();
+    while(!glfwWindowShouldClose(window_))
+    {
+        ImGui_ImplOpenGL3_NewFrame();
+        ImGui_ImplGlfw_NewFrame();
+        float currentFrame = glfwGetTime();
+        deltaTime_ = currentFrame - lastFrame_;
+        lastFrame_ = currentFrame;
+        render();
+        processInput();
+        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+        glfwSwapBuffers(window_);
+        glfwPollEvents();
+    }
+}
+void RenderBase::on_resize(int width, int height){
+    glViewport(0, 0, width, height);
+    info_.width= width;
+    info_.height = height;
+    lastX_ = (float) info_.width/ 2.0;
+    lastY_ = (float) info_.height/ 2.0;
+}
+void RenderBase::on_key(int key, int scancode, int action, int mods){
+    if (key == GLFW_KEY_SPACE && action == GLFW_PRESS) {
+        AllowMouseMove_ = !AllowMouseMove_;
+        if (AllowMouseMove_)
+            glfwSetInputMode(window_, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+        else
+            glfwSetInputMode(window_, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+    }
+}
+void RenderBase::on_mouse_scroll(double xoffset, double yoffset){
+if(camera_)
+    camera_->ProcessMouseScroll(yoffset);
+}
+void RenderBase::on_mouse_move(double xpos, double ypos){
+    if(!camera_) return;
+    if (AllowMouseMove_) {
+        if (firstMouse_) {
+            lastX_ = xpos;
+            lastY_ = ypos;
+            firstMouse_ = false;
+        }
+
+        float xoffset = xpos - lastX_;
+        float yoffset = lastY_ - ypos;// reversed since y-coordinates go from bottom to top
+
+        lastX_ = xpos;
+        lastY_ = ypos;
+
+        camera_->ProcessMouseMovement(xoffset, yoffset);
+    } else {
+        firstMouse_ = true;
+    }
+}
+void RenderBase::processInput(){
+    if (glfwGetKey(window_, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+        glfwSetWindowShouldClose(window_, true);
+
+    if(!camera_) return;
+    if (glfwGetKey(window_, GLFW_KEY_W) == GLFW_PRESS)
+        camera_->ProcessKeyboard(DRL::FORWARD, deltaTime_);
+    if (glfwGetKey(window_, GLFW_KEY_S) == GLFW_PRESS)
+        camera_->ProcessKeyboard(DRL::BACKWARD, deltaTime_);
+    if (glfwGetKey(window_, GLFW_KEY_A) == GLFW_PRESS)
+        camera_->ProcessKeyboard(DRL::LEFT, deltaTime_);
+    if (glfwGetKey(window_, GLFW_KEY_D) == GLFW_PRESS)
+        camera_->ProcessKeyboard(DRL::RIGHT, deltaTime_);
+}
+

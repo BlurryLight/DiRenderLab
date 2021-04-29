@@ -22,11 +22,13 @@ namespace DRL {
         glm::vec3 clear_color_ = {};
         glm::vec3 clear_depth_{1.0};
         ~Framebuffer() {
-            AssertLog(complete_, "Framebuffer {} is not complete until destroying!", obj_);
+            AssertLog(complete_ || (handle() == 0), "Framebuffer {} is not complete until destroying!", obj_);
         }
         operator GLuint() const { return obj_.handle(); }
         [[nodiscard]] GLuint handle() const { return obj_.handle(); }
         Framebuffer() = default;
+        Framebuffer(Framebuffer &&) = default;
+        Framebuffer &operator=(Framebuffer &&) = default;
         Framebuffer(GLenum attachment, GLuint texture_obj, GLint mipmap_level, glm::vec3 clear_color = glm::vec3(0.0f),
                     glm::vec3 clear_depth = glm::vec3(1.0f))
             : clear_color_(clear_color), clear_depth_(clear_depth) {

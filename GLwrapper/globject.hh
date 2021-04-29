@@ -127,6 +127,11 @@ namespace DRL {
                 handle_ = 0;
             }
         }
+        TextureObject(TextureObject &&other) noexcept : GLObject(std::move(other)) {}
+        TextureObject &operator=(TextureObject &&other) noexcept {
+            GLObject::operator=(std::move(other));
+            return *this;
+        }
     };
 
     class FramebufferObj : public GLObject {

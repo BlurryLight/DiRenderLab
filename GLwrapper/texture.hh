@@ -68,6 +68,8 @@ namespace DRL {
             glBindTextureUnit(slot_, 0);
             bounded_ = false;
         }
+        Texture(Texture &&other) = default;
+        Texture &operator=(Texture &&) = default;
     };
     class Texture2D : public Texture {
     public:
