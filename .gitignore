@@ -34,5 +34,5 @@ build
 .idea
 *json
 *.user
-images/
+#images/
 cmake_vars.h
