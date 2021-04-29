@@ -9,11 +9,12 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
+#include "GLwrapper/framebuffer.hh"
 #include "GLwrapper/glsupport.hh"
 #include "GLwrapper/program.hh"
 #include "GLwrapper/shapes.hh"
 #include "GLwrapper/texture.hh"
-#include "GLwrapper/vertex_array.h"
+#include "GLwrapper/vertex_array.hh"
 #include "GLwrapper/vertex_buffer.hh"
 #include "utils/resource_path_searcher.h"
 using DRL::Camera;
@@ -82,6 +83,7 @@ int main() {
         return -1;
     }
     glfwMakeContextCurrent(window);
+    glfwSwapInterval(0);
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
     glfwSetCursorPosCallback(window, mouse_callback);
     glfwSetKeyCallback(window, key_callback);
@@ -172,22 +174,20 @@ int main() {
     // configure depth map FBO
     // -----------------------
     const unsigned int SHADOW_WIDTH = 2048, SHADOW_HEIGHT = 2048;
-    unsigned int depthMapFBO;
+    //    unsigned int depthMapFBO;
     //    glGenFramebuffers(1, &depthMapFBO);
-    glCreateFramebuffers(1, &depthMapFBO);
+    //    glCreateFramebuffers(1, &depthMapFBO);
     // create depth texture
+
 
     DRL::Texture2D depthMap(SHADOW_WIDTH, SHADOW_HEIGHT, GL_DEPTH_COMPONENT32F, GL_FLOAT, nullptr);
     depthMap.set_wrap_s(GL_CLAMP_TO_EDGE);
     depthMap.set_wrap_t(GL_CLAMP_TO_EDGE);
     depthMap.bind();
 
-    glNamedFramebufferTexture(depthMapFBO, GL_DEPTH_ATTACHMENT, depthMap, 0);
-    glNamedFramebufferDrawBuffer(depthMapFBO, GL_NONE);
-    glNamedFramebufferDrawBuffer(depthMapFBO, GL_NONE);
-    glNamedFramebufferReadBuffer(depthMapFBO, GL_NONE);
-    assert(glCheckNamedFramebufferStatus(depthMapFBO, GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);
-
+    DRL::Framebuffer depthMapFBO(GL_DEPTH_ATTACHMENT, depthMap, 0);
+    depthMapFBO.set_draw_buffer(GL_NONE);
+    depthMapFBO.set_read_buffer(GL_NONE);
 
     // shader configuration
     // --------------------
@@ -227,7 +227,7 @@ int main() {
 
             if (ImGui::CollapsingHeader("PCSS")) {
                 ImGui::SliderFloat("PCSS block size", &uPCSSBlockSize, 0.0f, 20.0f, "%.3f");
-                ImGui::SliderFloat("PCSS light size", &uPCSSLightSize, 0.0f, 50.0f, "%.3f");
+                ImGui::SliderFloat("PCSS light size", &uPCSSLightSize, 0.0f, 100.0f, "%.3f");
             }
             ImGui::End();
         }
@@ -265,12 +265,11 @@ int main() {
         simpleDepthShader.use();
         simpleDepthShader.set_uniform("lightSpaceMatrix", lightSpaceMatrix);
 
-        glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
-        glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
-        glClear(GL_DEPTH_BUFFER_BIT);
-        woodTexture.bind();
-        renderScene(simpleDepthShader);
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        {
+            DRL::bind_guard<DRL::Framebuffer> fbo_gd(depthMapFBO);
+            DRL::bind_guard<DRL::Texture2D> tex_gd(woodTexture);
+            renderScene(simpleDepthShader);
+        }
 
         // 2. render scene as normal using the generated depth/shadow map
         // --------------------------------------------------------------

@@ -2,8 +2,8 @@
 // Created by zhong on 2021/4/24.
 //
 
-#ifndef DIRENDERLAB_VERTEX_ARRAY_H
-#define DIRENDERLAB_VERTEX_ARRAY_H
+#ifndef DIRENDERLAB_VERTEX_ARRAY_HH
+#define DIRENDERLAB_VERTEX_ARRAY_HH
 
 #include "program.hh"
 #include "vertex_buffer.hh"
@@ -93,4 +93,4 @@ namespace DRL {
     };
 }// namespace DRL
 
-#endif//DIRENDERLAB_VERTEX_ARRAY_H
+#endif//DIRENDERLAB_VERTEX_ARRAY_HH

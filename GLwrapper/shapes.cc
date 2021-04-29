@@ -4,7 +4,7 @@
 
 #include "shapes.hh"
 #include "glad/glad.h"
-#include "vertex_array.h"
+#include "vertex_array.hh"
 using namespace DRL;
 void DRL::renderCube() {
     static unsigned int cubeVAO = 0;

@@ -127,8 +127,21 @@ namespace DRL {
                 handle_ = 0;
             }
         }
-        TextureObject(TextureObject &&other) noexcept : GLObject(std::move(other)) {}
-        TextureObject &operator=(TextureObject &&other) noexcept {
+    };
+
+    class FramebufferObj : public GLObject {
+    public:
+        FramebufferObj() : GLObject() {
+            glCreateFramebuffers(1, &handle_);
+        }
+        ~FramebufferObj() {
+            if (handle()) {
+                glDeleteFramebuffers(1, &handle_);
+                handle_ = 0;
+            }
+        }
+        FramebufferObj(FramebufferObj &&other) noexcept : GLObject(std::move(other)) {}
+        FramebufferObj &operator=(FramebufferObj &&other) noexcept {
             GLObject::operator=(std::move(other));
             return *this;
         }

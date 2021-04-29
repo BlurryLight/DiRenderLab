@@ -2,7 +2,7 @@
 
 #include "program.hh"
 #include "shader.hh"
-#include "vertex_array.h"
+#include "vertex_array.hh"
 #include <GLFW/glfw3.h>
 #include <assimp/Importer.hpp>
 #include <assimp/postprocess.h>

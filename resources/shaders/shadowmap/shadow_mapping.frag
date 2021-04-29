@@ -116,7 +116,9 @@ float findBlocker(vec2 uv, float zReceiver) {
     vec2 texturesz = textureSize(shadowMap, 0);
     float texelSize = 1.0 / texturesz.x;
     float filterSize = uPCSSBlockSize;
-    float bias = 0.02;
+    vec3 lightDir = normalize(lightPos - fs_in.FragPos);
+    vec3 normal = normalize(fs_in.Normal);
+    float bias = uBias * max((1.0 - max(dot(normal, lightDir), 0.0)), 0.2);
     for (int i = 0; i < NUM_SAMPLES;i++)
     {
         vec2 offset =  filterSize *  poissonDisk[i] * texelSize;

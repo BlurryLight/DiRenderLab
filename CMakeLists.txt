@@ -14,7 +14,7 @@ else ()
     pkg_search_module(GLFW REQUIRED glfw3)
 endif (WIN32)
 set(SOURCE_LIST GLwrapper/globject.cc GLwrapper/globject.hh)
-set(HEADER_LIST GLwrapper/glsupport.hh GLwrapper/shader.cc GLwrapper/shader.hh GLwrapper/global.hh GLwrapper/program.cc GLwrapper/program.hh GLwrapper/vertex_buffer.cc GLwrapper/vertex_buffer.hh GLwrapper/vertex_array.cpp GLwrapper/vertex_array.h GLwrapper/texture.cc GLwrapper/texture.hh GLwrapper/glsupport.cc GLwrapper/shapes.cc GLwrapper/shapes.hh)
+set(HEADER_LIST GLwrapper/glsupport.hh GLwrapper/shader.cc GLwrapper/shader.hh GLwrapper/global.hh GLwrapper/program.cc GLwrapper/program.hh GLwrapper/vertex_buffer.cc GLwrapper/vertex_buffer.hh GLwrapper/vertex_array.cc GLwrapper/vertex_array.hh GLwrapper/texture.cc GLwrapper/texture.hh GLwrapper/glsupport.cc GLwrapper/shapes.cc GLwrapper/shapes.hh GLwrapper/framebuffer.cc GLwrapper/framebuffer.hh)
 file(GLOB IMGUI_SOURCE "${CMAKE_CURRENT_SOURCE_DIR}/third_party/imgui/*")
 file(GLOB THIRD_PARTY
         third_party/*.c third_party/*.cc third_party/*.h utils/*.cc utils/*.h
