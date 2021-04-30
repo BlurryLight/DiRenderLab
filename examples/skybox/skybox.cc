@@ -3,7 +3,7 @@
 //
 
 #include "skybox.hh"
-
+#include "GLwrapper/texture.hh"
 int main() {
     //spdlog init
     std::vector<spdlog::sink_ptr> sinks;
@@ -39,7 +39,7 @@ void SkyboxRender::render() {
     glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     shader.use();
-
+    DRL::bind_guard<DRL::TextureCube> texture_gd(skyboxTexture);
     glm::mat4 projection = glm::perspective(glm::radians(camera_->Zoom), (float) info_.width / (float) info_.height, 0.1f, 100.0f);
     glm::mat4 view = camera_->GetViewMatrix();
     shader.set_uniform("projection", projection);
@@ -49,8 +49,6 @@ void SkyboxRender::render() {
     {
         DRL::bind_guard<DRL::VertexArray> gd(skyboxVAO);
         glDepthFunc(GL_LEQUAL);
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_CUBE_MAP, skyboxTexture);
         if (skyboxMode == 0) {
             skyboxShader.use();
             skyboxShader.set_uniform("projection", projection);
@@ -73,7 +71,7 @@ void SkyboxRender::setup_states() {
     resMgr.add_path(decltype(resMgr)::root_path / "resources" / "textures" / "skyboxlake");
     shader = DRL::make_program(
             resMgr.find_path("mvp_pos_normal_texture.vert"),
-            resMgr.find_path("mvp_pos_normal_texture.frag"));
+            resMgr.find_path("cube_reflect.frag"));
     skyboxShader =
             DRL::make_program(
                     resMgr.find_path("skybox.vert"),
@@ -131,13 +129,15 @@ void SkyboxRender::setup_states() {
     DRL::VertexBuffer skyboxVBO(skyboxVertices, sizeof skyboxVertices, DRL::kStaticDraw);
     skyboxVAO.lazy_bind_attrib(0, GL_FLOAT, 3, 0);
     skyboxVAO.update_bind(skyboxVBO, 0, 3);
-    std::vector<std::string> faces{
-            resMgr.find_path("right.jpg").string(),
-            resMgr.find_path("left.jpg").string(),
-            resMgr.find_path("top.jpg").string(),
-            resMgr.find_path("bottom.jpg").string(),
-            resMgr.find_path("front.jpg").string(),
-            resMgr.find_path("back.jpg").string(),
+    std::vector<fs::path> faces{
+            resMgr.find_path("right.jpg"),
+            resMgr.find_path("left.jpg"),
+            resMgr.find_path("top.jpg"),
+            resMgr.find_path("bottom.jpg"),
+            resMgr.find_path("front.jpg"),
+            resMgr.find_path("back.jpg"),
     };
-    skyboxTexture = loadCubemap(faces);
+    //    skyboxTexture = loadCubemap(faces);
+    skyboxTexture = DRL::TextureCube(faces, false, false);
+    skyboxTexture.set_slot(0);
 }

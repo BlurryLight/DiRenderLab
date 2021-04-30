@@ -21,7 +21,14 @@ namespace DRL {
         bool bounded_ = false;
         bool first_bounded = false;
         bool updated_ = false;
-        int slot_ = 0;
+        unsigned int slot_ = 0;
+
+        Texture(GLenum textureType) : obj_(textureType) {
+            glTextureParameteri(obj_, GL_TEXTURE_MIN_FILTER, min_filter_);
+            glTextureParameteri(obj_, GL_TEXTURE_MAG_FILTER, mag_filter_);
+            glTextureParameteri(obj_, GL_TEXTURE_WRAP_S, wrap_s_);
+            glTextureParameteri(obj_, GL_TEXTURE_WRAP_T, wrap_t_);
+        }
 
     public:
         GLenum min_filter_ = GL_NEAREST;
@@ -30,12 +37,6 @@ namespace DRL {
         GLenum wrap_t_ = GL_REPEAT;
         void generateMipmap() const {
             glGenerateTextureMipmap(obj_);
-        }
-        Texture() {
-            glTextureParameteri(obj_, GL_TEXTURE_MIN_FILTER, min_filter_);
-            glTextureParameteri(obj_, GL_TEXTURE_MAG_FILTER, mag_filter_);
-            glTextureParameteri(obj_, GL_TEXTURE_WRAP_S, wrap_s_);
-            glTextureParameteri(obj_, GL_TEXTURE_WRAP_T, wrap_t_);
         }
         void set_min_filter(GLenum value) {
             glTextureParameteri(obj_, GL_TEXTURE_MIN_FILTER, value);
@@ -73,7 +74,7 @@ namespace DRL {
     };
     class Texture2D : public Texture {
     public:
-        Texture2D() = default;
+        Texture2D() : Texture(GL_TEXTURE_2D) {}
         ~Texture2D() {
             AssertLog(first_bounded || (obj_.handle() == 0), "Texture2D {} is never bounded!", obj_);
         }
@@ -84,6 +85,23 @@ namespace DRL {
         [[nodiscard]] GLuint handle() const { return obj_.handle(); }
         Texture2D(Texture2D &&other) = default;
         Texture2D &operator=(Texture2D &&) = default;
+    };
+
+    class TextureCube : public Texture {
+    public:
+        GLenum wrap_r_ = GL_REPEAT;
+        TextureCube() : Texture(GL_TEXTURE_CUBE_MAP) {
+            glTextureParameteri(obj_, GL_TEXTURE_WRAP_R, wrap_r_);
+        }
+        ~TextureCube() {
+            AssertLog(first_bounded || (obj_.handle() == 0), "Texture2D {} is never bounded!", obj_);
+        }
+        TextureCube(const std::vector<fs::path> &paths, bool gamma, bool flip);
+        void update_data(const std::vector<fs::path> &paths, bool gamma, bool flip);
+        operator GLuint() const { return obj_.handle(); }
+        [[nodiscard]] GLuint handle() const { return obj_.handle(); }
+        TextureCube(TextureCube &&other) = default;
+        TextureCube &operator=(TextureCube &&) = default;
     };
 }// namespace DRL
 

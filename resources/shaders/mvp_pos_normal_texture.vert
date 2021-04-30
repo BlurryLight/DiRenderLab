@@ -28,10 +28,10 @@ void main()
     vs_out.vFragPos = viewPos.xyz;
 
     mat3 inverse_transpose = transpose(inverse(mat3(view *model)));
-    vs_out.vNormal = inverse_transpose * aNormal;
+    vs_out.vNormal = normalize(inverse_transpose * aNormal);
 
     inverse_transpose = transpose(inverse(mat3(model)));
-    vs_out.wNormal = inverse_transpose * aNormal;
+    vs_out.wNormal = normalize(inverse_transpose * aNormal);
 
     gl_Position = projection * viewPos;
 }

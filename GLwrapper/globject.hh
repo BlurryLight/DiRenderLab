@@ -118,8 +118,8 @@ namespace DRL {
     };
     class TextureObject : public GLObject {
     public:
-        TextureObject() : GLObject() {
-            glCreateTextures(GL_TEXTURE_2D, 1, &handle_);
+        explicit TextureObject(GLenum textureType) : GLObject() {
+            glCreateTextures(textureType, 1, &handle_);
         }
         ~TextureObject() {
             if (handle()) {
