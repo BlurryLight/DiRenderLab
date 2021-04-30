@@ -198,9 +198,9 @@ void ShadowMapRender::render() {
     shader.set_uniform("viewPos", camera_->Position);
     shader.set_uniform("lightPos", lightPos);
     shader.set_uniform("lightSpaceMatrix", lightSpaceMatrix);
+    shader.set_uniform("uBias", uBias);
     switch (current_mode) {
         case kShadowMap:
-            shader.set_uniform("uBias", uBias);
             break;
         case kPCF:
             shader.set_uniform("uPCFFilterSize", uPCFFilterSize);

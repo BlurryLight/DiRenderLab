@@ -1,0 +1,143 @@
+//
+// Created by zhong on 2021/4/30.
+//
+
+#include "skybox.hh"
+
+int main() {
+    //spdlog init
+    std::vector<spdlog::sink_ptr> sinks;
+    sinks.push_back(std::make_shared<spdlog::sinks::stdout_sink_st>());
+    sinks.push_back(std::make_shared<spdlog::sinks::basic_file_sink_st>("log.txt", true));
+    auto combined_logger = std::make_shared<spdlog::logger>("basic_logger", begin(sinks), end(sinks));
+    //register it if you need to access it globally
+    spdlog::register_logger(combined_logger);
+    spdlog::set_default_logger(combined_logger);
+
+    DRL::RenderBase::BaseInfo info;
+    info.height = 900;
+    info.width = 1600;
+    SkyboxRender rd(info);
+    rd.camera_ = std::make_unique<DRL::Camera>(glm::vec3{0.0, 0.0, 3.0});
+    rd.loop();
+
+    return 0;
+}
+void SkyboxRender::render() {
+
+    ImGui::NewFrame();
+    {
+        ImGui::Begin("Background Color", 0);// Create a window called "Hello,
+        ImGui::Text("Application average %.3f ms/frame (%.1f FPS)",
+                    1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+        const char *modes[] = {"Mode0", "Mode1"};
+        ImGui::Combo("skybox Mode", &skyboxMode, modes, IM_ARRAYSIZE(modes));
+        ImGui::End();
+    }
+    ImGui::Render();
+
+    glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    shader.use();
+
+    glm::mat4 projection = glm::perspective(glm::radians(camera_->Zoom), (float) info_.width / (float) info_.height, 0.1f, 100.0f);
+    glm::mat4 view = camera_->GetViewMatrix();
+    shader.set_uniform("projection", projection);
+    shader.set_uniform("view", view);
+    shader.set_uniform("model", glm::mat4(1.0));
+    DRL::renderCube();
+    {
+        DRL::bind_guard<DRL::VertexArray> gd(skyboxVAO);
+        glDepthFunc(GL_LEQUAL);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, skyboxTexture);
+        if (skyboxMode == 0) {
+            skyboxShader.use();
+            skyboxShader.set_uniform("projection", projection);
+            skyboxShader.set_uniform("view", glm::mat4(glm::mat3(view)));
+            glDrawArrays(GL_TRIANGLES, 0, 36);
+            skyboxShader.unuse();
+        } else {
+            skyboxShader2.use();
+            skyboxShader2.set_uniform("view", view);
+            glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+            skyboxShader2.unuse();
+        }
+        glDepthFunc(GL_LESS);
+    }
+}
+void SkyboxRender::setup_states() {
+    glEnable(GL_DEPTH_TEST);
+    resMgr.add_path(decltype(resMgr)::root_path / "resources" / "shaders");
+    resMgr.add_path(decltype(resMgr)::root_path / "resources" / "shaders" / "skybox");
+    resMgr.add_path(decltype(resMgr)::root_path / "resources" / "textures" / "skyboxlake");
+    shader = DRL::make_program(
+            resMgr.find_path("mvp_pos_normal_texture.vert"),
+            resMgr.find_path("mvp_pos_normal_texture.frag"));
+    skyboxShader =
+            DRL::make_program(
+                    resMgr.find_path("skybox.vert"),
+                    resMgr.find_path("skybox.frag"));
+    skyboxShader2 =
+            DRL::make_program(
+                    resMgr.find_path("skybox_2.vert"),
+                    resMgr.find_path("skybox.frag"));
+    // clang-format off
+    float skyboxVertices[] = {
+            // positions
+            -1.0f,  1.0f, -1.0f,
+            -1.0f, -1.0f, -1.0f,
+            1.0f, -1.0f, -1.0f,
+            1.0f, -1.0f, -1.0f,
+            1.0f,  1.0f, -1.0f,
+            -1.0f,  1.0f, -1.0f,
+
+            -1.0f, -1.0f,  1.0f,
+            -1.0f, -1.0f, -1.0f,
+            -1.0f,  1.0f, -1.0f,
+            -1.0f,  1.0f, -1.0f,
+            -1.0f,  1.0f,  1.0f,
+            -1.0f, -1.0f,  1.0f,
+
+            1.0f, -1.0f, -1.0f,
+            1.0f, -1.0f,  1.0f,
+            1.0f,  1.0f,  1.0f,
+            1.0f,  1.0f,  1.0f,
+            1.0f,  1.0f, -1.0f,
+            1.0f, -1.0f, -1.0f,
+
+            -1.0f, -1.0f,  1.0f,
+            -1.0f,  1.0f,  1.0f,
+            1.0f,  1.0f,  1.0f,
+            1.0f,  1.0f,  1.0f,
+            1.0f, -1.0f,  1.0f,
+            -1.0f, -1.0f,  1.0f,
+
+            -1.0f,  1.0f, -1.0f,
+            1.0f,  1.0f, -1.0f,
+            1.0f,  1.0f,  1.0f,
+            1.0f,  1.0f,  1.0f,
+            -1.0f,  1.0f,  1.0f,
+            -1.0f,  1.0f, -1.0f,
+
+            -1.0f, -1.0f, -1.0f,
+            -1.0f, -1.0f,  1.0f,
+            1.0f, -1.0f, -1.0f,
+            1.0f, -1.0f, -1.0f,
+            -1.0f, -1.0f,  1.0f,
+            1.0f, -1.0f,  1.0f
+    };
+    // clang-format on
+    DRL::VertexBuffer skyboxVBO(skyboxVertices, sizeof skyboxVertices, DRL::kStaticDraw);
+    skyboxVAO.lazy_bind_attrib(0, GL_FLOAT, 3, 0);
+    skyboxVAO.update_bind(skyboxVBO, 0, 3);
+    std::vector<std::string> faces{
+            resMgr.find_path("right.jpg").string(),
+            resMgr.find_path("left.jpg").string(),
+            resMgr.find_path("top.jpg").string(),
+            resMgr.find_path("bottom.jpg").string(),
+            resMgr.find_path("front.jpg").string(),
+            resMgr.find_path("back.jpg").string(),
+    };
+    skyboxTexture = loadCubemap(faces);
+}

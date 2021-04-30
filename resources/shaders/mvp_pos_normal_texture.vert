@@ -1,0 +1,37 @@
+// This shader is for rapid prototyping
+#version 450 core
+layout (location=0) in vec3 aPos;
+layout (location=1) in vec3 aNormal;
+layout (location=2) in vec2 aTexCoords;
+
+out VS_OUT
+{
+//output : view space Fragpos and normal
+    vec3 vFragPos;
+    vec3 vNormal;
+//world space Fragpos and normal
+    vec3 wFragPos;
+    vec3 wNormal;
+    vec2 TexCoords;
+} vs_out;
+
+uniform mat4 model;
+uniform mat4 view;
+uniform mat4 projection;
+
+void main()
+{
+    vs_out.TexCoords = aTexCoords;
+    vec4 worldPos = model * vec4(aPos, 1.0);
+    vs_out.wFragPos = worldPos.xyz;
+    vec4 viewPos = view * worldPos;
+    vs_out.vFragPos = viewPos.xyz;
+
+    mat3 inverse_transpose = transpose(inverse(mat3(view *model)));
+    vs_out.vNormal = inverse_transpose * aNormal;
+
+    inverse_transpose = transpose(inverse(mat3(model)));
+    vs_out.wNormal = inverse_transpose * aNormal;
+
+    gl_Position = projection * viewPos;
+}
