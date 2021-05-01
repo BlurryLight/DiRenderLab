@@ -28,6 +28,7 @@ set(EXAMPLES
         ssao
         shadowmap
         skybox
+        instance
         )
 foreach (EXAMPLE ${EXAMPLES})
     add_executable(${EXAMPLE} ${HEADER_LIST} ${THIRD_PARTY} ${IMGUI_SOURCE} ${SOURCE_LIST} examples/${EXAMPLE}/${EXAMPLE}.cc)

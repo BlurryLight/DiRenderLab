@@ -402,9 +402,9 @@ unsigned int DRL::TextureFromFile(const char *path, const std::string &directory
     return textureID;
 }
 RenderBase::RenderBase()
-: RenderBase(BaseInfo{}){}
+        : RenderBase(BaseInfo{}){}
 RenderBase::RenderBase(BaseInfo  info)
-:info_(std::move(info))
+        :info_(std::move(info))
 {
     InitWindow();
 }
@@ -519,8 +519,8 @@ void RenderBase::on_key(int key, int scancode, int action, int mods){
     }
 }
 void RenderBase::on_mouse_scroll(double xoffset, double yoffset){
-if(camera_)
-    camera_->ProcessMouseScroll(yoffset);
+    if(camera_)
+        camera_->ProcessMouseScroll(yoffset);
 }
 void RenderBase::on_mouse_move(double xpos, double ypos){
     if(!camera_) return;
@@ -547,6 +547,18 @@ void RenderBase::processInput(){
         glfwSetWindowShouldClose(window_, true);
 
     if(!camera_) return;
+    //J for speed up
+    //K for speed down
+    if (glfwGetKey(window_, GLFW_KEY_J) == GLFW_PRESS)
+    {
+        camera_->MovementSpeed += 1.0;
+        spdlog::info("Current camera speed:{}",camera_->MovementSpeed);
+    }
+    if (glfwGetKey(window_, GLFW_KEY_K) == GLFW_PRESS)
+    {
+        camera_->MovementSpeed = std::min(camera_->MovementSpeed - 1.0f,0.0f);
+        spdlog::info("Current camera speed:{}",camera_->MovementSpeed);
+    }
     if (glfwGetKey(window_, GLFW_KEY_W) == GLFW_PRESS)
         camera_->ProcessKeyboard(DRL::FORWARD, deltaTime_);
     if (glfwGetKey(window_, GLFW_KEY_S) == GLFW_PRESS)
