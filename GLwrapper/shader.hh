@@ -36,6 +36,7 @@ namespace DRL {
             case kAdvancedShader:
                 return {"AdvancedShader"};
         }
+        return "Unknown shader";
     }
 
     class Shader {

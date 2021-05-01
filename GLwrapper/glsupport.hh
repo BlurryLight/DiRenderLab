@@ -230,7 +230,7 @@ namespace DRL {
         std::unique_ptr<Camera> camera_ = nullptr;
         // timing
         RenderBase();
-        RenderBase::RenderBase(BaseInfo info);
+        RenderBase(BaseInfo info);
         virtual ~RenderBase();
         virtual void loop() final;
 

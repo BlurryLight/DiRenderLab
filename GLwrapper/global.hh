@@ -16,7 +16,7 @@ namespace DRL {
             std::string fmtstring = std::string("Assertion Failed: ") + std::string(fmt);
             spdlog::error(fmtstring, std::forward<Args>(args)...);
             spdlog::shutdown();
-            std::abort();
+            std::quick_exit(-1);
         }
     }
 

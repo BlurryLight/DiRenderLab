@@ -128,7 +128,6 @@ int main() {
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depthBuffer);
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
         throw std::runtime_error("FRAMEBUFFER NOT COMPLETE!");
-        std::abort();
     }
     glBindRenderbuffer(GL_RENDERBUFFER, 0);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -142,7 +141,6 @@ int main() {
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, ssaoColorBuffer, 0);
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
         throw std::runtime_error("FRAMEBUFFER NOT COMPLETE!");
-        std::abort();
     }
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
@@ -185,7 +183,6 @@ int main() {
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, ssaoColorBufferBlurred, 0);
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
         throw std::runtime_error("FRAMEBUFFER NOT COMPLETE!");
-        std::abort();
     }
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 

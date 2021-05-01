@@ -68,7 +68,6 @@ void InstanceRender::render() {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     spotTexture.bind();
     if (mode_ == kDraw) {
-        spdlog::warn("Mode kDraw is using");
         shader.use();
         shader.set_uniform("texture_diffuse1", 0);
         glm::mat4 projection = glm::perspective(glm::radians(camera_->Zoom), (float) info_.width / (float) info_.height, 0.1f, 1000.0f);
@@ -81,7 +80,6 @@ void InstanceRender::render() {
             spot_ptr->Draw(shader);
         }
     } else if (mode_ == kInstance) {
-        spdlog::warn("Mode kInstance is using");
         InstanceShader.use();
         InstanceShader.set_uniform("texture_diffuse1", 0);
         glm::mat4 projection = glm::perspective(glm::radians(camera_->Zoom), (float) info_.width / (float) info_.height, 0.1f, 1000.0f);

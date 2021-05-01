@@ -55,8 +55,8 @@ void DRL::glDebugOutput(GLenum source, GLenum type, unsigned int id, GLenum seve
         case GL_DEBUG_SEVERITY_NOTIFICATION: ss << "Severity: notification"; break;
     } ss << "\n" <<std::endl;
     spdlog::error(ss.str());
-    spdlog::default_logger()->flush();
-    throw std::exception("Error happened!");
+    spdlog::shutdown();
+    std::quick_exit(-1);
 }
 void DRL::PostCallbackFunc(const char *name, void *funcptr, int len_args, ...) {
     (void) funcptr;
@@ -424,7 +424,7 @@ void RenderBase::InitWindow(){
     if (window == NULL) {
         std::cout << "Failed to create GLFW window" << std::endl;
         glfwTerminate();
-        std::abort();
+        std::quick_exit(-1);
     }
     window_ = window;
     glfwSetWindowUserPointer(window,this);
@@ -454,7 +454,7 @@ void RenderBase::InitWindow(){
     // ---------------------------------------
     if (!gladLoadGLLoader((GLADloadproc) glfwGetProcAddress)) {
         std::cout << "Failed to initialize GLAD" << std::endl;
-        std::abort();
+        std::quick_exit(-1);
     }
     if(info_.debug)
         glad_set_post_callback(DRL::PostCallbackFunc);

@@ -17,7 +17,7 @@ static std::string LoadShaderFromFile(const fs::path &path) {
     std::ifstream file_stream(path);
     if (!file_stream.is_open()) {
         spdlog::error("{} not found!", path.string());
-        std::abort();
+        std::quick_exit(-1);
     }
     std::stringstream ss;
     ss << file_stream.rdbuf();
@@ -29,7 +29,7 @@ static std::string LoadShaderFromFile(const std::string &path) {
     std::ifstream file_stream(path);
     if (!file_stream.is_open()) {
         spdlog::error("{} not found!", path);
-        std::abort();
+        std::quick_exit(-1);
     }
     std::stringstream ss;
     ss << file_stream.rdbuf();
@@ -97,7 +97,7 @@ void Shader::compile() {
         glGetShaderInfoLog(obj_, maxLength, nullptr, infoLog.data());
         spdlog::error("{} SHADER_COMPILATION_ERROR: {}", obj_, infoLog);
         spdlog::shutdown();
-        std::abort();
+        std::quick_exit(-1);
     }
     compiled_ = true;
 }

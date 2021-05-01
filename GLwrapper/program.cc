@@ -5,6 +5,7 @@
 #include "program.hh"
 #include "glm/gtc/type_ptr.hpp"
 using namespace DRL;
+#include <cstdlib>
 void Program::link() {
     AssertLog(!linked_, "Program {} linked multiple times!", obj_.handle());
     if (!(shaders_bits_[0] && shaders_bits_[2]))// check vshader and fshader
@@ -22,7 +23,7 @@ void Program::link() {
         glGetProgramInfoLog(obj_, maxLength, nullptr, infoLog.data());
         spdlog::error("{} PROGRAM_LINK_ERROR: {}", obj_, infoLog);
         spdlog::shutdown();
-        std::abort();
+        std::quick_exit(-1);
     }
     linked_ = true;
 }

@@ -10,6 +10,7 @@ namespace fs = std::experimental::filesystem;
 
 #include <set>
 #include <string>
+#include <vector>
 namespace DRL {
 
     class ResourcePathSearcher {
