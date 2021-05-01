@@ -126,9 +126,9 @@ void SkyboxRender::setup_states() {
             1.0f, -1.0f,  1.0f
     };
     // clang-format on
-    DRL::VertexBuffer skyboxVBO(skyboxVertices, sizeof skyboxVertices, DRL::kStaticDraw);
+    skyboxVBO = DRL::VertexBuffer(skyboxVertices, sizeof skyboxVertices, DRL::kStaticDraw);
     skyboxVAO.lazy_bind_attrib(0, GL_FLOAT, 3, 0);
-    skyboxVAO.update_bind(skyboxVBO, 0, 3);
+    skyboxVAO.update_bind(skyboxVBO, 0, 3,sizeof(GL_FLOAT));
     std::vector<fs::path> faces{
             resMgr.find_path("right.jpg"),
             resMgr.find_path("left.jpg"),

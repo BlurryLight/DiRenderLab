@@ -12,7 +12,7 @@
 namespace DRL {
     struct AttributeInfo {
         GLuint location;
-        GLuint type;
+        GLenum type;
         GLint count;
         GLint offset;
     };
@@ -44,29 +44,30 @@ namespace DRL {
         }
 
         //will keep state
-        void update_bind(const VertexBuffer &vbo, GLuint first_element_offset, GLint num_offset) {
+        void update_bind(const VertexBuffer &vbo, GLuint first_element_offset,GLint num_offset,size_t elem_size) {
             AssertLog(!attribs_.empty(), "VAO: {} Nothing to update: Attributes is empty!", obj_);
             for (const auto &attrib : attribs_) {
                 glEnableVertexArrayAttrib(obj_, attrib.location);
-                glVertexArrayAttribFormat(obj_, attrib.location, attrib.count, attrib.type, GL_FALSE, sizeof(attrib.type) * attrib.offset);
+                glVertexArrayAttribFormat(obj_, attrib.location, attrib.count, attrib.type, GL_FALSE, elem_size * attrib.offset);
                 //https://www.reddit.com/r/opengl/comments/eg9b0a/what_is_the_bindingindex_2nd_arg_in/
                 glVertexArrayAttribBinding(obj_, attrib.location, 0);
             }
             // now we set the vbo
-            glVertexArrayVertexBuffer(obj_, 0, vbo, first_element_offset, sizeof(attribs_[0].type) * num_offset);
+            glVertexArrayVertexBuffer(obj_, 0, vbo, first_element_offset, elem_size * num_offset);
             changed_ = false;
         }
-        void update_bind(const VertexBuffer &vbo, const ElementBuffer &ebo, GLuint first_element_offset, GLint num_offset) {
+        //TODO: vbo,ebo should transfer its ownership to VertexArray
+        void update_bind(const VertexBuffer &vbo, const ElementBuffer &ebo, GLuint first_element_offset, GLint num_offset,size_t elem_size) {
             //            glBindVertexArray(obj_);
             AssertLog(!attribs_.empty(), "VAO: {} Nothing to update: Attributes is empty!", obj_);
             ebo_ = true;
             for (const auto &attrib : attribs_) {
                 glEnableVertexArrayAttrib(obj_, attrib.location);
-                glVertexArrayAttribFormat(obj_, attrib.location, attrib.count, attrib.type, GL_FALSE, sizeof(attrib.type) * attrib.offset);
+                glVertexArrayAttribFormat(obj_, attrib.location, attrib.count, attrib.type, GL_FALSE, elem_size * attrib.offset);
                 glVertexArrayAttribBinding(obj_, attrib.location, 0);
             }
             // now we set the vbo
-            glVertexArrayVertexBuffer(obj_, 0, vbo, first_element_offset, sizeof(attribs_[0].type) * num_offset);
+            glVertexArrayVertexBuffer(obj_, 0, vbo, first_element_offset, elem_size * num_offset);
             glVertexArrayElementBuffer(obj_, ebo);
             changed_ = false;
         }

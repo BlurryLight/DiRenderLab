@@ -123,11 +123,11 @@ void DRL::renderQuad() {
 void DRL::renderSphere() {
     static VertexArray *sphereVAO;
     static int sphereIndexSize = 0;
+    static VertexBuffer vbo;
+    static ElementBuffer ebo;
     if (sphereVAO == nullptr) {
         sphereVAO = new VertexArray();
 
-        VertexBuffer vbo;
-        ElementBuffer ebo;
 
         std::vector<glm::vec3> positions;
         std::vector<glm::vec2> uv;
@@ -190,7 +190,8 @@ void DRL::renderSphere() {
         sphereVAO->lazy_bind_attrib(0, GL_FLOAT, 3, 0);
         sphereVAO->lazy_bind_attrib(1, GL_FLOAT, 3, 3);
         sphereVAO->lazy_bind_attrib(2, GL_FLOAT, 2, 6);
-        sphereVAO->update_bind(vbo, ebo, 0, stride);
+        sphereVAO->update_bind(vbo, ebo, 0, stride,sizeof(GL_FLOAT));
+
     }
 
     bind_guard<VertexArray> gd(*sphereVAO);

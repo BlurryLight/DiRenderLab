@@ -55,8 +55,8 @@ void DRL::glDebugOutput(GLenum source, GLenum type, unsigned int id, GLenum seve
         case GL_DEBUG_SEVERITY_NOTIFICATION: ss << "Severity: notification"; break;
     } ss << "\n" <<std::endl;
     spdlog::error(ss.str());
-    spdlog::shutdown();
-    std::quick_exit(-1);
+//    spdlog::shutdown();
+//    std::quick_exit(-1);
 }
 void DRL::PostCallbackFunc(const char *name, void *funcptr, int len_args, ...) {
     (void) funcptr;
