@@ -1,6 +1,6 @@
 name: CI
 # Workflow file for windows
-on: [push,pull_request]
+on: [push]
 jobs:
   job:
     name: ${{ matrix.os }}-build
@@ -30,8 +30,7 @@ jobs:
         cd ${{ github.workspace }}
         mkdir build
         cd build
-        cmake -A x64 .. -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}
-                  /../vcpkg/scripts/buildsystems/vcpkg.cmake
+        cmake -A x64 .. -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/../vcpkg/scripts/buildsystems/vcpkg.cmake
 
     - name: Build Solution (windows)
       run: |
