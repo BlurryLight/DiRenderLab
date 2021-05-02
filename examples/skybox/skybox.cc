@@ -38,8 +38,9 @@ void SkyboxRender::render() {
 
     glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    shader.use();
-    DRL::bind_guard<DRL::TextureCube> texture_gd(skyboxTexture);
+//    shader.bind();
+//    DRL::bind_guard<DRL::TextureCube> texture_gd(skyboxTexture);
+    DRL::bind_guard gd(shader,skyboxTexture);
     glm::mat4 projection = glm::perspective(glm::radians(camera_->Zoom), (float) info_.width / (float) info_.height, 0.1f, 100.0f);
     glm::mat4 view = camera_->GetViewMatrix();
     shader.set_uniform("projection", projection);
@@ -50,16 +51,16 @@ void SkyboxRender::render() {
         DRL::bind_guard<DRL::VertexArray> gd(skyboxVAO);
         glDepthFunc(GL_LEQUAL);
         if (skyboxMode == 0) {
-            skyboxShader.use();
+            skyboxShader.bind();
             skyboxShader.set_uniform("projection", projection);
             skyboxShader.set_uniform("view", glm::mat4(glm::mat3(view)));
             glDrawArrays(GL_TRIANGLES, 0, 36);
-            skyboxShader.unuse();
+            skyboxShader.unbind();
         } else {
-            skyboxShader2.use();
+            skyboxShader2.bind();
             skyboxShader2.set_uniform("view", view);
             glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-            skyboxShader2.unuse();
+            skyboxShader2.unbind();
         }
         glDepthFunc(GL_LESS);
     }
@@ -128,7 +129,8 @@ void SkyboxRender::setup_states() {
     // clang-format on
     auto skyboxVBO = std::make_shared<DRL::VertexBuffer>(skyboxVertices, sizeof skyboxVertices, DRL::kStaticDraw);
     skyboxVAO.lazy_bind_attrib(0, GL_FLOAT, 3, 0);
-    skyboxVAO.update_bind(skyboxVBO, 0, 3, sizeof(GL_FLOAT));
+    //a simple test: bind vbo to vao's second slot
+    skyboxVAO.update_bind_slot(skyboxVBO,1 ,0, 3, sizeof(GL_FLOAT));
     std::vector<fs::path> faces{
             resMgr.find_path("right.jpg"),
             resMgr.find_path("left.jpg"),

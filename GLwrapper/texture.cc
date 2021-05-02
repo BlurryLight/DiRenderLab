@@ -90,9 +90,23 @@ void TextureCube::update_data(const std::vector<fs::path> &paths, bool gamma, bo
         }
         //An ugly hack here is to use glTextureSubImage3D to remove the binding
         //like  glTextureSubImage3D(cubemap, 0, 0, 0, 0, N, N, 6, GL_RGBA, GL_HALF_FLOAT, cubemap_data.data());
-        glBindTexture(GL_TEXTURE_CUBE_MAP, obj_);
-        glTexSubImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, 0, 0, res.width, res.height, format, GL_UNSIGNED_BYTE, res.bytes.get());
-        glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
+
+//        glBindTexture(GL_TEXTURE_CUBE_MAP, obj_);
+//        glTexSubImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, 0, 0, res.width, res.height, format, GL_UNSIGNED_BYTE, res.bytes.get());
+//        glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
+        //correct DSA way
+        glTextureSubImage3D(
+            obj_,
+            0,      // only 1 level in example
+            0,
+            0,
+            i,   // the offset to desired cubemap face, which offset goes to which face above
+        res.width,
+        res.height,
+            1,      // depth how many faces to set, if this was 3 we'd set 3 cubemap faces at once
+            format,
+            GL_UNSIGNED_BYTE,
+            res.bytes.get());
     }
     updated_ = true;
 }

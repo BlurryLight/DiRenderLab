@@ -189,17 +189,17 @@ int main() {
 
     //shader config
     //gbuffer test
-    ssaoShader.use();
+    ssaoShader.bind();
     ssaoShader.set_uniform("gPosition", 0);
     ssaoShader.set_uniform("gNormal", 1);
     ssaoShader.set_uniform("tNoise", 2);
     //blur
-    blurShader.use();
+    blurShader.bind();
     blurShader.set_uniform("ssaoTexInput", 0);
     //
-    visFloatShader.use();
+    visFloatShader.bind();
     visFloatShader.set_uniform("gbuffer_test", 0);
-    visVecShader.use();
+    visVecShader.bind();
     visVecShader.set_uniform("gbuffer_test", 0);
     // visShader.setInt("ssao",0);
 
@@ -225,7 +225,7 @@ int main() {
         //gbuffer
         glBindFramebuffer(GL_FRAMEBUFFER, gBuffer);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        gShader.use();
+        gShader.bind();
         // view/projection transformations
         glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float) SCR_WIDTH / (float) SCR_HEIGHT, 0.1f, 100.0f);
         glm::mat4 view = camera.GetViewMatrix();
@@ -257,7 +257,7 @@ int main() {
         //ssao
         glBindFramebuffer(GL_FRAMEBUFFER, ssaoFBO);
         glClear(GL_COLOR_BUFFER_BIT);
-        ssaoShader.use();
+        ssaoShader.bind();
         // view/projection transformations
         ssaoShader.set_uniform("projection", projection);
 
@@ -275,7 +275,7 @@ int main() {
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
         glBindFramebuffer(GL_FRAMEBUFFER, blurFBuffer);
         glClear(GL_COLOR_BUFFER_BIT);
-        blurShader.use();
+        blurShader.bind();
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, ssaoColorBuffer);
         renderQuad();
@@ -284,12 +284,12 @@ int main() {
         //blur stage
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         if (mode == kSSAOBLURRED || mode == kSSAO) {
-            visFloatShader.use();
+            visFloatShader.bind();
             glActiveTexture(GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_2D, (mode == kSSAO ? ssaoColorBuffer : ssaoColorBufferBlurred));
             std::cout << "Current Mode" << ((mode == kSSAO) ? "SSAO" : "SSAO_BLURRED") << std::endl;
         } else if (mode == kNormal || mode == kPosition) {
-            visVecShader.use();
+            visVecShader.bind();
             glActiveTexture(GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_2D, (mode == kNormal ? gNormal : gPosition));
             std::cout << "Current Mode" << ((mode == kNormal) ? "kNormal" : "Position") << std::endl;

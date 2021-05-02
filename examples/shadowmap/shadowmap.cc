@@ -126,7 +126,7 @@ void ShadowMapRender::setup_states() {
 
     // shader configuration
     // --------------------
-    shader.use();
+    shader.bind();
     shader.set_uniform("diffuseTexture", 0);
     shader.set_uniform("shadowMap", 1);
 
@@ -176,7 +176,7 @@ void ShadowMapRender::render() {
     lightView = glm::lookAt(lightPosNew, glm::vec3(0.0f), glm::vec3(0.0, 1.0, 0.0));
     lightSpaceMatrix = lightProjection * lightView;
     // render scene from light's point of view
-    simpleDepthShader.use();
+    simpleDepthShader.bind();
     simpleDepthShader.set_uniform("lightSpaceMatrix", lightSpaceMatrix);
 
     {
@@ -189,7 +189,7 @@ void ShadowMapRender::render() {
     // --------------------------------------------------------------
     glViewport(0, 0, info_.width, info_.height);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    shader.use();
+    shader.bind();
     glm::mat4 projection = glm::perspective(glm::radians(camera_->Zoom), (float) info_.width / (float) info_.height, 0.1f, 100.0f);
     glm::mat4 view = camera_->GetViewMatrix();
     shader.set_uniform("projection", projection);
@@ -218,7 +218,7 @@ void ShadowMapRender::render() {
     renderScene(shader);
     depthMap->unbind();
     //render the light
-    LightShader.use();
+    LightShader.bind();
     auto model = glm::mat4(1.0f);
     model = glm::translate(model, lightPosNew);
     model = glm::scale(model, glm::vec3(0.1f));
@@ -229,7 +229,7 @@ void ShadowMapRender::render() {
 
     // render Depth map to quad for visual debugging
     // ---------------------------------------------
-    //        DepthMapShader.use();
+    //        DepthMapShader.bind();
     //        DepthMapShader.set_uniform("near_plane", near_plane);
     //        DepthMapShader.set_uniform("far_plane", far_plane);
     //        depthMap.set_slot(0);

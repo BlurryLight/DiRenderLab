@@ -12,14 +12,19 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <vector>
 namespace DRL {
+    //renderbuffer not implemented
+//    class Renderbuffer;
     using Texture2DPtr = std::shared_ptr<Texture2D>;
+    using TextureCubePtr = std::shared_ptr<TextureCube>;
+//    using RenderbufferPtr = std::shared_ptr<Renderbuffer>;
     class Framebuffer {
     protected:
         FramebufferObj obj_;
         bool complete_ = false;
         int vheight_ = -1;
         int vwidth_ = -1;
-        std::vector<Texture2DPtr> textures_;
+        using attachable_obj =  std::variant<Texture2DPtr,TextureCubePtr/*,RenderbufferPtr*/>;
+        std::vector<attachable_obj> attachments_;
 
     public:
         glm::vec3 clear_color_ = {};
@@ -47,13 +52,17 @@ namespace DRL {
             vwidth_ = w;
             vheight_ = h;
         }
-        void attach_buffer(GLenum attachment, const Texture2DPtr &texture_obj, GLint mipmap_level) {
-            textures_.push_back(texture_obj);
-            glNamedFramebufferTexture(obj_, attachment, *texture_obj, mipmap_level);
+        void attach_buffer(GLenum attachment_slot, const Texture2DPtr &texture_obj, GLint mipmap_level) {
+            attachments_.push_back(texture_obj);
+            glNamedFramebufferTexture(obj_, attachment_slot, *texture_obj, mipmap_level);
         }
-        void attach_buffer(GLenum attachment, const Texture2DPtr &texture_obj, GLint mipmap_level, GLint layer) {
-            textures_.push_back(texture_obj);
-            glNamedFramebufferTextureLayer(obj_, attachment, *texture_obj, mipmap_level, layer);
+//        void attach_buffer(GLenum attachment_slot, const RenderbufferPtr &renderbuf_obj, GLint mipmap_level) {
+//            attachments_.push_back(texture_obj);
+//            glNamedFramebufferRenderbuffer(obj_,attachment_slot, GL_RENDERBUFFER,*renderbuf_obj);
+//        }
+        void attach_buffer(GLenum attachment_slot, const TextureCubePtr &texture_obj, GLint mipmap_level, GLint layer) {
+            attachments_.push_back(texture_obj);
+            glNamedFramebufferTextureLayer(obj_, attachment_slot, *texture_obj, mipmap_level, layer);
         }
         void set_draw_buffer(GLenum buffer) const {
             glNamedFramebufferDrawBuffer(obj_, buffer);

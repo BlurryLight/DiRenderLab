@@ -45,7 +45,7 @@ namespace DRL {
         void link();
         [[nodiscard]] bool linked() const { return linked_; }
         [[nodiscard]] bool isBounded() const { return used_; }
-        void use() {
+        void bind() {
             AssertLog(linked(), "Program {} uses before linking!", obj_);
             // this condition maybe too tough.
             // we need a use_guard<Program> just like std::lock_guard<std::mutex>
@@ -53,7 +53,7 @@ namespace DRL {
             glUseProgram(obj_);
             used_ = true;
         }
-        void unuse() {
+        void unbind() {
             AssertLog(used_, "Program {} is not using!", obj_);
             glUseProgram(0);
             used_ = false;
