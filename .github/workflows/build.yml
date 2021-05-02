@@ -1,6 +1,10 @@
 name: CI
 # Workflow file for windows
-on: [push]
+on: 
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
 jobs:
   job:
     name: ${{ matrix.os }}-build
