@@ -1,0 +1,11 @@
+{
+  "name": "DiRenderLab",
+  "version-string": "0.0.1",
+  "dependencies": [
+    "spdlog",
+    "fmt",
+    "glfw3",
+    "glm",
+    "assimp"
+  ]
+}
