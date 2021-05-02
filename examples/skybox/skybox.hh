@@ -23,7 +23,6 @@ protected:
     DRL::Program skyboxShader;
     DRL::Program skyboxShader2;
     int skyboxMode = 0;
-     DRL::VertexBuffer skyboxVBO;
     DRL::VertexArray skyboxVAO;
     DRL::TextureCube skyboxTexture;
 

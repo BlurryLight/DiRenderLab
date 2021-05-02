@@ -123,11 +123,12 @@ void DRL::renderQuad() {
 void DRL::renderSphere() {
     static VertexArray *sphereVAO;
     static int sphereIndexSize = 0;
-    static VertexBuffer vbo;
-    static ElementBuffer ebo;
+    static VboPtr vbo = nullptr;
+    static EboPtr ebo = nullptr;
     if (sphereVAO == nullptr) {
         sphereVAO = new VertexArray();
-
+        vbo = std::make_shared<VertexBuffer>();
+        ebo = std::make_shared<ElementBuffer>();
 
         std::vector<glm::vec3> positions;
         std::vector<glm::vec2> uv;
@@ -184,14 +185,13 @@ void DRL::renderSphere() {
                 data.push_back(uv[i].y);
             }
         }
-        vbo.upload_data(data.data(), data.size() * sizeof(float), kStaticDraw);
-        ebo.upload_data(indices.data(), indices.size() * sizeof(float), kStaticDraw);
+        vbo->upload_data(data.data(), data.size() * sizeof(float), kStaticDraw);
+        ebo->upload_data(indices.data(), indices.size() * sizeof(float), kStaticDraw);
         int stride = (3 + 2 + 3);
         sphereVAO->lazy_bind_attrib(0, GL_FLOAT, 3, 0);
         sphereVAO->lazy_bind_attrib(1, GL_FLOAT, 3, 3);
         sphereVAO->lazy_bind_attrib(2, GL_FLOAT, 2, 6);
-        sphereVAO->update_bind(vbo, ebo, 0, stride,sizeof(GL_FLOAT));
-
+        sphereVAO->update_bind(vbo, ebo, 0, stride, sizeof(GL_FLOAT));
     }
 
     bind_guard<VertexArray> gd(*sphereVAO);

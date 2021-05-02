@@ -31,6 +31,8 @@ namespace DRL {
         }
 
     public:
+        operator GLuint() const { return obj_.handle(); }
+        [[nodiscard]] GLuint handle() const { return obj_.handle(); }
         GLenum min_filter_ = GL_NEAREST;
         GLenum mag_filter_ = GL_NEAREST;
         GLenum wrap_s_ = GL_REPEAT;
@@ -81,8 +83,6 @@ namespace DRL {
         Texture2D(const fs::path &path, bool gamma, bool flip);
         Texture2D(int width, int height, GLenum format, GLenum type, const void *data);
         void update_data(const fs::path &path, bool gamma, bool flip);
-        operator GLuint() const { return obj_.handle(); }
-        [[nodiscard]] GLuint handle() const { return obj_.handle(); }
         Texture2D(Texture2D &&other) = default;
         Texture2D &operator=(Texture2D &&) = default;
     };
@@ -98,8 +98,6 @@ namespace DRL {
         }
         TextureCube(const std::vector<fs::path> &paths, bool gamma, bool flip);
         void update_data(const std::vector<fs::path> &paths, bool gamma, bool flip);
-        operator GLuint() const { return obj_.handle(); }
-        [[nodiscard]] GLuint handle() const { return obj_.handle(); }
         TextureCube(TextureCube &&other) = default;
         TextureCube &operator=(TextureCube &&) = default;
     };

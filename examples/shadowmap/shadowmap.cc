@@ -36,11 +36,10 @@ public:
     DRL::Program simpleDepthShader;
     DRL::Program DepthMapShader;
     DRL::Program LightShader;
-    DRL::VertexBuffer planeVBO;
     DRL::VertexArray planeVAO;
     DRL::Texture2D woodTexture;
     const unsigned int SHADOW_WIDTH = 2048, SHADOW_HEIGHT = 2048;
-    DRL::Texture2D depthMap;
+    DRL::Texture2DPtr depthMap;
     DRL::Framebuffer depthMapFBO;
 
     float uBias = 0.05;
@@ -69,39 +68,39 @@ void ShadowMapRender::setup_states() {
     // build and compile shaders
     // -------------------------
     shader = DRL::make_program(
-                resMgr.find_path("shadow_mapping.vert"),
-                resMgr.find_path("shadow_mapping.frag"));
+            resMgr.find_path("shadow_mapping.vert"),
+            resMgr.find_path("shadow_mapping.frag"));
     simpleDepthShader = DRL::make_program(
-                resMgr.find_path("shadow_mapping_depth.vert"),
-                resMgr.find_path("shadow_mapping_depth.frag"));
+            resMgr.find_path("shadow_mapping_depth.vert"),
+            resMgr.find_path("shadow_mapping_depth.frag"));
 
     DepthMapShader = DRL::make_program(
-                resMgr.find_path("debug_quad.vert"),
-                resMgr.find_path("debug_quad_depth.frag"));
+            resMgr.find_path("debug_quad.vert"),
+            resMgr.find_path("debug_quad_depth.frag"));
 
     LightShader = DRL::make_program(
-                resMgr.find_path("shadow_mapping.vert"),
-                resMgr.find_path("light.frag"));
+            resMgr.find_path("shadow_mapping.vert"),
+            resMgr.find_path("light.frag"));
 
     // set up vertex data (and buffer(s)) and configure vertex attributes
     // ------------------------------------------------------------------
     float planeVertices[] = {
-        // positions            // normals         // texcoords
-        25.0f, -0.5f, 25.0f, 0.0f, 1.0f, 0.0f, 25.0f, 0.0f,
-        -25.0f, -0.5f, 25.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f,
-        -25.0f, -0.5f, -25.0f, 0.0f, 1.0f, 0.0f, 0.0f, 25.0f,
+            // positions            // normals         // texcoords
+            25.0f, -0.5f, 25.0f, 0.0f, 1.0f, 0.0f, 25.0f, 0.0f,
+            -25.0f, -0.5f, 25.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f,
+            -25.0f, -0.5f, -25.0f, 0.0f, 1.0f, 0.0f, 0.0f, 25.0f,
 
-        25.0f, -0.5f, 25.0f, 0.0f, 1.0f, 0.0f, 25.0f, 0.0f,
-        -25.0f, -0.5f, -25.0f, 0.0f, 1.0f, 0.0f, 0.0f, 25.0f,
-        25.0f, -0.5f, -25.0f, 0.0f, 1.0f, 0.0f, 25.0f, 25.0f};
+            25.0f, -0.5f, 25.0f, 0.0f, 1.0f, 0.0f, 25.0f, 0.0f,
+            -25.0f, -0.5f, -25.0f, 0.0f, 1.0f, 0.0f, 0.0f, 25.0f,
+            25.0f, -0.5f, -25.0f, 0.0f, 1.0f, 0.0f, 25.0f, 25.0f};
     // plane VAO
 
-    planeVBO = DRL::VertexBuffer(planeVertices, sizeof(planeVertices), DRL::kStaticDraw);
+    auto planeVBO = std::make_shared<DRL::VertexBuffer>(planeVertices, sizeof(planeVertices), DRL::kStaticDraw);
     //    DRL::VertexArray planeVAO;
     planeVAO.lazy_bind_attrib(0, GL_FLOAT, 3, 0);
     planeVAO.lazy_bind_attrib(1, GL_FLOAT, 3, 3);
     planeVAO.lazy_bind_attrib(2, GL_FLOAT, 2, 6);
-    planeVAO.update_bind(planeVBO, 0, 8,sizeof(GL_FLOAT));
+    planeVAO.update_bind(planeVBO, 0, 8, sizeof(GL_FLOAT));
 
 
     // load textures
@@ -116,10 +115,10 @@ void ShadowMapRender::setup_states() {
     // create depth texture
 
 
-    depthMap = DRL::Texture2D(SHADOW_WIDTH, SHADOW_HEIGHT, GL_DEPTH_COMPONENT32F, GL_FLOAT, nullptr);
-    depthMap.set_wrap_s(GL_CLAMP_TO_EDGE);
-    depthMap.set_wrap_t(GL_CLAMP_TO_EDGE);
-    depthMap.bind();
+    depthMap = std::make_shared<DRL::Texture2D>(SHADOW_WIDTH, SHADOW_HEIGHT, GL_DEPTH_COMPONENT32F, GL_FLOAT, nullptr);
+    depthMap->set_wrap_s(GL_CLAMP_TO_EDGE);
+    depthMap->set_wrap_t(GL_CLAMP_TO_EDGE);
+    depthMap->bind();
 
     depthMapFBO = DRL::Framebuffer(GL_DEPTH_ATTACHMENT, depthMap, 0);
     depthMapFBO.set_draw_buffer(GL_NONE);
@@ -140,7 +139,7 @@ void ShadowMapRender::render() {
     {
         ImGui::Begin("Background Color", 0);// Create a window called "Hello,
         ImGui::Text("Application average %.3f ms/frame (%.1f FPS)",
-                1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+                    1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
         const char *modes[] = {"ShadowMap", "PCF", "PCSS"};
         ImGui::Combo("ShadowModes", &current_mode, modes, IM_ARRAYSIZE(modes));
         if (ImGui::CollapsingHeader("ShadowMap")) {
@@ -171,9 +170,9 @@ void ShadowMapRender::render() {
     float near_plane = 1.0f, far_plane = 50.0f;
     lightProjection = glm::ortho(-50.0f, 50.0f, -50.0f, 50.0f, near_plane, far_plane);
     auto lightPosNew = lightPos + glm::vec3(
-                5 * glm::sin(glfwGetTime()),
-                20,
-                5 * glm::sin(glfwGetTime()));
+                                          5 * glm::sin(glfwGetTime()),
+                                          20,
+                                          5 * glm::sin(glfwGetTime()));
     lightView = glm::lookAt(lightPosNew, glm::vec3(0.0f), glm::vec3(0.0, 1.0, 0.0));
     lightSpaceMatrix = lightProjection * lightView;
     // render scene from light's point of view
@@ -201,23 +200,23 @@ void ShadowMapRender::render() {
     shader.set_uniform("lightSpaceMatrix", lightSpaceMatrix);
     shader.set_uniform("uBias", uBias);
     switch (current_mode) {
-    case kShadowMap:
-        break;
-    case kPCF:
-        shader.set_uniform("uPCFFilterSize", uPCFFilterSize);
-        break;
-    case kPCSS:
-        shader.set_uniform("uPCSSBlockSize", uPCSSBlockSize);
-        shader.set_uniform("uPCSSLightSize", uPCSSLightSize);
-        break;
+        case kShadowMap:
+            break;
+        case kPCF:
+            shader.set_uniform("uPCFFilterSize", uPCFFilterSize);
+            break;
+        case kPCSS:
+            shader.set_uniform("uPCSSBlockSize", uPCSSBlockSize);
+            shader.set_uniform("uPCSSLightSize", uPCSSLightSize);
+            break;
     }
     shader.set_uniform("uShadowMode", current_mode);
     woodTexture.set_slot(0);
     woodTexture.bind();
-    depthMap.set_slot(1);
-    depthMap.bind();
+    depthMap->set_slot(1);
+    depthMap->bind();
     renderScene(shader);
-    depthMap.unbind();
+    depthMap->unbind();
     //render the light
     LightShader.use();
     auto model = glm::mat4(1.0f);

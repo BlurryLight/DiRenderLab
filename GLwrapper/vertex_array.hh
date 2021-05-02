@@ -16,15 +16,18 @@ namespace DRL {
         GLint count;
         GLint offset;
     };
+    using VboPtr = std::shared_ptr<VertexBuffer>;
+    using EboPtr = std::shared_ptr<VertexBuffer>;
 
     class VertexArray {
     protected:
         VertexArrayObject obj_;
         //        std::optional<std::vector<IndexInfo>> indices_;
-        bool ebo_ = false;
         bool bounded_ = false;
         bool changed_ = false;// attribute changed since last update_bind
         std::vector<AttributeInfo> attribs_;
+        std::vector<VboPtr> vbos_;
+        std::vector<EboPtr> ebos_;
 
     public:
         operator GLuint() const { return obj_.handle(); }
@@ -36,15 +39,15 @@ namespace DRL {
             attribs_.push_back({location, type, count, num_offset});
             if (!changed_) changed_ = true;
         }
-        void lazy_bind_attrib(const Program &prog, const std::string &name, GLenum type, GLint count, GLint num_offset) {
-            AssertLog(prog.linked(), "Program {} should be linked when looking up attribute location!", prog.handle());
-            int pos = glGetAttribLocation(prog, name.c_str());
-            AssertLog(pos != -1, "Program {} doesn't have attribute {} ", prog.handle(), name);
+        void lazy_bind_attrib(const Program &program, const std::string &name, GLenum type, GLint count, GLint num_offset) {
+            AssertLog(program.linked(), "Program {} should be linked when looking up attribute location!", program.handle());
+            int pos = glGetAttribLocation(program, name.c_str());
+            AssertLog(pos != -1, "Program {} doesn't have attribute {} ", program.handle(), name);
             attribs_.push_back({static_cast<unsigned int>(pos), type, count, num_offset});
         }
 
         //will keep state
-        void update_bind(const VertexBuffer &vbo, GLuint first_element_offset,GLint num_offset,size_t elem_size) {
+        void update_bind(const VboPtr &vbo, GLuint first_element_offset, GLint num_offset, size_t elem_size) {
             AssertLog(!attribs_.empty(), "VAO: {} Nothing to update: Attributes is empty!", obj_);
             for (const auto &attrib : attribs_) {
                 glEnableVertexArrayAttrib(obj_, attrib.location);
@@ -53,45 +56,46 @@ namespace DRL {
                 glVertexArrayAttribBinding(obj_, attrib.location, 0);
             }
             // now we set the vbo
-            glVertexArrayVertexBuffer(obj_, 0, vbo, first_element_offset, elem_size * num_offset);
+            glVertexArrayVertexBuffer(obj_, 0, *vbo, first_element_offset, elem_size * num_offset);
+            vbos_.push_back(vbo);
             changed_ = false;
         }
-        //TODO: vbo,ebo should transfer its ownership to VertexArray
-        void update_bind(const VertexBuffer &vbo, const ElementBuffer &ebo, GLuint first_element_offset, GLint num_offset,size_t elem_size) {
-            //            glBindVertexArray(obj_);
-            AssertLog(!attribs_.empty(), "VAO: {} Nothing to update: Attributes is empty!", obj_);
-            ebo_ = true;
-            for (const auto &attrib : attribs_) {
-                glEnableVertexArrayAttrib(obj_, attrib.location);
-                glVertexArrayAttribFormat(obj_, attrib.location, attrib.count, attrib.type, GL_FALSE, elem_size * attrib.offset);
-                glVertexArrayAttribBinding(obj_, attrib.location, 0);
-            }
-            // now we set the vbo
-            glVertexArrayVertexBuffer(obj_, 0, vbo, first_element_offset, elem_size * num_offset);
-            glVertexArrayElementBuffer(obj_, ebo);
-            changed_ = false;
+        //vbo,ebo should share its ownership to VertexArray
+        //vbo,ebo should have longer lifetime than the VertexArray
+        //            glBindVertexArray(obj_);
+        AssertLog(!attribs_.empty(), "VAO: {} Nothing to update: Attributes is empty!", obj_);
+        for (const auto &attrib : attribs_) {
+            glEnableVertexArrayAttrib(obj_, attrib.location);
+            glVertexArrayAttribFormat(obj_, attrib.location, attrib.count, attrib.type, GL_FALSE, elem_size * attrib.offset);
+            glVertexArrayAttribBinding(obj_, attrib.location, 0);
         }
-        void bind() {
-            AssertLog(!changed_, "Some attributes of VAO {} have yet been updated. Call update_bind() firstly!", obj_.handle());
-            glBindVertexArray(obj_);
-            bounded_ = true;
-        }
-        void draw(GLenum mode, GLint first_index, GLsizei indices_nums) {
-            AssertLog(bounded_, "VAO {} hasn't been bounded before drawing!", obj_.handle());
-            AssertLog(!ebo_, "VAO {} has ebo, wrong version of draw() is called!!", obj_.handle());
-            glDrawArrays(mode, first_index, indices_nums);
-        }
+        // now we set the vbo
+        glVertexArrayVertexBuffer(obj_, 0, *vbo, first_element_offset, elem_size *num_offset);
+        glVertexArrayElementBuffer(obj_, *ebo);
+        vbos_.push_back(vbo);
+        ebos_.push_back(ebo);
+        changed_ = false;
+    } void bind() {
+        AssertLog(!changed_, "Some attributes of VAO {} have yet been updated. Call update_bind() firstly!", obj_.handle());
+        glBindVertexArray(obj_);
+        bounded_ = true;
+    }
+    void draw(GLenum mode, GLint first_index, GLsizei indices_nums) {
+        AssertLog(bounded_, "VAO {} hasn't been bounded before drawing!", obj_.handle());
+        AssertLog(ebos_.empty(), "VAO {} has ebo, wrong version of draw() is called!!", obj_.handle());
+        glDrawArrays(mode, first_index, indices_nums);
+    }
 
-        void draw(GLenum mode, GLsizei indices_nums, GLenum indices_type, void *ebo_offset = nullptr) {
-            AssertLog(bounded_, "VAO {} hasn't been bounded before drawing!", obj_.handle());
-            AssertLog(ebo_, "VAO {} has not ebo, wrong version of draw() is called!!", obj_.handle());
-            glDrawElements(mode, indices_nums, indices_type, ebo_offset);
-        }
-        void unbind() {
-            glBindVertexArray(0);
-            bounded_ = false;
-        }
-    };
+    void draw(GLenum mode, GLsizei indices_nums, GLenum indices_type, void *ebo_offset = nullptr) {
+        AssertLog(bounded_, "VAO {} hasn't been bounded before drawing!", obj_.handle());
+        AssertLog(!ebos_.empty(), "VAO {} has not ebo, wrong version of draw() is called!!", obj_.handle());
+        glDrawElements(mode, indices_nums, indices_type, ebo_offset);
+    }
+    void unbind() {
+        glBindVertexArray(0);
+        bounded_ = false;
+    }
+};
 }// namespace DRL
 
 #endif//DIRENDERLAB_VERTEX_ARRAY_HH

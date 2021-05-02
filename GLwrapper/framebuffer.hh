@@ -7,16 +7,19 @@
 
 #include "global.hh"
 #include "globject.hh"
+#include "texture.hh"
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <vector>
 namespace DRL {
+    using Texture2DPtr = std::shared_ptr<Texture2D>;
     class Framebuffer {
     protected:
         FramebufferObj obj_;
         bool complete_ = false;
         int vheight_ = -1;
         int vwidth_ = -1;
+        std::vector<Texture2DPtr> textures_;
 
     public:
         glm::vec3 clear_color_ = {};
@@ -29,26 +32,28 @@ namespace DRL {
         Framebuffer() = default;
         Framebuffer(Framebuffer &&) = default;
         Framebuffer &operator=(Framebuffer &&) = default;
-        Framebuffer(GLenum attachment, GLuint texture_obj, GLint mipmap_level, glm::vec3 clear_color = glm::vec3(0.0f),
+        Framebuffer(GLenum attachment, const Texture2DPtr &texture_obj, GLint mipmap_level, glm::vec3 clear_color = glm::vec3(0.0f),
                     glm::vec3 clear_depth = glm::vec3(1.0f))
             : clear_color_(clear_color), clear_depth_(clear_depth) {
             attach_buffer(attachment, texture_obj, mipmap_level);
             set_viewport(texture_obj, mipmap_level);
         }
 
-        void set_viewport(GLuint texture_obj, GLint mipmap_level) {
-            glGetTextureLevelParameteriv(texture_obj, mipmap_level, GL_TEXTURE_HEIGHT, &vheight_);
-            glGetTextureLevelParameteriv(texture_obj, mipmap_level, GL_TEXTURE_WIDTH, &vwidth_);
+        void set_viewport(const Texture2DPtr &texture_obj, GLint mipmap_level) {
+            glGetTextureLevelParameteriv(*texture_obj, mipmap_level, GL_TEXTURE_HEIGHT, &vheight_);
+            glGetTextureLevelParameteriv(*texture_obj, mipmap_level, GL_TEXTURE_WIDTH, &vwidth_);
         }
         void set_viewport(int w, int h) {
             vwidth_ = w;
             vheight_ = h;
         }
-        void attach_buffer(GLenum attachment, GLuint texture_obj, GLint mipmap_level) {
-            glNamedFramebufferTexture(obj_, attachment, texture_obj, mipmap_level);
+        void attach_buffer(GLenum attachment, const Texture2DPtr &texture_obj, GLint mipmap_level) {
+            textures_.push_back(texture_obj);
+            glNamedFramebufferTexture(obj_, attachment, *texture_obj, mipmap_level);
         }
-        void attach_buffer(GLenum attachment, GLuint texture_obj, GLint mipmap_level, GLint layer) {
-            glNamedFramebufferTextureLayer(obj_, attachment, texture_obj, mipmap_level, layer);
+        void attach_buffer(GLenum attachment, const Texture2DPtr &texture_obj, GLint mipmap_level, GLint layer) {
+            textures_.push_back(texture_obj);
+            glNamedFramebufferTextureLayer(obj_, attachment, *texture_obj, mipmap_level, layer);
         }
         void set_draw_buffer(GLenum buffer) const {
             glNamedFramebufferDrawBuffer(obj_, buffer);
