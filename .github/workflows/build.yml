@@ -1,48 +1,39 @@
-name: hosted-basic-autocache
-on: [push]
-
+name: CI
+# Workflow file for windows
+on: [push,pull_request]
 jobs:
   job:
-    name: ${{ matrix.os }}-hosted-basic
+    name: ${{ matrix.os }}-build
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        os: [windows-latest]
         include:
           - os: windows-latest
             triplet: x64-windows
-          - os: ubuntu-latest
-            triplet: x64-linux
-
     steps:
-      - uses: actions/checkout@v1
-        with:
-          submodules: true
+    - name: Checkout
+      uses: actions/checkout@v2
+      with:
+          submodules: recursive
 
-      - uses: lukka/get-cmake@latest
-      - name: dir
-        run: find $RUNNER_WORKSPACE
-        shell: bash
-      - name: Restore artifacts, or run vcpkg, build and cache artifacts
-        uses: lukka/run-vcpkg@main
-        id: runvcpkg
-        with:
-          vcpkgArguments: '${{ matrix.vcpkgPackages }}'
-          vcpkgTriplet: '${{ matrix.triplet }}'
-          vcpkgDirectory: '${{ runner.workspace }}/b/vcpkg'
-      - name: dir
-        run: find $RUNNER_WORKSPACE
-        shell: bash
-      - name: Prints outputs of run-vcpkg task
-        run: echo "'${{ steps.runvcpkg.outputs.RUNVCPKG_VCPKG_ROOT_OUT }}' '${{  steps.runvcpkg.outputs.RUNVCPKG_VCPKG_TRIPLET_OUT }}' "
-      - name: Run CMake+Ninja without triplet
-        uses: lukka/run-cmake@main
-        id: runcmake
-        with:
-          cmakeGenerator: 'Ninja'  
-          cmakeListsOrSettingsJson: 'CMakeListsTxtBasic'
-          cmakeListsTxtPath: '${{ github.workspace }}/cmakeliststxt/CMakeLists.txt'
-          useVcpkgToolchainFile: true
-          buildWithCMakeArgs: '-- -v'
-          buildDirectory: '${{ runner.workspace }}/b/ninja/'
+    - name: Installing vcpkg (windows)
+      run: |
+        cd ..
+        git clone https://github.com/Microsoft/vcpkg.git
+        cd vcpkg
+        .\bootstrap-vcpkg.bat
+        
+    - name: Running cmake (windows)
+      run: |
+        cd ${{ github.workspace }}
+        mkdir build
+        cd build
+        cmake -A x64 .. -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}
+                  /../vcpkg/scripts/buildsystems/vcpkg.cmake
+
+    - name: Build Solution (windows)
+      run: |
+        cd build
+        cmake --build . --parallel
