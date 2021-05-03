@@ -30,6 +30,7 @@ set(EXAMPLES
         shadowmap
         skybox
         instance
+        pbrRender
         )
 foreach (EXAMPLE ${EXAMPLES})
     add_executable(${EXAMPLE} ${HEADER_LIST} ${THIRD_PARTY} ${IMGUI_SOURCE} ${SOURCE_LIST} examples/${EXAMPLE}/${EXAMPLE}.cc)
@@ -43,9 +44,9 @@ foreach (EXAMPLE ${EXAMPLES})
             )
     if (DEFINED VCPKG_TARGET_TRIPLET)
         target_link_libraries(${EXAMPLE} PRIVATE assimp::assimp glm::glm)
-        if(MSVC)
-        target_compile_options(${EXAMPLE} PRIVATE /utf-8)
-        endif(MSVC)
+        if (MSVC)
+            target_compile_options(${EXAMPLE} PRIVATE /utf-8)
+        endif (MSVC)
     else ()
         # In Linux with assimp installed from pacman, there is no target named assimp::assimp
         target_link_libraries(${EXAMPLE} PRIVATE assimp)
