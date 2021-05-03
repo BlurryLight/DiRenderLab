@@ -19,7 +19,7 @@ jobs:
           - os: windows-latest
             triplet: x64-linux
     env:
-      VCPKG_ROOT: '${{ github.workspace }}/vcpkg/'
+      VCPKG_ROOT: '${{ github.workspace }}/vcpkg'
     steps:
     - name: Checkout
       uses: actions/checkout@v2
@@ -39,6 +39,7 @@ jobs:
           # The other paths starting with '!' are exclusions: they contain termporary files generated during the build of the installed packages.
           path: |
             ${{ env.VCPKG_ROOT }}
+            ${{ github.workspace }}/build/vcpkg_installed
             !${{ env.VCPKG_ROOT }}/.git
             !${{ env.VCPKG_ROOT }}/buildtrees
             !${{ env.VCPKG_ROOT }}/packages
@@ -47,7 +48,7 @@ jobs:
           # The key includes: hash of the vcpkg.json file, the hash of the vcpkg Git commit id, and the used vcpkg's triplet. The vcpkg's commit id would suffice, but computing an hash out it does not harm.
           # Note: given a key, the cache content is immutable. If a cache entry has been created improperly, in order the recreate the right content the key must be changed as well, and it must be brand new (i.e. not existing already).
           key: |
-            ${{ hashFiles( 'vcpkg.json' ) }}-${{ runner.os }}-cache-key
+            ${{ hashFiles( 'vcpkg.json' ) }}-${{ runner.os }}-cache-key-v1
     
     - name: Get vcpkg(windows)
       if: ${{ runner.os == 'Windows' && steps.vcpkg-cache.outputs.cache-hit != 'true' }}
@@ -67,6 +68,10 @@ jobs:
     - name: install deps(Linux)
       if: runner.os == 'Linux'
       run: sudo apt install -y libgl1-mesa-dev libglu1-mesa-dev xorg-dev libxcursor-dev libxrandr-dev libxinerama-dev libxi-dev
+      shell: bash
+      
+    - name: remove system vcpkg
+      run: rm -rf "$VCPKG_INSTALLATION_ROOT"
       shell: bash
 
     - uses: ilammy/msvc-dev-cmd@v1
