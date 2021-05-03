@@ -28,7 +28,7 @@ jobs:
 
     - name: Get cmake
       # Install latest CMake.
-      uses: lukka/get-cmake@lates
+      uses: lukka/get-cmake@latest
 
     - name: Restore vcpkg and its artifacts.
       uses: actions/cache@v2
