@@ -10,110 +10,118 @@
 using namespace DRL;
 using byte = uint8_t;
 struct LoadReturnType {
-    std::shared_ptr<byte> bytes;
-    int nchannels;
-    int height;
-    int width;
+  std::shared_ptr<byte> bytes;
+  int nchannels;
+  int height;
+  int width;
 };
-static LoadReturnType TextureFromFile(const fs::path &path, bool gamma, bool flip) {
-    if (flip) {
-        stbi_set_flip_vertically_on_load(true);
-    }
-    int width, height, nrComponents;
-    auto absolute_path = fs::absolute(path);
-    auto data = std::shared_ptr<byte>(stbi_load(absolute_path.string().c_str(), &width, &height, &nrComponents, 0));
-    AssertLog(data.get(), "stbi load failed! path {} doesn't not exists!", path.string());
-    stbi_set_flip_vertically_on_load(false);
-    return {data, nrComponents, height, width};
+static LoadReturnType TextureFromFile(const fs::path &path, bool gamma,
+                                      bool flip) {
+  (void)gamma; // to make sure this renderer works correctly in SRGB space,
+               // there will need much more efforts. So currently the gamma is
+               // disabled.
+  if (flip) {
+    stbi_set_flip_vertically_on_load(true);
+  }
+  int width, height, nrComponents;
+  auto absolute_path = fs::absolute(path);
+  auto data = std::shared_ptr<byte>(stbi_load(
+      absolute_path.string().c_str(), &width, &height, &nrComponents, 0));
+  AssertLog(data.get(), "stbi load failed! path {} doesn't not exists!",
+            path.string());
+  stbi_set_flip_vertically_on_load(false);
+  return {data, nrComponents, height, width};
 }
 void Texture2D::update_data(const fs::path &path, bool gamma, bool flip) {
-    auto res = TextureFromFile(path, gamma, flip);
-    GLenum internal_format = GL_RGB8, format = GL_RGB;
-    switch (res.nchannels) {
-        case 1:
-            internal_format = GL_R8;
-            format = GL_RED;
-            break;
-        case 2:
-            internal_format = GL_RG8;
-            format = GL_RG;
-            break;
-        case 3:
-            internal_format = GL_RGB8;
-            format = GL_RGB;
-            break;
-        case 4:
-            internal_format = GL_RGBA8;
-            format = GL_RGBA;
-            break;
-    }
+  auto res = TextureFromFile(path, gamma, flip);
+  GLenum internal_format = GL_RGB8, format = GL_RGB;
+  switch (res.nchannels) {
+  case 1:
+    internal_format = GL_R8;
+    format = GL_RED;
+    break;
+  case 2:
+    internal_format = GL_RG8;
+    format = GL_RG;
+    break;
+  case 3:
+    internal_format = GL_RGB8;
+    format = GL_RGB;
+    break;
+  case 4:
+    internal_format = GL_RGBA8;
+    format = GL_RGBA;
+    break;
+  }
 
-    glTextureStorage2D(obj_, 1, internal_format, res.width, res.height);
-    glTextureSubImage2D(obj_, 0, 0, 0, res.width, res.height, format, GL_UNSIGNED_BYTE, res.bytes.get());
-    updated_ = true;
+  glTextureStorage2D(obj_, 1, internal_format, res.width, res.height);
+  glTextureSubImage2D(obj_, 0, 0, 0, res.width, res.height, format,
+                      GL_UNSIGNED_BYTE, res.bytes.get());
+  updated_ = true;
 }
 Texture2D::Texture2D(const fs::path &path, bool gamma, bool flip)
     : Texture(GL_TEXTURE_2D) {
-    update_data(path, gamma, flip);
+  update_data(path, gamma, flip);
 }
-Texture2D::Texture2D(int width, int height, GLenum format, GLenum type, const void *data)
+Texture2D::Texture2D(int width, int height, GLenum format, GLenum type,
+                     const void *data)
     : Texture(GL_TEXTURE_2D) {
-    glTextureStorage2D(obj_, 1, format, width, height);
-    updated_ = true;
+  glTextureStorage2D(obj_, 1, format, width, height);
+  updated_ = true;
 }
-void TextureCube::update_data(const std::vector<fs::path> &paths, bool gamma, bool flip) {
-    for (int i = 0; i < paths.size(); i++) {
-        auto res = TextureFromFile(paths[i], gamma, flip);
-        GLenum internal_format = GL_RGB8, format = GL_RGB;
-        if (i == 0) {
+void TextureCube::update_data(const std::vector<fs::path> &paths, bool gamma,
+                              bool flip) {
+  for (int i = 0; i < paths.size(); i++) {
+    auto res = TextureFromFile(paths[i], gamma, flip);
+    GLenum internal_format = GL_RGB8, format = GL_RGB;
+    if (i == 0) {
 
-            //initialize the storage when reading the first face
-            switch (res.nchannels) {
-                case 1:
-                    internal_format = GL_R8;
-                    format = GL_RED;
-                    break;
-                case 2:
-                    internal_format = GL_RG8;
-                    format = GL_RG;
-                    break;
-                case 3:
-                    internal_format = GL_RGB8;
-                    format = GL_RGB;
-                    break;
-                case 4:
-                    internal_format = GL_RGBA8;
-                    format = GL_RGBA;
-                    break;
-            }
-            glTextureStorage2D(obj_, 1, internal_format, res.width, res.height);
-        }
-        //An ugly hack here is to use glTextureSubImage3D to remove the binding
-        //like  glTextureSubImage3D(cubemap, 0, 0, 0, 0, N, N, 6, GL_RGBA, GL_HALF_FLOAT, cubemap_data.data());
-
-//        glBindTexture(GL_TEXTURE_CUBE_MAP, obj_);
-//        glTexSubImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, 0, 0, res.width, res.height, format, GL_UNSIGNED_BYTE, res.bytes.get());
-//        glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
-        //correct DSA way
-        glTextureSubImage3D(
-            obj_,
-            0,      // only 1 level in example
-            0,
-            0,
-            i,   // the offset to desired cubemap face, which offset goes to which face above
-        res.width,
-        res.height,
-            1,      // depth how many faces to set, if this was 3 we'd set 3 cubemap faces at once
-            format,
-            GL_UNSIGNED_BYTE,
-            res.bytes.get());
+      // initialize the storage when reading the first face
+      switch (res.nchannels) {
+      case 1:
+        internal_format = GL_R8;
+        format = GL_RED;
+        break;
+      case 2:
+        internal_format = GL_RG8;
+        format = GL_RG;
+        break;
+      case 3:
+        internal_format = GL_RGB8;
+        format = GL_RGB;
+        break;
+      case 4:
+        internal_format = GL_RGBA8;
+        format = GL_RGBA;
+        break;
+      }
+      glTextureStorage2D(obj_, 1, internal_format, res.width, res.height);
     }
-    updated_ = true;
+    // An ugly hack here is to use glTextureSubImage3D to remove the binding
+    // like  glTextureSubImage3D(cubemap, 0, 0, 0, 0, N, N, 6, GL_RGBA,
+    // GL_HALF_FLOAT, cubemap_data.data());
+
+    //        glBindTexture(GL_TEXTURE_CUBE_MAP, obj_);
+    //        glTexSubImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, 0, 0,
+    //        res.width, res.height, format, GL_UNSIGNED_BYTE, res.bytes.get());
+    //        glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
+    // correct DSA way
+    glTextureSubImage3D(obj_,
+                        0, // only 1 level in example
+                        0, 0,
+                        i, // the offset to desired cubemap face, which offset
+                           // goes to which face above
+                        res.width, res.height,
+                        1, // depth how many faces to set, if this was 3 we'd
+                           // set 3 cubemap faces at once
+                        format, GL_UNSIGNED_BYTE, res.bytes.get());
+  }
+  updated_ = true;
 }
 
-
-TextureCube::TextureCube(const std::vector<fs::path> &paths, bool gamma, bool flip)
+TextureCube::TextureCube(const std::vector<fs::path> &paths, bool gamma,
+                         bool flip)
     : Texture(GL_TEXTURE_CUBE_MAP) {
-    update_data(paths, gamma, flip);
-    glTextureParameteri(obj_, GL_TEXTURE_WRAP_R, wrap_r_);
+  update_data(paths, gamma, flip);
+  glTextureParameteri(obj_, GL_TEXTURE_WRAP_R, wrap_r_);
 }
