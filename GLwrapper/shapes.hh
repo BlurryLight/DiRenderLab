@@ -7,10 +7,9 @@
 
 namespace DRL {
 
-    void renderQuad();
-    void renderCube();
-    void renderSphere();
-}// namespace DRL
+void renderQuad();
+void renderCube();
+void renderSphere();
+} // namespace DRL
 
-
-#endif//DIRENDERLAB_SHAPES_HH
+#endif // DIRENDERLAB_SHAPES_HH

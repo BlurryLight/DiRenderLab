@@ -15,22 +15,21 @@
 
 using DRL::RenderBase;
 
-
 class SkyboxRender : public RenderBase {
 protected:
-    DRL::ResourcePathSearcher resMgr;
-    DRL::Program shader;
-    DRL::Program skyboxShader;
-    DRL::Program skyboxShader2;
-    int skyboxMode = 0;
-    DRL::VertexArray skyboxVAO;
-    DRL::TextureCube skyboxTexture;
+  DRL::ResourcePathSearcher resMgr;
+  DRL::Program shader;
+  DRL::Program skyboxShader;
+  DRL::Program skyboxShader2;
+  int skyboxMode = 0;
+  DRL::VertexArray skyboxVAO;
+  DRL::TextureCube skyboxTexture;
 
 public:
-    SkyboxRender() = default;
-    explicit SkyboxRender(const BaseInfo &info) : DRL::RenderBase(info) {}
-    void setup_states() override;
-    void render() override;
+  SkyboxRender() = default;
+  explicit SkyboxRender(const BaseInfo &info) : DRL::RenderBase(info) {}
+  void setup_states() override;
+  void render() override;
 };
 
-#endif//DIRENDERLAB_SKYBOX_HH
+#endif // DIRENDERLAB_SKYBOX_HH
