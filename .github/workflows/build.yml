@@ -71,18 +71,20 @@ jobs:
       if: runner.os == 'Windows'
       with:
         arch: x64
+        
+    - name: Setup tmate session
+      uses: mxschmitt/action-tmate@v3
+      if: runner.os == 'Linux' 
 
     - name: Running cmake
       run: |
         cd ${{ github.workspace }}
         mkdir build
         cd build
-        cmake .. -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake
-    - name: Setup tmate session
-      uses: mxschmitt/action-tmate@v3
-      if: runner.os == 'Linux' 
+        cmake .. -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake -DCMAKE_BUILD_TYPE=Release
+
 
     - name: Build Solution
       run: |
         cd build
-        cmake --build . --parallel
+        cmake --build . --parallel --config Release
