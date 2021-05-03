@@ -89,7 +89,7 @@ jobs:
       - name: Running cmake
         run: |
           cd ${{ github.workspace }}
-          mkdir build
+          mkdir -p build
           cd build
           cmake .. -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake -DCMAKE_BUILD_TYPE=Release
 
