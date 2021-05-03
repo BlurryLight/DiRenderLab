@@ -19,7 +19,7 @@ jobs:
           - os: windows-latest
             triplet: x64-linux
     env:
-      buildDir: '${{ github.workspace }}/build/'
+      VCPKG_ROOT: '${{ github.workspace }}/vcpkg/'
     steps:
     - name: Checkout
       uses: actions/checkout@v2
@@ -52,7 +52,6 @@ jobs:
           # The second path is the location of vcpkg (it contains the vcpkg executable and data files).
           # The other paths starting with '!' are exclusions: they contain termporary files generated during the build of the installed packages.
           path: |
-            ${{ env.CMAKE_BUILD_DIR }}/vcpkg_installed/
             ${{ env.VCPKG_ROOT }}
             !${{ env.VCPKG_ROOT }}/buildtrees
             !${{ env.VCPKG_ROOT }}/packages
