@@ -42,7 +42,7 @@ void SkyboxRender::render() {
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   //    shader.bind();
   //    DRL::bind_guard<DRL::TextureCube> texture_gd(skyboxTexture);
-  DRL::bind_guard gd(shader, skyboxTexture);
+  DRL::bind_guard gd(shader);
   glm::mat4 projection =
       glm::perspective(glm::radians(camera_->Zoom),
                        (float)info_.width / (float)info_.height, 0.1f, 100.0f);
@@ -138,7 +138,13 @@ void SkyboxRender::setup_states() {
       resMgr.find_path("top.jpg"),   resMgr.find_path("bottom.jpg"),
       resMgr.find_path("front.jpg"), resMgr.find_path("back.jpg"),
   };
-  //    skyboxTexture = loadCubemap(faces);
   skyboxTexture = DRL::TextureCube(faces, false, false);
-  skyboxTexture.set_slot(0);
+  auto handle = glGetTextureHandleARB(skyboxTexture);
+  glMakeTextureHandleResidentARB(handle);
+  GLint loc = glGetUniformLocation(shader, "skybox");
+  glProgramUniformHandleui64ARB(shader, loc, handle);
+  loc = glGetUniformLocation(skyboxShader, "skybox");
+  glProgramUniformHandleui64ARB(skyboxShader, loc, handle);
+  loc = glGetUniformLocation(skyboxShader2, "skybox");
+  glProgramUniformHandleui64ARB(skyboxShader2, loc, handle);
 }

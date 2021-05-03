@@ -1,4 +1,5 @@
 #version 450 core
+#extension GL_ARB_bindless_texture : enable
 out vec4 FragColor;
 in VS_OUT
 {
@@ -9,7 +10,7 @@ in VS_OUT
     vec2 TexCoords;
 } fs_in;
 
-layout(binding = 0) uniform samplerCube skybox;
+layout(bindless_sampler) uniform samplerCube skybox;
 //layout(location = 0) uniform vec3 ucameraPos;
 void main()
 {
