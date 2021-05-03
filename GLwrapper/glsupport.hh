@@ -169,7 +169,9 @@ private:
 
 inline float lerp(float a, float b, float t) { return a * (1 - t) + b * t; }
 
+#ifndef NDEBUG
 void PostCallbackFunc(const char *name, void *funcptr, int len_args, ...);
+#endif
 void APIENTRY glDebugOutput(GLenum source, GLenum type, unsigned int id,
                             GLenum severity, GLsizei length,
                             const char *message, const void *userParam);

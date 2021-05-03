@@ -67,6 +67,8 @@ void DRL::glDebugOutput(GLenum source, GLenum type, unsigned int id,
     std::quick_exit(-1);
   }
 }
+
+#ifndef NDEBUG
 void DRL::PostCallbackFunc(const char *name, void *funcptr, int len_args, ...) {
   (void)funcptr;
   (void)len_args;
@@ -99,6 +101,7 @@ void DRL::PostCallbackFunc(const char *name, void *funcptr, int len_args, ...) {
     spdlog::error("Error happens: {} {}", name, error);
   }
 }
+#endif
 
 void Model::loadModel(const fs::path &path) {
   // read file via ASSIMP
@@ -429,8 +432,10 @@ void RenderBase::InitWindow() {
     std::cout << "Failed to initialize GLAD" << std::endl;
     std::quick_exit(-1);
   }
+#ifndef NDEBUG
   if (info_.debug)
     glad_set_post_callback(DRL::PostCallbackFunc);
+#endif
 
   if (info_.debug) {
     int flags;

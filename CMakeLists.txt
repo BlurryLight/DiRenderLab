@@ -37,11 +37,11 @@ foreach (EXAMPLE ${EXAMPLES})
     target_include_directories(${EXAMPLE} PRIVATE ${CMAKE_SOURCE_DIR})
     target_compile_definitions(${EXAMPLE} PRIVATE -DIMGUI_IMPL_OPENGL_LOADER_GLAD)
     target_link_libraries(${EXAMPLE} PRIVATE
-            glad
             glfw
             ${CMAKE_DL_LIBS}
             spdlog::spdlog
             )
+    target_link_libraries(${EXAMPLE} PRIVATE debug "glad_d" optimized "glad")
     if (DEFINED VCPKG_TARGET_TRIPLET)
         target_link_libraries(${EXAMPLE} PRIVATE assimp::assimp glm::glm)
         if (MSVC)
