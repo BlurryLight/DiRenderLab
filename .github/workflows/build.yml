@@ -74,9 +74,9 @@ jobs:
       with:
         arch: x64
         
-#     - name: Setup tmate session
-#       uses: mxschmitt/action-tmate@v3
-#       if: runner.os == 'Linux' 
+    - name: Setup tmate session
+      uses: mxschmitt/action-tmate@v3
+      if: runner.os == 'Linux' 
 
     - name: Running cmake
       run: |
