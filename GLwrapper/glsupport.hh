@@ -117,9 +117,9 @@ public:
   std::vector<details::Texture> textures_;
   size_t indices_nums_ = 0;
   // constructor
-  Mesh::Mesh(const std::vector<Vertex> &vertices,
-             const std::vector<unsigned int> &indices,
-             const std::vector<Texture> &textures);
+  Mesh(const std::vector<Vertex> &vertices,
+       const std::vector<unsigned int> &indices,
+       const std::vector<Texture> &textures);
 
   // render the mesh
   void Draw(const Program &program);
@@ -144,8 +144,8 @@ public:
 
   // draws the model, and thus all its meshes
   void Draw(const Program &prog) {
-    for (unsigned int i = 0; i < meshes.size(); i++)
-      meshes[i].Draw(prog);
+    for (auto &mesh : meshes)
+      mesh.Draw(prog);
   }
 
 private:
