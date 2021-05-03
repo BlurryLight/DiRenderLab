@@ -28,31 +28,18 @@ jobs:
 
     - name: Get cmake
       # Install latest CMake.
-      uses: lukka/get-cmake@latest
-
-    - name: Get vcpkg(windows)
-      if: runner.os == 'Windows'
-      run: | 
-        cd ${{ github.workspace }}
-        git clone https://github.com/Microsoft/vcpkg.git
-        cd vcpkg
-        .\bootstrap-vcpkg.bat
-    - name: Get vcpkg(Linux)
-      if: runner.os == 'Linux'
-      run: | 
-        cd ${{ github.workspace }}
-        git clone https://github.com/Microsoft/vcpkg.git
-        cd vcpkg
-        ./bootstrap-vcpkg.sh
+      uses: lukka/get-cmake@lates
 
     - name: Restore vcpkg and its artifacts.
       uses: actions/cache@v2
+      id: vcpkg-cache
       with:
           # The first path is where vcpkg generates artifacts while consuming the vcpkg.json manifest file.
           # The second path is the location of vcpkg (it contains the vcpkg executable and data files).
           # The other paths starting with '!' are exclusions: they contain termporary files generated during the build of the installed packages.
           path: |
             ${{ env.VCPKG_ROOT }}
+            !${{ env.VCPKG_ROOT }}/.git
             !${{ env.VCPKG_ROOT }}/buildtrees
             !${{ env.VCPKG_ROOT }}/packages
             !${{ env.VCPKG_ROOT }}/downloads
@@ -61,6 +48,21 @@ jobs:
           # Note: given a key, the cache content is immutable. If a cache entry has been created improperly, in order the recreate the right content the key must be changed as well, and it must be brand new (i.e. not existing already).
           key: |
             ${{ hashFiles( 'vcpkg.json' ) }}-${{ hashFiles( '.git/modules/vcpkg/HEAD' )}}-${{ matrix.triplet }}-invalidate
+    
+    - name: Get vcpkg(windows)
+      if: ${{ runner.os == 'Windows' && steps.vcpkg-cache.outputs.cache-hit != 'true' }}
+      run: | 
+        cd ${{ github.workspace }}
+        git clone https://github.com/Microsoft/vcpkg.git
+        cd vcpkg
+        .\bootstrap-vcpkg.bat
+    - name: Get vcpkg(Linux)
+      if: ${{ runner.os == 'Linux' && steps.vcpkg-cache.outputs.cache-hit != 'true' }}
+      run: | 
+        cd ${{ github.workspace }}
+        git clone https://github.com/Microsoft/vcpkg.git
+        cd vcpkg
+        ./bootstrap-vcpkg.sh
             
     - name: install deps(Linux)
       if: runner.os == 'Linux'
