@@ -54,6 +54,7 @@ jobs:
         if: ${{ runner.os == 'Windows' && steps.vcpkg-cache.outputs.cache-hit != 'true' }}
         run: |
           cd ${{ github.workspace }}
+          mkdir build -force
           git clone https://github.com/Microsoft/vcpkg.git
           cd vcpkg
           .\bootstrap-vcpkg.bat
@@ -61,6 +62,7 @@ jobs:
         if: ${{ runner.os == 'Linux' && steps.vcpkg-cache.outputs.cache-hit != 'true' }}
         run: |
           cd ${{ github.workspace }}
+          mkdir -p build
           git clone https://github.com/Microsoft/vcpkg.git
           cd vcpkg
           ./bootstrap-vcpkg.sh
@@ -89,7 +91,6 @@ jobs:
       - name: Running cmake
         run: |
           cd ${{ github.workspace }}
-          mkdir -p build
           cd build
           cmake .. -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake -DCMAKE_BUILD_TYPE=Release
 
