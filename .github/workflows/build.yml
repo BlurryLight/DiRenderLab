@@ -62,15 +62,17 @@ jobs:
           # Note: given a key, the cache content is immutable. If a cache entry has been created improperly, in order the recreate the right content the key must be changed as well, and it must be brand new (i.e. not existing already).
           key: |
             ${{ hashFiles( 'vcpkg.json' ) }}-${{ hashFiles( '.git/modules/vcpkg/HEAD' )}}-${{ matrix.triplet }}-invalidate
-
-    - name: Show content of workspace after cache has been restored
-      run: find $RUNNER_WORKSPACE
+            
+    - name: install deps(Linux)
+      if: runner.os == 'Linux'
+      run: sudo apt install -y libgl1-mesa-dev libglu1-mesa-dev
       shell: bash
 
     - uses: ilammy/msvc-dev-cmd@v1
       if: runner.os == 'Windows'
       with:
         arch: x64
+
 
     - name: Running cmake
       run: |
