@@ -11,14 +11,22 @@
 #include "GLwrapper/texture.hh"
 
 namespace DRL {
-
+struct uniform_block {
+  float metallic_ = 0.0f;
+  float roughness_ = 0.0f;
+  glm::vec3 lightPos{};
+  glm::vec3 lightColor{};
+  //  std::vector<glm::vec3> lightPos;
+  //  std::vector<glm::vec3> lightColors;
+  glm::mat4 proj{1.0};
+};
 class PbrRender : public RenderBase {
 protected:
   DRL::ResourcePathSearcher resMgr;
-  DRL::Program shader;
-  float metallic_ = 0.0f;
-  float roughness_ = 0.0f;
+  DRL::Program pbrShader;
+  DRL::Program lightShader; // for visualize light sphere
   //  DRL::VertexArray pbr_vao;
+  uniform_block uniform_;
 
 public:
   PbrRender() = default;

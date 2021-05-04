@@ -62,6 +62,7 @@ void ShadowMapRender::setup_states() {
   // -----------------------------
   glEnable(GL_DEPTH_TEST);
 
+  resMgr.add_path(decltype(resMgr)::root_path / "resources" / "shaders");
   resMgr.add_path(decltype(resMgr)::root_path / "resources" / "shaders" /
                   "shadowmap");
   resMgr.add_path(decltype(resMgr)::root_path / "resources" / "textures");
