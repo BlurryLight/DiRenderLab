@@ -180,7 +180,7 @@ void DRL::renderSphere() {
     sphereVAO->lazy_bind_attrib(0, GL_FLOAT, 3, 0);
     sphereVAO->lazy_bind_attrib(1, GL_FLOAT, 3, 3);
     sphereVAO->lazy_bind_attrib(2, GL_FLOAT, 2, 6);
-    sphereVAO->update_bind(vbo, ebo, 0, stride, sizeof(GL_FLOAT));
+    sphereVAO->update_bind(vbo, ebo, 0, stride, sizeof(float));
   }
 
   bind_guard<VertexArray> gd(*sphereVAO);

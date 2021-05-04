@@ -263,7 +263,7 @@ Mesh::Mesh(const std::vector<Vertex> &vertices,
   vao_.lazy_bind_attrib(1, GL_FLOAT, 3, 3);  // normal
   vao_.lazy_bind_attrib(2, GL_FLOAT, 2, 6);  // texcoords
   vao_.lazy_bind_attrib(3, GL_FLOAT, 3, 8);  // tangent
-  vao_.lazy_bind_attrib(4, GL_FLOAT, 3, 11); // tangent
+  vao_.lazy_bind_attrib(4, GL_FLOAT, 3, 11); // bitangent
   int num_of_elems = sizeof(Vertex) / sizeof(float);
   int elem_bytes = sizeof(float);
   vao_.update_bind(vbo, ebo, 0, num_of_elems, elem_bytes);

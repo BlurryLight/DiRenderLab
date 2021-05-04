@@ -12,13 +12,18 @@
 
 namespace DRL {
 struct uniform_block {
-  float metallic_ = 0.0f;
-  float roughness_ = 0.0f;
+  float metallic_index = 1.0f;
+  float roughness_index = 1.0f;
   glm::vec3 lightPos{};
   glm::vec3 lightColor{};
   //  std::vector<glm::vec3> lightPos;
   //  std::vector<glm::vec3> lightColors;
   glm::mat4 proj{1.0};
+  DRL::Texture2DARB albedoARB;
+  //  DRL::Texture2DARB aoARB;
+  DRL::Texture2DARB normalARB;
+  DRL::Texture2DARB metallicARB;
+  DRL::Texture2DARB roughnessARB;
 };
 class PbrRender : public RenderBase {
 protected:
@@ -27,6 +32,7 @@ protected:
   DRL::Program lightShader; // for visualize light sphere
   //  DRL::VertexArray pbr_vao;
   uniform_block uniform_;
+  std::unique_ptr<DRL::Model> model_ptr = nullptr;
 
 public:
   PbrRender() = default;

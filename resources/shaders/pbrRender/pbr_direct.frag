@@ -1,4 +1,9 @@
 #version 450 core
+
+#if defined(GL_ARB_bindless_texture)
+#extension GL_ARB_bindless_texture : enable
+#endif
+
 out vec4 FragColor;
 in VS_OUT
 {
@@ -7,20 +12,33 @@ in VS_OUT
     vec3 wFragPos;
     vec3 wNormal;
     vec2 TexCoords;
+    mat3 TBN;
 } fs_in;
 
 // material parameters
-uniform vec3 albedo;
-uniform float metallic;
-uniform float roughness;
-uniform float ao;
+#if defined(GL_ARB_bindless_texture)
+layout(bindless_sampler) uniform sampler2D  u_albedoMap;
+layout(bindless_sampler) uniform sampler2D  u_metallicMap;
+layout(bindless_sampler) uniform sampler2D  u_roughnessMap;
+layout(bindless_sampler) uniform sampler2D  u_normalMap;
+//layout(bindless_sampler) uniform sampler2D  u_aoMap;
+#else
+layout(binding=0) uniform sampler2D  u_albedoMap;
+layout(binding=1) uniform sampler2D  u_metallicMap;
+layout(binding=2) uniform sampler2D  u_roughnessMap;
+layout(binding=3) uniform sampler2D  u_normalMap;
+//layout(binding=3) uniform sampler2D  u_aoMap;
+#endif
 
 // lights
 uniform vec3 lightPosition;
 uniform vec3 lightColor;
 uniform vec3 camPos;
+uniform float u_metallic_index;
+uniform float u_roughness_index;
 const float PI = 3.14159265359;
 #define EPS 1e-6
+
 // ----------------------------------------------------------------------------
 float DistributionGGX(vec3 N, vec3 H, float roughness)
 {
@@ -64,12 +82,18 @@ vec3 fresnelSchlick(float cosTheta, vec3 F0)
 // ----------------------------------------------------------------------------
 void main()
 {
-    vec3 N = fs_in.wNormal;
+    vec3 tex_normal = texture(u_normalMap, fs_in.TexCoords).rgb * 2.0 - 1.0;
+    vec3 N = normalize(fs_in.TBN * tex_normal);//translate texnormal to world-space
     vec3 V = normalize(camPos - fs_in.wFragPos);
 
     // calculate reflectance at normal incidence; if dia-electric (like plastic) use F0
     // of 0.04 and if it's a metal, use the albedo color as F0 (metallic workflow)
     vec3 F0 = vec3(0.04);
+    vec3 albedo  = pow(texture(u_albedoMap, fs_in.TexCoords).rgb, vec3(2.2));
+    float metallic = texture(u_metallicMap, fs_in.TexCoords).r * u_metallic_index;
+    float roughness = texture(u_roughnessMap, fs_in.TexCoords).r * u_roughness_index;
+    // float ao = texture(u_aoMap, fs_in.TexCoords).r;
+    float ao = 1.0;
     F0 = mix(F0, albedo, metallic);
 
     // reflectance equation

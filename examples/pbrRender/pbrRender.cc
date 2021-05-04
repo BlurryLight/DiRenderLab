@@ -7,6 +7,7 @@
 #include "third_party/imgui/imgui.h"
 #include "third_party/imgui/imgui_impl_glfw.h"
 #include "third_party/imgui/imgui_impl_opengl3.h"
+#include <glm/gtc/type_ptr.hpp>
 using namespace DRL;
 int main() {
   // spdlog init
@@ -37,8 +38,14 @@ void PbrRender::render() {
     ImGui::Begin("Background Color", 0); // Create a window called "Hello,
     ImGui::Text("Application average %.3f ms/frame (%.1f FPS)",
                 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
-    ImGui::SliderFloat("metallic", &uniform_.metallic_, 0.0f, 1.0f, "%.3f");
-    ImGui::SliderFloat("roughness", &uniform_.roughness_, 0.0f, 1.0f, "%.3f");
+    ImGui::SliderFloat3("LightColor", glm::value_ptr(uniform_.lightColor), 0.0f,
+                        500.0f, "%.3f");
+    ImGui::SliderFloat3("LightPos", glm::value_ptr(uniform_.lightPos), 0.0f,
+                        50.0f, "%.3f");
+    ImGui::SliderFloat("metallic", &uniform_.metallic_index, 0.0f, 1.0f,
+                       "%.3f");
+    ImGui::SliderFloat("roughness", &uniform_.roughness_index, 0.0f, 1.0f,
+                       "%.3f");
     ImGui::End();
   }
   ImGui::Render();
@@ -52,13 +59,19 @@ void PbrRender::render() {
     pbrShader.set_uniform("view", view);
     pbrShader.set_uniform("model", glm::mat4(1.0));
     pbrShader.set_uniform("camPos", camera_->Position);
-    pbrShader.set_uniform("metallic", uniform_.metallic_);
-    pbrShader.set_uniform("roughness", uniform_.roughness_);
+    pbrShader.set_uniform("u_metallicMap",
+                          uniform_.metallicARB.tex_handle_ARB());
+    pbrShader.set_uniform("u_roughnessMap",
+                          uniform_.roughnessARB.tex_handle_ARB());
+    pbrShader.set_uniform("u_normalMap", uniform_.normalARB.tex_handle_ARB());
+    pbrShader.set_uniform("u_albedoMap", uniform_.albedoARB.tex_handle_ARB());
+
     pbrShader.set_uniform("lightPosition", uniform_.lightPos);
     pbrShader.set_uniform("lightColor", uniform_.lightColor);
-    pbrShader.set_uniform("albedo", glm::vec3(0.5, 0, 0));
-    pbrShader.set_uniform("ao", 1.0f);
-    DRL::renderSphere();
+
+    pbrShader.set_uniform("u_metallic_index", uniform_.metallic_index);
+    pbrShader.set_uniform("u_roughness_index", uniform_.roughness_index);
+    model_ptr->Draw(pbrShader);
   }
 
   {
@@ -74,17 +87,35 @@ void PbrRender::render() {
 void PbrRender::setup_states() {
   glEnable(GL_DEPTH_TEST);
   resMgr.add_path(decltype(resMgr)::root_path / "resources" / "shaders");
+  resMgr.add_path(decltype(resMgr)::root_path / "resources" / "textures" /
+                  "pbr");
   resMgr.add_path(decltype(resMgr)::root_path / "resources" / "shaders" /
                   "pbrRender");
-  pbrShader = DRL::make_program(resMgr.find_path("mvp_pos_normal_texture.vert"),
+  resMgr.add_path(decltype(resMgr)::root_path / "resources" / "models" /
+                  "basic");
+  pbrShader = DRL::make_program(resMgr.find_path("pbr.vert"),
                                 resMgr.find_path("pbr_direct.frag"));
 
-  lightShader =
-      DRL::make_program(resMgr.find_path("mvp_pos_normal_texture.vert"),
-                        resMgr.find_path("light.frag"));
+  lightShader = DRL::make_program(resMgr.find_path("pbr.vert"),
+                                  resMgr.find_path("light.frag"));
   uniform_.proj =
       glm::perspective(glm::radians(camera_->Zoom),
                        (float)info_.width / (float)info_.height, 0.1f, 100.0f);
   uniform_.lightPos = glm::vec3(10.0f);
   uniform_.lightColor = glm::vec3(200.0f);
+
+  model_ptr =
+      std::make_unique<DRL::Model>(resMgr.find_path("sphere.obj").string());
+  uniform_.albedoARB = DRL::Texture2DARB(
+      resMgr.find_path("rustediron2_basecolor.png"), false, false);
+  uniform_.albedoARB.make_resident();
+  uniform_.roughnessARB = DRL::Texture2DARB(
+      resMgr.find_path("rustediron2_roughness.png"), false, false);
+  uniform_.roughnessARB.make_resident();
+  uniform_.normalARB = DRL::Texture2DARB(
+      resMgr.find_path("rustediron2_normal.png"), false, false);
+  uniform_.normalARB.make_resident();
+  uniform_.metallicARB = DRL::Texture2DARB(
+      resMgr.find_path("rustediron2_metallic.png"), false, false);
+  uniform_.metallicARB.make_resident();
 }
