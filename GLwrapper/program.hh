@@ -22,17 +22,19 @@ private:
 protected:
   ProgramObj obj_;
   bool linked_ = false;
-  bool used_ = false;
+  static Program *current_using_program;
 
-  using Uniform_t = std::variant<bool, int, unsigned int, float, glm::mat3,
-                                 glm::mat4, glm::vec2, glm::vec3, glm::vec4>;
+  using Uniform_t =
+      std::variant<bool, int, unsigned int, float, glm::mat3, glm::mat4,
+                   glm::vec2, glm::vec3, glm::vec4, GLuint64>;
 
 public:
   ~Program() {
     AssertLog(linked_, "Program {} is never linked!", obj_);
     // just warning. Because when the process is ending we don't need to unbind
     // current program.
-    AssertWarning(!used_, "Program {} is using when destroying!", obj_);
+    AssertWarning(current_using_program == this,
+                  "Program {} is using when destroying!", obj_);
   }
   operator GLuint() const { return obj_.handle(); }
   [[nodiscard]] GLuint handle() const { return obj_.handle(); }
@@ -45,21 +47,25 @@ public:
   Program(std::initializer_list<std::reference_wrapper<const Shader>> shaders);
   void link();
   [[nodiscard]] bool linked() const { return linked_; }
-  [[nodiscard]] bool isBounded() const { return used_; }
+  [[nodiscard]] bool isBounded() const { return current_using_program == this; }
   void bind() {
     AssertLog(linked(), "Program {} uses before linking!", obj_);
     // this condition maybe too tough.
     // we need a use_guard<Program> just like std::lock_guard<std::mutex>
     // AssertWarning(!used_, "Program {} is using!", obj_);
-    glUseProgram(obj_);
-    used_ = true;
+    if (current_using_program != this) {
+      glUseProgram(obj_);
+      current_using_program = this;
+    }
   }
   void unbind() {
-    AssertLog(used_, "Program {} is not using!", obj_);
+    AssertLog(isBounded(), "Program {} is not using!", obj_);
+    current_using_program = nullptr;
     glUseProgram(0);
-    used_ = false;
   }
-  void set_uniform(const std::string_view name, const Uniform_t &value) const;
+  void set_uniform(std::string_view name, const Uniform_t &value) const;
+  // TODO: unused interface
+  //  void set_uniform(GLuint loc, const Uniform_t &value) const;
 };
 Program make_program(const fs::path &vpath,
                      std::optional<const fs::path> fpath = std::nullopt,

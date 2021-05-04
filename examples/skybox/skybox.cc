@@ -42,7 +42,8 @@ void SkyboxRender::render() {
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   //    shader.bind();
   //    DRL::bind_guard<DRL::TextureCube> texture_gd(skyboxTexture);
-  DRL::bind_guard gd(shader);
+  //  DRL::bind_guard gd(shader);
+  shader.bind();
   glm::mat4 projection =
       glm::perspective(glm::radians(camera_->Zoom),
                        (float)info_.width / (float)info_.height, 0.1f, 100.0f);
@@ -69,6 +70,7 @@ void SkyboxRender::render() {
     glDepthFunc(GL_LESS);
   }
 }
+
 void SkyboxRender::setup_states() {
   glEnable(GL_DEPTH_TEST);
   resMgr.add_path(decltype(resMgr)::root_path / "resources" / "shaders");
@@ -138,13 +140,13 @@ void SkyboxRender::setup_states() {
       resMgr.find_path("top.jpg"),   resMgr.find_path("bottom.jpg"),
       resMgr.find_path("front.jpg"), resMgr.find_path("back.jpg"),
   };
-  skyboxTexture = DRL::TextureCube(faces, false, false);
-  auto handle = glGetTextureHandleARB(skyboxTexture);
-  glMakeTextureHandleResidentARB(handle);
-  GLint loc = glGetUniformLocation(shader, "skybox");
-  glProgramUniformHandleui64ARB(shader, loc, handle);
-  loc = glGetUniformLocation(skyboxShader, "skybox");
-  glProgramUniformHandleui64ARB(skyboxShader, loc, handle);
-  loc = glGetUniformLocation(skyboxShader2, "skybox");
-  glProgramUniformHandleui64ARB(skyboxShader2, loc, handle);
+  skyboxTexture = DRL::TextureCubeARB(faces, false, false);
+  skyboxTexture.make_resident();
+  shader.bind();
+  shader.set_uniform("skybox", skyboxTexture.tex_handle_ARB());
+  skyboxShader.bind();
+  skyboxShader.set_uniform("skybox", skyboxTexture.tex_handle_ARB());
+  skyboxShader2.bind();
+  skyboxShader2.set_uniform("skybox", skyboxTexture.tex_handle_ARB());
 }
+void SkyboxRender::shutdown() { skyboxTexture.make_non_resident(); }

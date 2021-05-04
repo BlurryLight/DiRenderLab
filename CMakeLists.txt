@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.12)
 project(DiRenderLab C CXX)
 set(CMAKE_CXX_STANDARD 17) #enable filesystem
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
 include(${CMAKE_SOURCE_DIR}/cmake/cmake_filesystem.cmake)
 include(${CMAKE_SOURCE_DIR}/cmake/generate_header.cmake)
 find_package(glm REQUIRED)

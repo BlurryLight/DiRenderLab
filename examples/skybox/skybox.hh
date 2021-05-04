@@ -23,13 +23,14 @@ protected:
   DRL::Program skyboxShader2;
   int skyboxMode = 0;
   DRL::VertexArray skyboxVAO;
-  DRL::TextureCube skyboxTexture;
+  DRL::TextureCubeARB skyboxTexture;
 
 public:
   SkyboxRender() = default;
   explicit SkyboxRender(const BaseInfo &info) : DRL::RenderBase(info) {}
   void setup_states() override;
   void render() override;
+  void shutdown() override;
 };
 
 #endif // DIRENDERLAB_SKYBOX_HH

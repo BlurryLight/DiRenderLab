@@ -125,3 +125,36 @@ TextureCube::TextureCube(const std::vector<fs::path> &paths, bool gamma,
   update_data(paths, gamma, flip);
   glTextureParameteri(obj_, GL_TEXTURE_WRAP_R, wrap_r_);
 }
+Texture::Texture(GLenum textureType) : obj_(textureType) {
+  glTextureParameteri(obj_, GL_TEXTURE_MIN_FILTER, min_filter_);
+  glTextureParameteri(obj_, GL_TEXTURE_MAG_FILTER, mag_filter_);
+  glTextureParameteri(obj_, GL_TEXTURE_WRAP_S, wrap_s_);
+  glTextureParameteri(obj_, GL_TEXTURE_WRAP_T, wrap_t_);
+}
+void Texture::bind() {
+  AssertLog(updated_, "Texture {} has not been updated!", obj_.handle());
+  glBindTextureUnit(slot_, obj_);
+  bounded_ = true;
+  first_bounded = true;
+}
+void Texture::unbind() {
+  AssertLog(bounded_, "Unbind a unbound texture {}!", obj_.handle());
+  glBindTextureUnit(slot_, 0);
+  bounded_ = false;
+}
+void Texture::set_wrap_t(GLenum value) {
+  glTextureParameteri(obj_, GL_TEXTURE_WRAP_T, value);
+  wrap_t_ = value;
+}
+void Texture::set_wrap_s(GLenum value) {
+  glTextureParameteri(obj_, GL_TEXTURE_WRAP_S, value);
+  wrap_s_ = value;
+}
+void Texture::set_mag_filter(GLenum value) {
+  glTextureParameteri(obj_, GL_TEXTURE_MAG_FILTER, value);
+  mag_filter_ = value;
+}
+void Texture::set_min_filter(GLenum value) {
+  glTextureParameteri(obj_, GL_TEXTURE_MIN_FILTER, value);
+  min_filter_ = value;
+}

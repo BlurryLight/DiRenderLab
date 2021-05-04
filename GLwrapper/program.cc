@@ -6,6 +6,8 @@
 #include "glm/gtc/type_ptr.hpp"
 using namespace DRL;
 #include <cstdlib>
+// init static variable
+Program *Program::current_using_program = nullptr;
 void Program::link() {
   AssertLog(!linked_, "Program {} linked multiple times!", obj_.handle());
   if (!(shaders_bits_[0] && shaders_bits_[2])) // check vshader and fshader
@@ -58,9 +60,9 @@ void Program::attach_shaders(
 // magic here
 template <class... Ts> struct overloaded : Ts... { using Ts::operator()...; };
 template <class... Ts> overloaded(Ts...) -> overloaded<Ts...>;
-void Program::set_uniform(const std::string_view name,
+void Program::set_uniform(std::string_view name,
                           const Program::Uniform_t &value) const {
-  AssertLog(used_, "Program {} needs to be used before setting value!");
+  AssertLog(isBounded(), "Program {} needs to be used before setting value!");
   GLint loc = glGetUniformLocation(obj_, name.data());
   AssertLog(loc != -1,
             "Program {} set value {} failed because "
@@ -71,7 +73,7 @@ void Program::set_uniform(const std::string_view name,
       overloaded{
           [&](bool v) { glUniform1i(loc, v); },
           [&](int v) { glUniform1i(loc, v); },
-          [&](glm::uint v) { glUniform1i(loc, v); },
+          [&](glm::uint v) { glUniform1ui(loc, v); },
           [&](float v) { glUniform1f(loc, v); },
           //                       [&](const glm::ivec2 v) { glUniform2i(loc,
           //                       v.x, v.y); },
@@ -97,7 +99,7 @@ void Program::set_uniform(const std::string_view name,
           [&](const glm::mat4 v) {
             glUniformMatrix4fv(loc, 1u, GL_FALSE, glm::value_ptr(v));
           },
-      },
+          [&](const GLuint64 v) { glUniformHandleui64ARB(loc, v); }},
       value);
 }
 
