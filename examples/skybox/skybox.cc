@@ -29,7 +29,7 @@ void SkyboxRender::render() {
 
   ImGui::NewFrame();
   {
-    ImGui::Begin("Background Color", 0); // Create a window called "Hello,
+    ImGui::Begin("Background Color", nullptr); // Create a window called "Hello,
     ImGui::Text("Application average %.3f ms/frame (%.1f FPS)",
                 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
     const char *modes[] = {"Mode0", "Mode1"};
@@ -134,13 +134,13 @@ void SkyboxRender::setup_states() {
       skyboxVertices, sizeof skyboxVertices, DRL::kStaticDraw);
   skyboxVAO.lazy_bind_attrib(0, GL_FLOAT, 3, 0);
   // a simple test: bind vbo to vao's second slot
-  skyboxVAO.update_bind_slot(skyboxVBO, 1, 0, 3, sizeof(GL_FLOAT));
+  skyboxVAO.update_bind_slot(skyboxVBO, 1, 0, 3, sizeof(float));
   std::vector<fs::path> faces{
       resMgr.find_path("right.jpg"), resMgr.find_path("left.jpg"),
       resMgr.find_path("top.jpg"),   resMgr.find_path("bottom.jpg"),
       resMgr.find_path("front.jpg"), resMgr.find_path("back.jpg"),
   };
-  skyboxTexture = DRL::TextureCubeARB(faces, false, false);
+  skyboxTexture = DRL::TextureCubeARB(faces, true, false);
   skyboxTexture.make_resident();
   shader.bind();
   shader.set_uniform("skybox", skyboxTexture.tex_handle_ARB());

@@ -24,25 +24,13 @@ static std::string LoadShaderFromFile(const fs::path &path) {
   code = ss.str();
   return code;
 }
-static std::string LoadShaderFromFile(const std::string &path) {
-  std::string code;
-  std::ifstream file_stream(path);
-  if (!file_stream.is_open()) {
-    spdlog::error("{} not found!", path);
-    std::quick_exit(-1);
-  }
-  std::stringstream ss;
-  ss << file_stream.rdbuf();
-  code = ss.str();
-  return code;
-}
 Shader::Shader(GLenum type, const std::string &content, bool compile)
-    : obj_(type), content_(content), type_(MapGLEnumToShaderType(type)) {
+    : content_(content), obj_(type), type_(MapGLEnumToShaderType(type)) {
   if (compile)
     this->compile();
 }
 Shader::Shader(GLenum type, const fs::path &path, bool compile)
-    : obj_(type), content_(LoadShaderFromFile(path)),
+    : content_(LoadShaderFromFile(path)), obj_(type),
       type_(MapGLEnumToShaderType(type)) {
 #ifndef NDEBUG
   std::vector<std::string> vsuffix{".vert", ".vs"};

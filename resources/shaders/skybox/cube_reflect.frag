@@ -16,5 +16,5 @@ void main()
 {
     vec3 I = normalize(fs_in.vFragPos);
     vec3 R = reflect(I, fs_in.vNormal);
-    FragColor = vec4(texture(skybox, R).rgb, 1.0);
+    FragColor = vec4(pow(texture(skybox, R).rgb, vec3(0.45)), 1.0);
 }

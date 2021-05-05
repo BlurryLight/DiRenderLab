@@ -82,7 +82,8 @@ public:
     glNamedFramebufferReadBuffer(obj_, buffer);
   }
   void set_draw_buffer(const std::vector<GLenum> &buffers) const {
-    glNamedFramebufferDrawBuffers(obj_, buffers.size(), buffers.data());
+    glNamedFramebufferDrawBuffers(obj_, static_cast<int>(buffers.size()),
+                                  buffers.data());
   }
   void bind() {
     if (!complete_) {

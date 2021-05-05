@@ -8,5 +8,5 @@ layout(bindless_sampler) uniform samplerCube skybox;
 
 void main()
 {
-    FragColor = texture(skybox, TexCoords);
+    FragColor = vec4(pow(texture(skybox, TexCoords).xyz, vec3(0.45)), 1.0);
 }

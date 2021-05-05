@@ -254,7 +254,7 @@ Model::loadMaterialTextures(aiMaterial *mat, aiTextureType type,
 Mesh::Mesh(const std::vector<Vertex> &vertices,
            const std::vector<unsigned int> &indices,
            const std::vector<Texture> &textures)
-    : textures_(textures), indices_nums_(indices.size()) {
+    : textures_(textures), indices_nums_(static_cast<int>(indices.size())) {
   auto vbo = std::make_shared<DRL::VertexBuffer>(
       vertices.data(), vertices.size() * sizeof(details::Vertex), kStaticDraw);
   auto ebo = std::make_shared<DRL::ElementBuffer>(

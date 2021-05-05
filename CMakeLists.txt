@@ -6,6 +6,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 include(${CMAKE_SOURCE_DIR}/cmake/cmake_filesystem.cmake)
 include(${CMAKE_SOURCE_DIR}/cmake/generate_header.cmake)
+include(${CMAKE_SOURCE_DIR}/cmake/utils.cmake)
 find_package(glm REQUIRED)
 find_package(assimp REQUIRED)
 find_package(spdlog REQUIRED)
@@ -26,11 +27,20 @@ message(${THIRD_PARTY})
 include_directories("third_party")
 add_subdirectory(third_party/glad)
 
-if ((${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang" AND "x${CMAKE_CXX_SIMULATE_ID}" STREQUAL "xMSVC"))
-    # clang-cl
-    message("clang-cl detected!")
-    add_compile_options(/EHa /EHs)
+
+add_library(glsupport STATIC ${HEADER_LIST} ${THIRD_PARTY} ${IMGUI_SOURCE} ${SOURCE_LIST})
+target_include_directories(glsupport PRIVATE ${CMAKE_SOURCE_DIR})
+target_compile_definitions(glsupport PRIVATE -DIMGUI_IMPL_OPENGL_LOADER_GLAD)
+target_link_libraries(glsupport PUBLIC glfw ${CMAKE_DL_LIBS} spdlog::spdlog)
+target_link_libraries(glsupport PRIVATE debug "glad_d" optimized "glad")
+if (DEFINED VCPKG_TARGET_TRIPLET)
+    target_link_libraries(glsupport PRIVATE assimp::assimp glm::glm)
+else ()
+    # In Linux with assimp installed from pacman, there is no target named assimp::assimp
+    target_link_libraries(glsupport PRIVATE assimp)
 endif ()
+target_set_warning_flags(glsupport)
+
 set(EXAMPLES
         imgui_example
         ssao
@@ -40,24 +50,12 @@ set(EXAMPLES
         pbrRender
         )
 foreach (EXAMPLE ${EXAMPLES})
-    add_executable(${EXAMPLE} ${HEADER_LIST} ${THIRD_PARTY} ${IMGUI_SOURCE} ${SOURCE_LIST} examples/${EXAMPLE}/${EXAMPLE}.cc)
+    add_executable(${EXAMPLE} examples/${EXAMPLE}/${EXAMPLE}.cc)
     target_include_directories(${EXAMPLE} PRIVATE ${CMAKE_SOURCE_DIR})
     target_compile_definitions(${EXAMPLE} PRIVATE -DIMGUI_IMPL_OPENGL_LOADER_GLAD)
-    target_link_libraries(${EXAMPLE} PRIVATE
-            glfw
-            ${CMAKE_DL_LIBS}
-            spdlog::spdlog
-            )
-    target_link_libraries(${EXAMPLE} PRIVATE debug "glad_d" optimized "glad")
-    if (DEFINED VCPKG_TARGET_TRIPLET)
-        target_link_libraries(${EXAMPLE} PRIVATE assimp::assimp glm::glm)
-        if (MSVC)
-            target_compile_options(${EXAMPLE} PRIVATE /utf-8)
-        endif (MSVC)
-    else ()
-        # In Linux with assimp installed from pacman, there is no target named assimp::assimp
-        target_link_libraries(${EXAMPLE} PRIVATE assimp)
-    endif ()
+    target_link_libraries(${EXAMPLE} PRIVATE glsupport)
+    # Flags are added only with the main target
+    target_set_warning_flags(${EXAMPLE})
 endforeach ()
 
 

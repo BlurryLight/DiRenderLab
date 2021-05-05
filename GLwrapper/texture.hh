@@ -30,10 +30,10 @@ protected:
 public:
   operator GLuint() const { return obj_.handle(); }
   [[nodiscard]] GLuint handle() const { return obj_.handle(); }
-  GLenum min_filter_ = GL_NEAREST;
-  GLenum mag_filter_ = GL_NEAREST;
-  GLenum wrap_s_ = GL_REPEAT;
-  GLenum wrap_t_ = GL_REPEAT;
+  GLint min_filter_ = GL_NEAREST;
+  GLint mag_filter_ = GL_NEAREST;
+  GLint wrap_s_ = GL_REPEAT;
+  GLint wrap_t_ = GL_REPEAT;
   void generateMipmap() const { glGenerateTextureMipmap(obj_); }
   void set_min_filter(GLenum value);
   void set_mag_filter(GLenum value);
@@ -138,7 +138,7 @@ public:
 
 class TextureCube : public Texture {
 public:
-  GLenum wrap_r_ = GL_REPEAT;
+  GLint wrap_r_ = GL_REPEAT;
   TextureCube() : Texture(GL_TEXTURE_CUBE_MAP) {
     glTextureParameteri(obj_, GL_TEXTURE_WRAP_R, wrap_r_);
   }

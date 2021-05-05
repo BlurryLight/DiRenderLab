@@ -180,7 +180,7 @@ int main() {
   // hemisphere samples
   std::vector<glm::vec3> samples;
   uint sample_nums = 64;
-  for (int i = 0; i < sample_nums; i++) {
+  for (uint i = 0; i < sample_nums; i++) {
     //在2x2x1的立方体内采样
     glm::vec3 sample(get_random_float(-1.0f, 1.0f),
                      get_random_float(-1.0f, 1.0f), get_random_float());
@@ -293,7 +293,7 @@ int main() {
     ssaoShader.set_uniform("projection", projection);
 
     // render the loaded model
-    for (int i = 0; i < sample_nums; i++) {
+    for (uint i = 0; i < sample_nums; i++) {
       ssaoShader.set_uniform("samples[" + std::to_string(i) + "]", samples[i]);
     }
     glActiveTexture(GL_TEXTURE0);

@@ -9,26 +9,36 @@
 #include <utility>
 using namespace DRL;
 using byte = uint8_t;
+using img_array_t = std::variant<std::shared_ptr<float>, std::shared_ptr<byte>>;
 struct LoadReturnType {
-  std::shared_ptr<byte> bytes;
-  int nchannels;
-  int height;
-  int width;
+  img_array_t data_ptr{};
+  int nchannels = -1;
+  int height = -1;
+  int width = -1;
 };
 static LoadReturnType TextureFromFile(const fs::path &path, bool gamma,
                                       bool flip) {
-  (void)gamma; // to make sure this renderer works correctly in SRGB space,
-               // there will need much more efforts. So currently the gamma is
-               // disabled.
+  // to make sure this renderer works correctly in SRGB space,
+  // there will need much more efforts.
   if (flip) {
     stbi_set_flip_vertically_on_load(true);
   }
   int width, height, nrComponents;
   auto absolute_path = fs::absolute(path);
-  auto data = std::shared_ptr<byte>(stbi_load(
-      absolute_path.string().c_str(), &width, &height, &nrComponents, 0));
-  AssertLog(data.get(), "stbi load failed! path {} doesn't not exists!",
-            path.string());
+  //  auto data = std::shared_ptr<byte>(stbi_load(
+  //      absolute_path.string().c_str(), &width, &height, &nrComponents, 0));
+
+  img_array_t data;
+  if (gamma) {
+    data = std::shared_ptr<float>(stbi_loadf(
+        absolute_path.string().c_str(), &width, &height, &nrComponents, 0));
+  } else {
+    data = std::shared_ptr<byte>(stbi_load(absolute_path.string().c_str(),
+                                           &width, &height, &nrComponents, 0));
+  }
+
+  AssertLog(!data.valueless_by_exception(),
+            "stbi load failed! path {} doesn't not exists!", path.string());
   stbi_set_flip_vertically_on_load(false);
   return {data, nrComponents, height, width};
 }
@@ -55,8 +65,14 @@ void Texture2D::update_data(const fs::path &path, bool gamma, bool flip) {
   }
 
   glTextureStorage2D(obj_, 1, internal_format, res.width, res.height);
-  glTextureSubImage2D(obj_, 0, 0, 0, res.width, res.height, format,
-                      GL_UNSIGNED_BYTE, res.bytes.get());
+  if (res.data_ptr.index() == 0) // float
+  {
+    glTextureSubImage2D(obj_, 0, 0, 0, res.width, res.height, format, GL_FLOAT,
+                        std::get<0>(res.data_ptr).get());
+  } else {
+    glTextureSubImage2D(obj_, 0, 0, 0, res.width, res.height, format,
+                        GL_UNSIGNED_BYTE, std::get<1>(res.data_ptr).get());
+  }
   updated_ = true;
 }
 Texture2D::Texture2D(const fs::path &path, bool gamma, bool flip)
@@ -106,17 +122,24 @@ void TextureCube::update_data(const std::vector<fs::path> &paths, bool gamma,
     //        res.width, res.height, format, GL_UNSIGNED_BYTE, res.bytes.get());
     //        glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
     // correct DSA way
-    glTextureSubImage3D(obj_,
-                        0, // only 1 level in example
-                        0, 0,
-                        i, // the offset to desired cubemap face, which offset
-                           // goes to which face above
-                        res.width, res.height,
-                        1, // depth how many faces to set, if this was 3 we'd
-                           // set 3 cubemap faces at once
-                        format, GL_UNSIGNED_BYTE, res.bytes.get());
+    if (res.data_ptr.index() == 0) // float
+    {
+      glTextureSubImage3D(obj_,
+                          0, // only 1 level in example
+                          0, 0,
+                          i, // the offset to desired cubemap face, which offset
+                             // goes to which face above
+                          res.width, res.height,
+                          1, // depth how many faces to set, if this was 3 we'd
+                             // set 3 cubemap faces at once
+                          format, GL_FLOAT, std::get<0>(res.data_ptr).get());
+
+    } else {
+      glTextureSubImage3D(obj_, 0, 0, 0, i, res.width, res.height, 1, format,
+                          GL_UNSIGNED_BYTE, std::get<1>(res.data_ptr).get());
+    }
+    updated_ = true;
   }
-  updated_ = true;
 }
 
 TextureCube::TextureCube(const std::vector<fs::path> &paths, bool gamma,

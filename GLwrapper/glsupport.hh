@@ -4,6 +4,14 @@
 #include "shader.hh"
 #include "texture.hh"
 #include "vertex_array.hh"
+#if defined _GNUC_ || defined _CLANG_CL
+// lmao: Clang-cl will pretend it is MSVC, but actually it accepts gcc #pragma
+// flags.
+#pragma GCC diagnostic push // gcc way to suppress -Wpgrama-pck
+#pragma GCC diagnostic ignored "-Wpragma-pack"
+#elif _MSC_VER
+#pragma warning(push, 0) // MSVC way to suppress external headers warning
+#endif
 #include <GLFW/glfw3.h>
 #include <assimp/Importer.hpp>
 #include <assimp/postprocess.h>
@@ -25,6 +33,11 @@
 #include <string>
 #include <unordered_set>
 #include <vector>
+#ifdef _GNUC_
+#pragma GCC diagnostic pop
+#elif _MSC_VER
+#pragma warning(pop)
+#endif
 namespace DRL {
 // Defines several possible options for camera movement. Used as abstraction to
 // stay away from window-system specific input methods
@@ -115,7 +128,7 @@ public:
   //  std::vector<details::Vertex> vertices;
   //  std::vector<unsigned int> indices;
   std::vector<details::Texture> textures_;
-  size_t indices_nums_ = 0;
+  int indices_nums_ = 0;
   // constructor
   Mesh(const std::vector<Vertex> &vertices,
        const std::vector<unsigned int> &indices,
@@ -209,11 +222,8 @@ protected:
 
   virtual void on_resize(int width, int height);
   virtual void on_key(int key, int scancode, int action, int mods);
-  ;
   virtual void on_mouse_scroll(double xoffset, double yoffset);
-  ;
   virtual void on_mouse_move(double xpos, double ypos);
-  ;
   virtual void processInput();
   virtual void shutdown() { /*some user-defined code here*/
   }

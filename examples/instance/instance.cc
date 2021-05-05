@@ -111,7 +111,7 @@ void InstanceRender::update_model_matrics() {
   float radius = 150.0;
   float offset = 25.0f;
   srand(1234); // fake random
-  for (unsigned int i = 0; i < DrawNumbers; i++) {
+  for (int i = 0; i < DrawNumbers; i++) {
     glm::mat4 model = glm::mat4(1.0f);
     // 1. translation: displace along circle with 'radius' in range [-offset,
     // offset]

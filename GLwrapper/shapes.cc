@@ -156,19 +156,19 @@ void DRL::renderSphere() {
       }
       oddRow = !oddRow;
     }
-    sphereIndexSize = indices.size();
+    sphereIndexSize = (int)indices.size();
 
     std::vector<float> data;
     for (unsigned int i = 0; i < positions.size(); ++i) {
       data.push_back(positions[i].x);
       data.push_back(positions[i].y);
       data.push_back(positions[i].z);
-      if (normals.size() > 0) {
+      if (!normals.empty()) {
         data.push_back(normals[i].x);
         data.push_back(normals[i].y);
         data.push_back(normals[i].z);
       }
-      if (uv.size() > 0) {
+      if (!uv.empty()) {
         data.push_back(uv[i].x);
         data.push_back(uv[i].y);
       }

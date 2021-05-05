@@ -62,13 +62,13 @@ public:
       glEnableVertexArrayAttrib(obj_, attrib.location);
       glVertexArrayAttribFormat(obj_, attrib.location, attrib.count,
                                 attrib.type, GL_FALSE,
-                                elem_size * attrib.offset);
+                                static_cast<int>(elem_size) * attrib.offset);
       // https://www.reddit.com/r/opengl/comments/eg9b0a/what_is_the_bindingindex_2nd_arg_in/
       glVertexArrayAttribBinding(obj_, attrib.location, vbo_slot);
     }
     // now we set the vbo
     glVertexArrayVertexBuffer(obj_, vbo_slot, *vbo, first_element_offset,
-                              elem_size * num_offset);
+                              static_cast<int>(elem_size) * num_offset);
     vbos_.push_back(vbo);
     changed_ = false;
   }
