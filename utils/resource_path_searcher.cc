@@ -2,9 +2,10 @@
 #include "cmake_vars.h"
 #include <iostream>
 using namespace DRL;
-fs::path ResourcePathSearcher::root_path = Path(
-    ROOT_DIR); // ROOT_DIR is defined by CMake, which is the project root dir
+fs::path ResourcePathSearcher::root_path; // ROOT_DIR is defined by CMake,
+                                          // which is the project root dir
 ResourcePathSearcher::ResourcePathSearcher() {
+  root_path = Path(ROOT_DIR);
   search_paths_.emplace(root_path);
 }
 
@@ -27,8 +28,9 @@ fs::path ResourcePathSearcher::find_path(const std::string &filename) const {
       return path.is_absolute() ? path : fs::absolute(path);
     }
   }
-  throw std::runtime_error("ResourcePathSearch cannot find " +
-                           std::string(filename));
+  std::string msg = "ResourcePathSearch cannot find " + filename;
+  std::cerr << msg << std::endl;
+  std::terminate();
 }
 
 fs::path ResourcePathSearcher::find_path(
@@ -45,8 +47,9 @@ fs::path ResourcePathSearcher::find_path(
       return path.is_absolute() ? path : fs::absolute(path);
     }
   }
-  throw std::runtime_error("ResourcePathSearch cannot find " +
-                           *filenames.rbegin());
+  std::string msg = "ResourcePathSearch cannot find " + *filenames.rbegin();
+  std::cerr << msg << std::endl;
+  std::terminate();
 }
 void ResourcePathSearcher::add_path(const ResourcePathSearcher::Path &path) {
   auto p = fs::absolute(path);

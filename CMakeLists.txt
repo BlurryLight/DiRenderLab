@@ -26,6 +26,11 @@ message(${THIRD_PARTY})
 include_directories("third_party")
 add_subdirectory(third_party/glad)
 
+if ((${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang" AND "x${CMAKE_CXX_SIMULATE_ID}" STREQUAL "xMSVC"))
+    # clang-cl
+    message("clang-cl detected!")
+    add_compile_options(/EHa /EHs)
+endif ()
 set(EXAMPLES
         imgui_example
         ssao

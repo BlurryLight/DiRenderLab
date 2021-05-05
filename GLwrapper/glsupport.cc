@@ -3,6 +3,7 @@
 //
 
 #include <utility>
+#include <utils/cmake_vars.h>
 
 #include "glsupport.hh"
 #include "third_party/imgui/imgui.h"
@@ -374,7 +375,15 @@ Camera::Camera(glm::vec3 position, glm::vec3 up, float yaw, float pitch)
   updateCameraVectors();
 }
 RenderBase::RenderBase() : RenderBase(BaseInfo{}) {}
-RenderBase::RenderBase(BaseInfo info) : info_(std::move(info)) { InitWindow(); }
+RenderBase::RenderBase(BaseInfo info) : info_(std::move(info)) {
+  InitWindow();
+  spdlog::info("Root Dir: {}", DRL::ROOT_DIR);
+  spdlog::info("Compiler: {} {}, Build Type: {}", BUILD_COMPILER, CXX_VER,
+               BUILD_TYPE);
+  spdlog::info("System: {} {}, Build UTC Time: {}", BUILD_SYSTEM_NAME,
+               BUILD_SYSTEM_VERSION, BUILD_UTC_TIMESTAMP);
+  ;
+}
 void RenderBase::InitWindow() {
   // glfw: initialize and configure
   // ------------------------------
