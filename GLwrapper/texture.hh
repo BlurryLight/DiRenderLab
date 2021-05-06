@@ -33,15 +33,15 @@ public:
   bool first_bounded = false; // maybe also updated by framebuffer attach
   operator GLuint() const { return obj_.handle(); }
   [[nodiscard]] GLuint handle() const { return obj_.handle(); }
-  GLint min_filter_ = GL_NEAREST;
-  GLint mag_filter_ = GL_NEAREST;
-  GLint wrap_s_ = GL_REPEAT;
-  GLint wrap_t_ = GL_REPEAT;
+  GLint min_filter_ = GL_LINEAR;
+  GLint mag_filter_ = GL_LINEAR;
+  GLint wrap_s_ = GL_CLAMP_TO_EDGE;
+  GLint wrap_t_ = GL_CLAMP_TO_EDGE;
   void generateMipmap() const { glGenerateTextureMipmap(obj_); }
-  void set_min_filter(GLenum value);
-  void set_mag_filter(GLenum value);
-  void set_wrap_s(GLenum value);
-  void set_wrap_t(GLenum value);
+  void set_min_filter(GLint value);
+  void set_mag_filter(GLint value);
+  void set_wrap_s(GLint value);
+  void set_wrap_t(GLint value);
   void set_slot(unsigned int value) { slot_ = value; }
   void bind();
   void unbind();
@@ -161,6 +161,10 @@ public:
   void update_data(const std::vector<fs::path> &paths, bool gamma, bool flip);
   TextureCube(TextureCube &&other) = default;
   TextureCube &operator=(TextureCube &&) = default;
+  void set_wrap_r(GLint value) {
+    wrap_r_ = value;
+    glTextureParameteri(obj_, GL_TEXTURE_WRAP_R, wrap_r_);
+  }
 };
 
 class TextureCubeARB : public TextureCube {

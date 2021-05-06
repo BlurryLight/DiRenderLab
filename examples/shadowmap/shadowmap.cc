@@ -112,8 +112,9 @@ void ShadowMapRender::setup_states() {
   //    glCreateFramebuffers(1, &depthMapFBO);
   // create depth texture
 
-  depthMap = std::make_shared<DRL::Texture2D>(
-      SHADOW_WIDTH, SHADOW_HEIGHT, GL_DEPTH_COMPONENT32F, GL_FLOAT, nullptr);
+  depthMap = std::make_shared<DRL::Texture2D>(SHADOW_WIDTH, SHADOW_HEIGHT,
+                                              GL_DEPTH_COMPONENT32F, GL_R32F,
+                                              GL_FLOAT, nullptr);
   depthMap->set_wrap_s(GL_CLAMP_TO_EDGE);
   depthMap->set_wrap_t(GL_CLAMP_TO_EDGE);
   depthMap->bind();

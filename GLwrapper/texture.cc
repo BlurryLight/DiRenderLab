@@ -187,19 +187,19 @@ void Texture::unbind() {
   glBindTextureUnit(slot_, 0);
   bounded_ = false;
 }
-void Texture::set_wrap_t(GLenum value) {
+void Texture::set_wrap_t(GLint value) {
   glTextureParameteri(obj_, GL_TEXTURE_WRAP_T, value);
   wrap_t_ = value;
 }
-void Texture::set_wrap_s(GLenum value) {
+void Texture::set_wrap_s(GLint value) {
   glTextureParameteri(obj_, GL_TEXTURE_WRAP_S, value);
   wrap_s_ = value;
 }
-void Texture::set_mag_filter(GLenum value) {
+void Texture::set_mag_filter(GLint value) {
   glTextureParameteri(obj_, GL_TEXTURE_MAG_FILTER, value);
   mag_filter_ = value;
 }
-void Texture::set_min_filter(GLenum value) {
+void Texture::set_min_filter(GLint value) {
   glTextureParameteri(obj_, GL_TEXTURE_MIN_FILTER, value);
   min_filter_ = value;
 }

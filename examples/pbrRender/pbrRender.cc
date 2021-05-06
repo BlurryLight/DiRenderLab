@@ -55,6 +55,9 @@ void PbrRender::render() {
   glm::mat4 view = camera_->GetViewMatrix();
   {
     DRL::bind_guard gd(pbrShader);
+
+    uniform_.irradianceCubemap->set_slot(4);
+    uniform_.irradianceCubemap->bind();
     pbrShader.set_uniform("projection", uniform_.proj);
     pbrShader.set_uniform("view", view);
     pbrShader.set_uniform("model", glm::mat4(1.0));
@@ -88,6 +91,7 @@ void PbrRender::render() {
     skyboxShader.set_uniform("view", glm::mat4(glm::mat3(view)));
     skyboxShader.set_uniform("projection", uniform_.proj);
     uniform_.envCubemap->bind();
+    //    uniform_.irradianceCubemap->bind();
     renderCube();
   }
 }
@@ -106,7 +110,7 @@ void PbrRender::setup_states() {
   resMgr.add_path(decltype(resMgr)::root_path / "resources" / "models" /
                   "basic");
   pbrShader = DRL::make_program(resMgr.find_path("pbr.vert"),
-                                resMgr.find_path("pbr_direct.frag"));
+                                resMgr.find_path("pbr_IBL.frag"));
 
   lightShader = DRL::make_program(resMgr.find_path("pbr.vert"),
                                   resMgr.find_path("light.frag"));
@@ -115,6 +119,9 @@ void PbrRender::setup_states() {
 
   equirectangularToCubemapShader = DRL::make_program(
       resMgr.find_path("cube.vert"), resMgr.find_path("sphereTo2D.frag"));
+
+  irradianceConvShader = DRL::make_program(
+      resMgr.find_path("cube.vert"), resMgr.find_path("calc_convolution.frag"));
   uniform_.proj =
       glm::perspective(glm::radians(camera_->Zoom),
                        (float)info_.width / (float)info_.height, 0.1f, 100.0f);
@@ -141,6 +148,7 @@ void PbrRender::setup_states() {
   auto envCubemap = std::make_shared<DRL::TextureCube>(
       2048, 2048, GL_RGB16F, GL_RGB, GL_FLOAT, nullptr);
   uniform_.envCubemap = envCubemap;
+
   glm::mat4 captureProjection =
       glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 10.0f);
   glm::mat4 captureViews[] = {
@@ -173,6 +181,27 @@ void PbrRender::setup_states() {
     uniform_.captureFBO.bind();
     renderCube(); // renders a 1x1 cube
   }
+  uniform_.captureFBO.unbind();
+  // calc irradiance
+
+  uniform_.irradianceCubemap = std::make_shared<DRL::TextureCube>(
+      32, 32, GL_RGB16F, GL_RGB, GL_FLOAT, nullptr);
+  uniform_.irradianceCubemap->set_wrap_t(GL_CLAMP_TO_EDGE);
+  uniform_.irradianceCubemap->set_wrap_s(GL_CLAMP_TO_EDGE);
+  uniform_.irradianceCubemap->set_wrap_r(GL_CLAMP_TO_EDGE);
+  irradianceConvShader.bind();
+  irradianceConvShader.set_uniform("environmentMap", 0);
+  irradianceConvShader.set_uniform("projection", captureProjection);
+  envCubemap->bind();
+  uniform_.captureFBO.set_viewport(32, 32);
+  for (unsigned int i = 0; i < 6; ++i) {
+    irradianceConvShader.set_uniform("view", captureViews[i]);
+    uniform_.captureFBO.attach_buffer(GL_COLOR_ATTACHMENT0,
+                                      uniform_.irradianceCubemap, 0, i);
+    uniform_.captureFBO.bind();
+    renderCube(); // renders a 1x1 cube
+  }
+
   uniform_.captureFBO.unbind();
   glViewport(0, 0, info_.width, info_.height);
 }

@@ -29,6 +29,7 @@ struct uniform_block {
   DRL::Texture2D hdrTexture;
   DRL::Framebuffer captureFBO;
   std::shared_ptr<TextureCube> envCubemap{nullptr};
+  std::shared_ptr<TextureCube> irradianceCubemap{nullptr};
 };
 class PbrRender : public RenderBase {
 protected:
@@ -37,7 +38,7 @@ protected:
   DRL::Program lightShader; // for visualize light sphere
   DRL::Program equirectangularToCubemapShader;
   DRL::Program skyboxShader;
-  //  DRL::VertexArray pbr_vao;
+  DRL::Program irradianceConvShader;
   uniform_block uniform_;
   std::unique_ptr<DRL::Model> model_ptr = nullptr;
 
