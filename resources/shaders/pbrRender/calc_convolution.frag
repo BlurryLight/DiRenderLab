@@ -6,6 +6,7 @@ uniform samplerCube environmentMap;
 
 #define kPi 3.1415926
 
+
 void main()
 {
     vec3 normal = normalize(TexCoords);// 以(0,0,0)为原点，以Normal作为法线，建立TBN

@@ -105,13 +105,6 @@ void ShadowMapRender::setup_states() {
   // -------------
   woodTexture = DRL::Texture2D(resMgr.find_path("wood.png"), false, true);
 
-  // configure depth map FBO
-  // -----------------------
-  //    unsigned int depthMapFBO;
-  //    glGenFramebuffers(1, &depthMapFBO);
-  //    glCreateFramebuffers(1, &depthMapFBO);
-  // create depth texture
-
   depthMap = std::make_shared<DRL::Texture2D>(SHADOW_WIDTH, SHADOW_HEIGHT,
                                               GL_DEPTH_COMPONENT32F, GL_R32F,
                                               GL_FLOAT, nullptr);

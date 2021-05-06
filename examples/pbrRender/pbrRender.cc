@@ -46,6 +46,7 @@ void PbrRender::render() {
                        "%.3f");
     ImGui::SliderFloat("roughness", &uniform_.roughness_index, 0.0f, 1.0f,
                        "%.3f");
+    ImGui::SliderFloat("lod level", &uniform_.skybox_lod, 0.0f, 4.0f, "%.3f");
     ImGui::End();
   }
   ImGui::Render();
@@ -90,7 +91,11 @@ void PbrRender::render() {
     skyboxShader.bind();
     skyboxShader.set_uniform("view", glm::mat4(glm::mat3(view)));
     skyboxShader.set_uniform("projection", uniform_.proj);
+    //    uniform_.prefilterCubemap->bind();
+    skyboxShader.set_uniform("u_lod_level", uniform_.skybox_lod);
+    //    uniform_.prefilterCubemap->bind();
     uniform_.envCubemap->bind();
+    //    uniform_.irradianceCubemap->set_slot(0);
     //    uniform_.irradianceCubemap->bind();
     renderCube();
   }
@@ -98,6 +103,7 @@ void PbrRender::render() {
 void PbrRender::setup_states() {
   glEnable(GL_DEPTH_TEST);
   glDepthFunc(GL_LEQUAL);
+  glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
   resMgr.add_path(decltype(resMgr)::root_path / "resources" / "shaders");
   resMgr.add_path(decltype(resMgr)::root_path / "resources" / "textures" /
                   "pbr");
@@ -122,6 +128,9 @@ void PbrRender::setup_states() {
 
   irradianceConvShader = DRL::make_program(
       resMgr.find_path("cube.vert"), resMgr.find_path("calc_convolution.frag"));
+
+  prefilterShader = DRL::make_program(resMgr.find_path("cube.vert"),
+                                      resMgr.find_path("prefilter.frag"));
   uniform_.proj =
       glm::perspective(glm::radians(camera_->Zoom),
                        (float)info_.width / (float)info_.height, 0.1f, 100.0f);
@@ -148,6 +157,7 @@ void PbrRender::setup_states() {
   auto envCubemap = std::make_shared<DRL::TextureCube>(
       2048, 2048, GL_RGB16F, GL_RGB, GL_FLOAT, nullptr);
   uniform_.envCubemap = envCubemap;
+  uniform_.envCubemap->generateMipmap();
 
   glm::mat4 captureProjection =
       glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 10.0f);
@@ -202,6 +212,34 @@ void PbrRender::setup_states() {
     renderCube(); // renders a 1x1 cube
   }
 
+  // calc prefilter
+  uniform_.prefilterCubemap = std::make_shared<DRL::TextureCube>(
+      128, 128, GL_RGB16F, GL_RGB, GL_FLOAT, nullptr);
+  uniform_.prefilterCubemap->generateMipmap();
+  uniform_.prefilterCubemap->set_min_filter(GL_LINEAR_MIPMAP_LINEAR);
+  // filter to mip_linear
+  prefilterShader.bind();
+  prefilterShader.set_uniform("environmentMap", 0);
+  prefilterShader.set_uniform("projection", captureProjection);
+  envCubemap->bind();
+  envCubemap->generateMipmap();
+  int prefilter_size = 128;
+  int miplevels = 5;
+  for (int mip = 0; mip < miplevels; mip++) {
+    uniform_.captureFBO.set_viewport(prefilter_size * pow(0.5, mip),
+                                     prefilter_size * pow(0.5, mip));
+    float roughness = (float)mip / (float)miplevels;
+    prefilterShader.set_uniform("roughness", roughness);
+    for (unsigned int i = 0; i < 6; ++i) {
+      prefilterShader.set_uniform("view", captureViews[i]);
+      uniform_.captureFBO.attach_buffer(GL_COLOR_ATTACHMENT0,
+                                        uniform_.prefilterCubemap, mip, i);
+      uniform_.captureFBO.bind();
+      renderCube(); // renders a 1x1 cube
+    }
+  }
+
+  glBindFramebuffer(GL_FRAMEBUFFER, 0);
   uniform_.captureFBO.unbind();
   glViewport(0, 0, info_.width, info_.height);
 }

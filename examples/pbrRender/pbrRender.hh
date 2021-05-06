@@ -30,6 +30,8 @@ struct uniform_block {
   DRL::Framebuffer captureFBO;
   std::shared_ptr<TextureCube> envCubemap{nullptr};
   std::shared_ptr<TextureCube> irradianceCubemap{nullptr};
+  std::shared_ptr<TextureCube> prefilterCubemap{nullptr};
+  float skybox_lod = 1.0f;
 };
 class PbrRender : public RenderBase {
 protected:
@@ -39,6 +41,7 @@ protected:
   DRL::Program equirectangularToCubemapShader;
   DRL::Program skyboxShader;
   DRL::Program irradianceConvShader;
+  DRL::Program prefilterShader;
   uniform_block uniform_;
   std::unique_ptr<DRL::Model> model_ptr = nullptr;
 

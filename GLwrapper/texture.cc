@@ -77,7 +77,7 @@ void Texture2D::update_data(const fs::path &path, bool gamma, bool flip) {
 #endif
   auto res = TextureFromFile(path, gamma, flip);
   auto [internal_format, img_format, img_data_type] = get_internalf_format(res);
-  glTextureStorage2D(obj_, 1, internal_format, res.width, res.height);
+  glTextureStorage2D(obj_, 6, internal_format, res.width, res.height);
   if (img_data_type == GL_FLOAT) // float
   {
     glTextureSubImage2D(obj_, 0, 0, 0, res.width, res.height, img_format,
@@ -95,7 +95,7 @@ Texture2D::Texture2D(const fs::path &path, bool gamma, bool flip)
 Texture2D::Texture2D(int width, int height, GLenum internal_format,
                      GLenum img_format, GLenum img_data_type, const void *data)
     : Texture(GL_TEXTURE_2D) {
-  glTextureStorage2D(obj_, 1, internal_format, width, height);
+  glTextureStorage2D(obj_, 6, internal_format, width, height);
   if (data) {
     glTextureSubImage2D(obj_, 0, 0, 0, width, height, img_format, img_data_type,
                         data);
@@ -115,8 +115,9 @@ void TextureCube::update_data(const std::vector<fs::path> &paths, bool gamma,
     if (i == 0) {
       std::tie(internal_format, img_format, img_data_type) =
           get_internalf_format(res);
+      // 6 mipmaps
+      glTextureStorage2D(obj_, 6, internal_format, res.width, res.height);
     }
-    glTextureStorage2D(obj_, 1, internal_format, res.width, res.height);
     // An ugly hack here is to use glTextureSubImage3D to remove the binding
     // like  glTextureSubImage3D(cubemap, 0, 0, 0, 0, N, N, 6, GL_RGBA,
     // GL_HALF_FLOAT, cubemap_data.data());
@@ -159,7 +160,7 @@ TextureCube::TextureCube(int width, int height, GLenum internal_format,
                          const void *data)
     : Texture(GL_TEXTURE_CUBE_MAP) {
 
-  glTextureStorage2D(obj_, 1, internal_format, width, height);
+  glTextureStorage2D(obj_, 6, internal_format, width, height);
   if (data) {
     glTextureSubImage3D(obj_, 0, 0, 0,
                         0, // offset: from 0 to store value
