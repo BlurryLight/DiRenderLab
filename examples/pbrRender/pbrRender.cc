@@ -52,9 +52,9 @@ void PbrRender::render() {
   glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+  glm::mat4 view = camera_->GetViewMatrix();
   {
     DRL::bind_guard gd(pbrShader);
-    glm::mat4 view = camera_->GetViewMatrix();
     pbrShader.set_uniform("projection", uniform_.proj);
     pbrShader.set_uniform("view", view);
     pbrShader.set_uniform("model", glm::mat4(1.0));
@@ -76,21 +76,33 @@ void PbrRender::render() {
 
   {
     DRL::bind_guard gd(lightShader);
-    glm::mat4 view = camera_->GetViewMatrix();
     lightShader.set_uniform("projection", uniform_.proj);
     lightShader.set_uniform("view", view);
     auto model = glm::translate(glm::mat4(1.0), uniform_.lightPos);
     lightShader.set_uniform("model", glm::scale(model, glm::vec3(0.1)));
     DRL::renderSphere();
   }
+
+  {
+    skyboxShader.bind();
+    skyboxShader.set_uniform("view", glm::mat4(glm::mat3(view)));
+    skyboxShader.set_uniform("projection", uniform_.proj);
+    uniform_.envCubemap->bind();
+    renderCube();
+  }
 }
 void PbrRender::setup_states() {
   glEnable(GL_DEPTH_TEST);
+  glDepthFunc(GL_LEQUAL);
   resMgr.add_path(decltype(resMgr)::root_path / "resources" / "shaders");
   resMgr.add_path(decltype(resMgr)::root_path / "resources" / "textures" /
                   "pbr");
+  resMgr.add_path(decltype(resMgr)::root_path / "resources" / "textures" /
+                  "pbr" / "envmap" / "factory");
   resMgr.add_path(decltype(resMgr)::root_path / "resources" / "shaders" /
                   "pbrRender");
+  resMgr.add_path(decltype(resMgr)::root_path / "resources" / "shaders" /
+                  "skybox");
   resMgr.add_path(decltype(resMgr)::root_path / "resources" / "models" /
                   "basic");
   pbrShader = DRL::make_program(resMgr.find_path("pbr.vert"),
@@ -98,6 +110,11 @@ void PbrRender::setup_states() {
 
   lightShader = DRL::make_program(resMgr.find_path("pbr.vert"),
                                   resMgr.find_path("light.frag"));
+  skyboxShader = DRL::make_program(resMgr.find_path("skybox.vert"),
+                                   resMgr.find_path("skybox.frag"));
+
+  equirectangularToCubemapShader = DRL::make_program(
+      resMgr.find_path("cube.vert"), resMgr.find_path("sphereTo2D.frag"));
   uniform_.proj =
       glm::perspective(glm::radians(camera_->Zoom),
                        (float)info_.width / (float)info_.height, 0.1f, 100.0f);
@@ -118,4 +135,44 @@ void PbrRender::setup_states() {
   uniform_.metallicARB = DRL::Texture2DARB(
       resMgr.find_path("rustediron2_metallic.png"), false, false);
   uniform_.metallicARB.make_resident();
+
+  uniform_.hdrTexture = DRL::Texture2D(
+      resMgr.find_path("Factory_Catwalk_2k.hdr").string(), true, false);
+  auto envCubemap = std::make_shared<DRL::TextureCube>(
+      2048, 2048, GL_RGB16F, GL_RGB, GL_FLOAT, nullptr);
+  uniform_.envCubemap = envCubemap;
+  glm::mat4 captureProjection =
+      glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 10.0f);
+  glm::mat4 captureViews[] = {
+      glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(1.0f, 0.0f, 0.0f),
+                  glm::vec3(0.0f, -1.0f, 0.0f)),
+      glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(-1.0f, 0.0f, 0.0f),
+                  glm::vec3(0.0f, -1.0f, 0.0f)),
+      glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f),
+                  glm::vec3(0.0f, 0.0f, 1.0f)),
+      glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f, 0.0f),
+                  glm::vec3(0.0f, 0.0f, -1.0f)),
+      glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f),
+                  glm::vec3(0.0f, -1.0f, 0.0f)),
+      glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f),
+                  glm::vec3(0.0f, -1.0f, 0.0f))};
+
+  // convert HDR equirectangular environment map to cubemap equivalent
+  equirectangularToCubemapShader.bind();
+  equirectangularToCubemapShader.set_uniform("equirectangularMap", 0);
+  equirectangularToCubemapShader.set_uniform("projection", captureProjection);
+  uniform_.hdrTexture.bind();
+
+  // pbr: setup framebuffer
+  // ----------------------
+
+  uniform_.captureFBO.set_viewport(envCubemap, 0);
+  for (unsigned int i = 0; i < 6; ++i) {
+    equirectangularToCubemapShader.set_uniform("view", captureViews[i]);
+    uniform_.captureFBO.attach_buffer(GL_COLOR_ATTACHMENT0, envCubemap, 0, i);
+    uniform_.captureFBO.bind();
+    renderCube(); // renders a 1x1 cube
+  }
+  uniform_.captureFBO.unbind();
+  glViewport(0, 0, info_.width, info_.height);
 }

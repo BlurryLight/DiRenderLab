@@ -9,6 +9,7 @@
 #include "GLwrapper/glsupport.hh"
 #include "GLwrapper/shapes.hh"
 #include "GLwrapper/texture.hh"
+#include <GLwrapper/framebuffer.hh>
 
 namespace DRL {
 struct uniform_block {
@@ -24,12 +25,18 @@ struct uniform_block {
   DRL::Texture2DARB normalARB;
   DRL::Texture2DARB metallicARB;
   DRL::Texture2DARB roughnessARB;
+
+  DRL::Texture2D hdrTexture;
+  DRL::Framebuffer captureFBO;
+  std::shared_ptr<TextureCube> envCubemap{nullptr};
 };
 class PbrRender : public RenderBase {
 protected:
   DRL::ResourcePathSearcher resMgr;
   DRL::Program pbrShader;
   DRL::Program lightShader; // for visualize light sphere
+  DRL::Program equirectangularToCubemapShader;
+  DRL::Program skyboxShader;
   //  DRL::VertexArray pbr_vao;
   uniform_block uniform_;
   std::unique_ptr<DRL::Model> model_ptr = nullptr;

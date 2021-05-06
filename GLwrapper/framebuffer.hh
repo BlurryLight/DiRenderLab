@@ -25,7 +25,7 @@ protected:
   int vwidth_ = -1;
   using attachable_obj =
       std::variant<Texture2DPtr, TextureCubePtr /*,RenderbufferPtr*/>;
-  std::vector<attachable_obj> attachments_;
+  std::set<attachable_obj> attachments_;
 
 public:
   glm::vec3 clear_color_ = {};
@@ -53,13 +53,21 @@ public:
     glGetTextureLevelParameteriv(*texture_obj, mipmap_level, GL_TEXTURE_WIDTH,
                                  &vwidth_);
   }
+
+  void set_viewport(const TextureCubePtr &texture_obj, GLint mipmap_level) {
+    glGetTextureLevelParameteriv(*texture_obj, mipmap_level, GL_TEXTURE_HEIGHT,
+                                 &vheight_);
+    glGetTextureLevelParameteriv(*texture_obj, mipmap_level, GL_TEXTURE_WIDTH,
+                                 &vwidth_);
+  }
   void set_viewport(int w, int h) {
     vwidth_ = w;
     vheight_ = h;
   }
   void attach_buffer(GLenum attachment_slot, const Texture2DPtr &texture_obj,
                      GLint mipmap_level) {
-    attachments_.push_back(texture_obj);
+    attachments_.emplace(texture_obj);
+    texture_obj->first_bounded = true;
     glNamedFramebufferTexture(obj_, attachment_slot, *texture_obj,
                               mipmap_level);
   }
@@ -71,7 +79,8 @@ public:
   //        }
   void attach_buffer(GLenum attachment_slot, const TextureCubePtr &texture_obj,
                      GLint mipmap_level, GLint layer) {
-    attachments_.push_back(texture_obj);
+    attachments_.emplace(texture_obj);
+    texture_obj->first_bounded = true;
     glNamedFramebufferTextureLayer(obj_, attachment_slot, *texture_obj,
                                    mipmap_level, layer);
   }

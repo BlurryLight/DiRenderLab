@@ -22,12 +22,15 @@ class Texture {
 protected:
   TextureObject obj_;
   bool bounded_ = false;
-  bool first_bounded = false;
   bool updated_ = false;
   unsigned int slot_ = 0;
   explicit Texture(GLenum textureType);
+#ifndef NDEBUG
+  fs::path file_;
+#endif
 
 public:
+  bool first_bounded = false; // maybe also updated by framebuffer attach
   operator GLuint() const { return obj_.handle(); }
   [[nodiscard]] GLuint handle() const { return obj_.handle(); }
   GLint min_filter_ = GL_NEAREST;
@@ -50,11 +53,16 @@ public:
   Texture2D() : Texture(GL_TEXTURE_2D) {}
   ~Texture2D() {
     AssertLog(first_bounded || (obj_.handle() == 0),
+#ifndef NDEBUG
+              "Texture2D {} from file {} is never bounded!", obj_,
+              file_.string());
+#else
               "Texture2D {} is never bounded!", obj_);
+#endif
   }
   Texture2D(const fs::path &path, bool gamma, bool flip);
-  Texture2D(int width, int height, GLenum format, GLenum type,
-            const void *data);
+  Texture2D(int width, int height, GLenum internal_format, GLenum img_format,
+            GLenum img_data_type, const void *data);
   void update_data(const fs::path &path, bool gamma, bool flip);
   Texture2D(Texture2D &&other) = default;
   Texture2D &operator=(Texture2D &&) = default;
@@ -93,9 +101,10 @@ public:
   Texture2DARB(const fs::path &path, bool gamma, bool flip)
       : Texture2D(path, gamma, flip), ARB_handle_(glGetTextureHandleARB(obj_)) {
   }
-  Texture2DARB(int width, int height, GLenum format, GLenum type,
-               const void *data)
-      : Texture2D(width, height, format, type, data),
+  Texture2DARB(int width, int height, GLenum internal_format, GLenum img_format,
+               GLenum img_data_format, const void *data)
+      : Texture2D(width, height, internal_format, img_format, img_data_format,
+                  data),
         ARB_handle_(glGetTextureHandleARB(obj_)) {}
   // glGetTextureHandleARB for an un-updated texture will throw error
   Texture2DARB() = default;
@@ -142,6 +151,8 @@ public:
   TextureCube() : Texture(GL_TEXTURE_CUBE_MAP) {
     glTextureParameteri(obj_, GL_TEXTURE_WRAP_R, wrap_r_);
   }
+  TextureCube(int width, int height, GLenum internal_format, GLenum img_format,
+              GLenum img_data_type, const void *data);
   ~TextureCube() {
     AssertLog(first_bounded || (obj_.handle() == 0),
               "TextureCube {} is never bounded!", obj_);

@@ -131,8 +131,7 @@ public:
   int indices_nums_ = 0;
   // constructor
   Mesh(const std::vector<Vertex> &vertices,
-       const std::vector<unsigned int> &indices,
-       const std::vector<Texture> &textures);
+       const std::vector<unsigned int> &indices, std::vector<Texture> textures);
 
   // render the mesh
   void Draw(const Program &program);
@@ -175,9 +174,9 @@ private:
 
   // checks all material textures of a given type and loads the textures if
   // they're not loaded yet. the required info is returned as a Texture struct.
-  std::vector<details::Texture> loadMaterialTextures(aiMaterial *mat,
-                                                     aiTextureType type,
-                                                     std::string typeName);
+  std::vector<details::Texture>
+  loadMaterialTextures(aiMaterial *mat, aiTextureType type,
+                       const std::string &typeName);
 };
 
 inline float lerp(float a, float b, float t) { return a * (1 - t) + b * t; }

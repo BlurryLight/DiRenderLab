@@ -146,7 +146,7 @@ Mesh Model::processMesh(aiMesh *mesh, const aiScene *scene) {
 
   // walk through each of the mesh's vertices
   for (unsigned int i = 0; i < mesh->mNumVertices; i++) {
-    Vertex vertex;
+    Vertex vertex{};
     glm::vec3 vector; // we declare a placeholder vector since assimp uses its
                       // own vector class that doesn't directly convert to glm's
                       // vec3 class so we transfer the data to this placeholder
@@ -223,7 +223,7 @@ Mesh Model::processMesh(aiMesh *mesh, const aiScene *scene) {
 }
 std::vector<details::Texture>
 Model::loadMaterialTextures(aiMaterial *mat, aiTextureType type,
-                            std::string typeName) {
+                            const std::string &typeName) {
   std::vector<details::Texture> res;
   for (unsigned int i = 0; i < mat->GetTextureCount(type); i++) {
     aiString texture_path;
@@ -253,8 +253,9 @@ Model::loadMaterialTextures(aiMaterial *mat, aiTextureType type,
 }
 Mesh::Mesh(const std::vector<Vertex> &vertices,
            const std::vector<unsigned int> &indices,
-           const std::vector<Texture> &textures)
-    : textures_(textures), indices_nums_(static_cast<int>(indices.size())) {
+           std::vector<Texture> textures)
+    : textures_(std::move(textures)),
+      indices_nums_(static_cast<int>(indices.size())) {
   auto vbo = std::make_shared<DRL::VertexBuffer>(
       vertices.data(), vertices.size() * sizeof(details::Vertex), kStaticDraw);
   auto ebo = std::make_shared<DRL::ElementBuffer>(
@@ -382,7 +383,6 @@ RenderBase::RenderBase(BaseInfo info) : info_(std::move(info)) {
                BUILD_TYPE);
   spdlog::info("System: {} {}, Build UTC Time: {}", BUILD_SYSTEM_NAME,
                BUILD_SYSTEM_VERSION, BUILD_UTC_TIMESTAMP);
-  ;
 }
 void RenderBase::InitWindow() {
   // glfw: initialize and configure
@@ -396,8 +396,8 @@ void RenderBase::InitWindow() {
   // glfw window creation
   // --------------------
   GLFWwindow *window = glfwCreateWindow(info_.width, info_.height,
-                                        info_.title.c_str(), NULL, NULL);
-  if (window == NULL) {
+                                        info_.title.c_str(), nullptr, nullptr);
+  if (window == nullptr) {
     std::cout << "Failed to create GLFW window" << std::endl;
     glfwTerminate();
     std::quick_exit(-1);
@@ -478,7 +478,7 @@ void RenderBase::loop() {
   while (!glfwWindowShouldClose(window_)) {
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();
-    float currentFrame = glfwGetTime();
+    float currentFrame = (float)glfwGetTime();
     deltaTime_ = currentFrame - lastFrame_;
     lastFrame_ = currentFrame;
     render();
@@ -492,10 +492,11 @@ void RenderBase::on_resize(int width, int height) {
   glViewport(0, 0, width, height);
   info_.width = width;
   info_.height = height;
-  lastX_ = (float)info_.width / 2.0;
-  lastY_ = (float)info_.height / 2.0;
+  lastX_ = (float)info_.width / 2.0f;
+  lastY_ = (float)info_.height / 2.0f;
 }
 void RenderBase::on_key(int key, int scancode, int action, int mods) {
+  (void)mods;
   if (key == GLFW_KEY_SPACE && action == GLFW_PRESS) {
     AllowMouseMove_ = !AllowMouseMove_;
     if (AllowMouseMove_)
@@ -505,6 +506,7 @@ void RenderBase::on_key(int key, int scancode, int action, int mods) {
   }
 }
 void RenderBase::on_mouse_scroll(double xoffset, double yoffset) {
+  (void)xoffset;
   if (camera_)
     camera_->ProcessMouseScroll(yoffset);
 }
