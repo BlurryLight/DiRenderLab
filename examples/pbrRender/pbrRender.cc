@@ -58,7 +58,11 @@ void PbrRender::render() {
     DRL::bind_guard gd(pbrShader);
 
     uniform_.irradianceCubemap->set_slot(4);
+    uniform_.prefilterCubemap->set_slot(5);
+    uniform_.brdfMap->set_slot(6);
     uniform_.irradianceCubemap->bind();
+    uniform_.prefilterCubemap->bind();
+    uniform_.brdfMap->bind();
     pbrShader.set_uniform("projection", uniform_.proj);
     pbrShader.set_uniform("view", view);
     pbrShader.set_uniform("model", glm::mat4(1.0));
@@ -69,10 +73,8 @@ void PbrRender::render() {
                           uniform_.roughnessARB.tex_handle_ARB());
     pbrShader.set_uniform("u_normalMap", uniform_.normalARB.tex_handle_ARB());
     pbrShader.set_uniform("u_albedoMap", uniform_.albedoARB.tex_handle_ARB());
-
     pbrShader.set_uniform("lightPosition", uniform_.lightPos);
     pbrShader.set_uniform("lightColor", uniform_.lightColor);
-
     pbrShader.set_uniform("u_metallic_index", uniform_.metallic_index);
     pbrShader.set_uniform("u_roughness_index", uniform_.roughness_index);
     model_ptr->Draw(pbrShader);
@@ -131,6 +133,9 @@ void PbrRender::setup_states() {
 
   prefilterShader = DRL::make_program(resMgr.find_path("cube.vert"),
                                       resMgr.find_path("prefilter.frag"));
+  brdfFilterShader = DRL::make_program(
+      resMgr.find_path("quad.vert"), resMgr.find_path("precompute_brdf.frag"));
+
   uniform_.proj =
       glm::perspective(glm::radians(camera_->Zoom),
                        (float)info_.width / (float)info_.height, 0.1f, 100.0f);
@@ -235,6 +240,14 @@ void PbrRender::setup_states() {
       renderCube(); // renders a 1x1 cube
     }
   }
+  // brdf
+
+  uniform_.brdfMap = std::make_shared<DRL::Texture2D>(512, 512, 1, GL_RG16F);
+  uniform_.captureFBO.attach_buffer(GL_COLOR_ATTACHMENT0, uniform_.brdfMap, 0);
+  uniform_.captureFBO.set_viewport(uniform_.brdfMap, 0);
+  uniform_.captureFBO.bind();
+  brdfFilterShader.bind();
+  DRL::renderQuad();
 
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
   uniform_.captureFBO.unbind();

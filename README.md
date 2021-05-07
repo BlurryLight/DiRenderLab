@@ -15,3 +15,8 @@ The Framework is originally based on LearnOpenGL.com. Some code and resources ar
 - PBR(No IBL)
   ![pbr](images/pbr_no_IBL.jpg)
 
+- PBR(IBL)
+  note: Code, especially the shader code, is copied from [LearnOpenGL](https://learnopengl.com/PBR/IBL/Specular-IBL).
+
+  ![pbr](images/pbr_IBL.jpg)
+
