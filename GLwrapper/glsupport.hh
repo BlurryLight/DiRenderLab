@@ -225,6 +225,9 @@ protected:
   virtual void on_mouse_move(double xpos, double ypos);
   virtual void processInput();
   virtual void shutdown() { /*some user-defined code here*/
+    if (DRL::Program::current_using_program) {
+      DRL::Program::current_using_program->unbind();
+    }
   }
   virtual void render() = 0;
   virtual void setup_states() {}

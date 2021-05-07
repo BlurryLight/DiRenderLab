@@ -23,7 +23,7 @@ void InstanceRender::setup_states() {
       DRL::make_program(resMgr.find_path("asteroids_instance.vert"),
                         resMgr.find_path("asteroids.frag"));
   spotTexture =
-      DRL::Texture2D(resMgr.find_path("spot_texture.png"), false, false);
+      DRL::Texture2D(resMgr.find_path("spot_texture.png"), 1, false, false);
   spotTexture.generateMipmap();
   update_model_matrics();
   glBindBuffer(GL_ARRAY_BUFFER, modelMatricsVBO);

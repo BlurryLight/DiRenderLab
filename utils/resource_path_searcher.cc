@@ -1,6 +1,7 @@
 #include "resource_path_searcher.h"
 #include "cmake_vars.h"
 #include <iostream>
+#include <spdlog/spdlog.h>
 using namespace DRL;
 fs::path ResourcePathSearcher::root_path; // ROOT_DIR is defined by CMake,
                                           // which is the project root dir
@@ -20,7 +21,7 @@ fs::path ResourcePathSearcher::find_path(const std::string &filename) const {
   for (const Path &p : search_paths_) {
     auto path = p / filename;
     if (fs::exists(path)) {
-      std::cout << "Resource: " << path << " found!" << std::endl;
+      spdlog::debug("Resource: {} found!", path.string());
       // It may cause problems in Windows because Windows native path is encoded
       // in UTF16LE To Handle this problem will need complex machanism like
       // writing wstring overloads for all related functions.I won't bother to
@@ -29,7 +30,8 @@ fs::path ResourcePathSearcher::find_path(const std::string &filename) const {
     }
   }
   std::string msg = "ResourcePathSearch cannot find " + filename;
-  std::cerr << msg << std::endl;
+  spdlog::error(msg);
+  spdlog::shutdown();
   std::terminate();
 }
 
@@ -43,12 +45,13 @@ fs::path ResourcePathSearcher::find_path(
   for (const Path &p : search_paths_) {
     auto path = p / ps;
     if (fs::exists(path)) {
-      std::cout << "Resource: " << path << " found!" << std::endl;
+      spdlog::debug("Resource: {} found!", path.string());
       return path.is_absolute() ? path : fs::absolute(path);
     }
   }
   std::string msg = "ResourcePathSearch cannot find " + *filenames.rbegin();
-  std::cerr << msg << std::endl;
+  spdlog::error(msg);
+  spdlog::shutdown();
   std::terminate();
 }
 void ResourcePathSearcher::add_path(const ResourcePathSearcher::Path &path) {

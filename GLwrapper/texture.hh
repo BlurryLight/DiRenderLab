@@ -25,6 +25,7 @@ protected:
   bool updated_ = false;
   unsigned int slot_ = 0;
   explicit Texture(GLenum textureType);
+  int num_mipmaps_ = 1;
 #ifndef NDEBUG
   fs::path file_;
 #endif
@@ -37,7 +38,13 @@ public:
   GLint mag_filter_ = GL_LINEAR;
   GLint wrap_s_ = GL_CLAMP_TO_EDGE;
   GLint wrap_t_ = GL_CLAMP_TO_EDGE;
-  void generateMipmap() const { glGenerateTextureMipmap(obj_); }
+  void generateMipmap() {
+    if (num_mipmaps_ <= 1) {
+      spdlog::warn("Texture has only {} mipmap levels!", num_mipmaps_);
+    }
+    set_min_filter(GL_LINEAR_MIPMAP_LINEAR);
+    glGenerateTextureMipmap(obj_);
+  }
   void set_min_filter(GLint value);
   void set_mag_filter(GLint value);
   void set_wrap_s(GLint value);
@@ -60,10 +67,15 @@ public:
               "Texture2D {} is never bounded!", obj_);
 #endif
   }
-  Texture2D(const fs::path &path, bool gamma, bool flip);
-  Texture2D(int width, int height, GLenum internal_format, GLenum img_format,
-            GLenum img_data_type, const void *data);
-  void update_data(const fs::path &path, bool gamma, bool flip);
+  Texture2D(const fs::path &path, int num_mipmaps, bool gamma, bool flip);
+
+  // This function doesn't allow nullptr
+  // if mipmaps_levels > 1, data will only be filled in level 0
+  Texture2D(int width, int height, int num_mipmaps, GLenum internal_format,
+            GLenum img_format, GLenum img_data_type, const void *data);
+  Texture2D(int width, int height, int num_mipmaps, GLenum internal_format);
+  void update_data(const fs::path &path, int num_mipmaps, bool gamma,
+                   bool flip);
   Texture2D(Texture2D &&other) = default;
   Texture2D &operator=(Texture2D &&) = default;
 };
@@ -98,17 +110,21 @@ public:
     return ARB_handle_;
   }
 
-  Texture2DARB(const fs::path &path, bool gamma, bool flip)
-      : Texture2D(path, gamma, flip), ARB_handle_(glGetTextureHandleARB(obj_)) {
-  }
-  Texture2DARB(int width, int height, GLenum internal_format, GLenum img_format,
-               GLenum img_data_format, const void *data)
-      : Texture2D(width, height, internal_format, img_format, img_data_format,
-                  data),
+  Texture2DARB(const fs::path &path, int num_mipmaps, bool gamma, bool flip)
+      : Texture2D(path, num_mipmaps, gamma, flip),
+        ARB_handle_(glGetTextureHandleARB(obj_)) {}
+
+  Texture2DARB(int width, int height, int num_mipmaps, GLenum internal_format,
+               GLenum img_format, GLenum img_data_format, const void *data)
+      : Texture2D(width, height, num_mipmaps, internal_format, img_format,
+                  img_data_format, data),
         ARB_handle_(glGetTextureHandleARB(obj_)) {}
   // glGetTextureHandleARB for an un-updated texture will throw error
   Texture2DARB() = default;
 
+  Texture2DARB(int width, int height, int num_mipmaps, GLenum internal_format)
+      : Texture2D(width, height, num_mipmaps, internal_format),
+        ARB_handle_(glGetTextureHandleARB(obj_)) {}
   ~Texture2DARB() {
     AssertLog(first_residentd_ || (ARB_handle_ == 0),
               "Texture2DARB {} is never used!", obj_.handle());
@@ -151,14 +167,17 @@ public:
   TextureCube() : Texture(GL_TEXTURE_CUBE_MAP) {
     glTextureParameteri(obj_, GL_TEXTURE_WRAP_R, wrap_r_);
   }
-  TextureCube(int width, int height, GLenum internal_format, GLenum img_format,
-              GLenum img_data_type, const void *data);
+  TextureCube(int width, int height, int num_mipmaps, GLenum internal_format);
+  TextureCube(int width, int height, int num_mipmaps, GLenum internal_format,
+              GLenum img_format, GLenum img_data_type, const void *data);
   ~TextureCube() {
     AssertLog(first_bounded || (obj_.handle() == 0),
               "TextureCube {} is never bounded!", obj_);
   }
-  TextureCube(const std::vector<fs::path> &paths, bool gamma, bool flip);
-  void update_data(const std::vector<fs::path> &paths, bool gamma, bool flip);
+  TextureCube(const std::vector<fs::path> &paths, int num_mipmaps, bool gamma,
+              bool flip);
+  void update_data(const std::vector<fs::path> &paths, int num_mipmaps,
+                   bool gamma, bool flip);
   TextureCube(TextureCube &&other) = default;
   TextureCube &operator=(TextureCube &&) = default;
   void set_wrap_r(GLint value) {
@@ -196,8 +215,9 @@ public:
         obj_.handle());
     return ARB_handle_;
   }
-  TextureCubeARB(const std::vector<fs::path> &paths, bool gamma, bool flip)
-      : TextureCube(paths, gamma, flip),
+  TextureCubeARB(const std::vector<fs::path> &paths, int num_mipmaps,
+                 bool gamma, bool flip)
+      : TextureCube(paths, num_mipmaps, gamma, flip),
         ARB_handle_(glGetTextureHandleARB(obj_)) {}
 
   TextureCubeARB() = default;

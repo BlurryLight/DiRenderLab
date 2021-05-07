@@ -102,7 +102,7 @@ int main() {
   auto texture_path = resMgr.find_path("spot_texture.png");
   //    auto spot_texture = TextureFromFile(texture_path.c_str(), "", false,
   //    false);
-  auto spot_texture = DRL::Texture2D(texture_path, false, false);
+  auto spot_texture = DRL::Texture2D(texture_path, 1, false, false);
   glActiveTexture(GL_TEXTURE0);
   glBindTexture(GL_TEXTURE_2D, spot_texture);
 

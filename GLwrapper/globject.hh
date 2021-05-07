@@ -51,8 +51,8 @@ public:
   }
   ~ShaderObj() {
     if (handle()) {
-      spdlog::warn("RAII is destroying {} Shader handle! Be cautious!",
-                   handle());
+      spdlog::debug("RAII is destroying {} Shader handle! Be cautious!",
+                    handle());
       glDeleteShader(handle());
       handle_ = 0;
     }
@@ -64,8 +64,8 @@ public:
   ProgramObj() : GLObject(glCreateProgram()) {}
   ~ProgramObj() {
     if (handle()) {
-      spdlog::warn("RAII is destroying {} Program handle! Be cautious!",
-                   handle());
+      spdlog::debug("RAII is destroying {} Program handle! Be cautious!",
+                    handle());
       // There is a strange error here.
       // glGetError will report it is a invalid operation.
       // According to the latest OpenGL 4.5 reference, glDeleteProgram should

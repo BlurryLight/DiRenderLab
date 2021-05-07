@@ -68,7 +68,7 @@ Shader::Shader(GLenum type, const fs::path &path, bool compile)
       check_inside(suffix, gsuffix);
       break;
     default:
-      spdlog::info("Rare shader! Path is {}", path.string());
+      spdlog::debug("Rare shader! Path is {}", path.string());
     }
   }
 #endif

@@ -140,24 +140,23 @@ void PbrRender::setup_states() {
   model_ptr =
       std::make_unique<DRL::Model>(resMgr.find_path("sphere.obj").string());
   uniform_.albedoARB = DRL::Texture2DARB(
-      resMgr.find_path("rustediron2_basecolor.png"), false, false);
+      resMgr.find_path("rustediron2_basecolor.png"), 1, false, false);
   uniform_.albedoARB.make_resident();
   uniform_.roughnessARB = DRL::Texture2DARB(
-      resMgr.find_path("rustediron2_roughness.png"), false, false);
+      resMgr.find_path("rustediron2_roughness.png"), 1, false, false);
   uniform_.roughnessARB.make_resident();
   uniform_.normalARB = DRL::Texture2DARB(
-      resMgr.find_path("rustediron2_normal.png"), false, false);
+      resMgr.find_path("rustediron2_normal.png"), 1, false, false);
   uniform_.normalARB.make_resident();
   uniform_.metallicARB = DRL::Texture2DARB(
-      resMgr.find_path("rustediron2_metallic.png"), false, false);
+      resMgr.find_path("rustediron2_metallic.png"), 1, false, false);
   uniform_.metallicARB.make_resident();
 
   uniform_.hdrTexture = DRL::Texture2D(
-      resMgr.find_path("Factory_Catwalk_2k.hdr").string(), true, false);
-  auto envCubemap = std::make_shared<DRL::TextureCube>(
-      2048, 2048, GL_RGB16F, GL_RGB, GL_FLOAT, nullptr);
+      resMgr.find_path("Factory_Catwalk_2k.hdr").string(), 1, true, false);
+  auto envCubemap =
+      std::make_shared<DRL::TextureCube>(2048, 2048, 1, GL_RGB16F);
   uniform_.envCubemap = envCubemap;
-  uniform_.envCubemap->generateMipmap();
 
   glm::mat4 captureProjection =
       glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 10.0f);
@@ -194,8 +193,8 @@ void PbrRender::setup_states() {
   uniform_.captureFBO.unbind();
   // calc irradiance
 
-  uniform_.irradianceCubemap = std::make_shared<DRL::TextureCube>(
-      32, 32, GL_RGB16F, GL_RGB, GL_FLOAT, nullptr);
+  uniform_.irradianceCubemap =
+      std::make_shared<DRL::TextureCube>(32, 32, 1, GL_RGB16F);
   uniform_.irradianceCubemap->set_wrap_t(GL_CLAMP_TO_EDGE);
   uniform_.irradianceCubemap->set_wrap_s(GL_CLAMP_TO_EDGE);
   uniform_.irradianceCubemap->set_wrap_r(GL_CLAMP_TO_EDGE);
@@ -204,7 +203,7 @@ void PbrRender::setup_states() {
   irradianceConvShader.set_uniform("projection", captureProjection);
   envCubemap->bind();
   uniform_.captureFBO.set_viewport(32, 32);
-  for (unsigned int i = 0; i < 6; ++i) {
+  for (int i = 0; i < 6; ++i) {
     irradianceConvShader.set_uniform("view", captureViews[i]);
     uniform_.captureFBO.attach_buffer(GL_COLOR_ATTACHMENT0,
                                       uniform_.irradianceCubemap, 0, i);
@@ -213,16 +212,14 @@ void PbrRender::setup_states() {
   }
 
   // calc prefilter
-  uniform_.prefilterCubemap = std::make_shared<DRL::TextureCube>(
-      128, 128, GL_RGB16F, GL_RGB, GL_FLOAT, nullptr);
+  uniform_.prefilterCubemap =
+      std::make_shared<DRL::TextureCube>(128, 128, 6, GL_RGB16F);
   uniform_.prefilterCubemap->generateMipmap();
-  uniform_.prefilterCubemap->set_min_filter(GL_LINEAR_MIPMAP_LINEAR);
   // filter to mip_linear
   prefilterShader.bind();
   prefilterShader.set_uniform("environmentMap", 0);
   prefilterShader.set_uniform("projection", captureProjection);
   envCubemap->bind();
-  envCubemap->generateMipmap();
   int prefilter_size = 128;
   int miplevels = 5;
   for (int mip = 0; mip < miplevels; mip++) {

@@ -140,7 +140,7 @@ void SkyboxRender::setup_states() {
       resMgr.find_path("top.jpg"),   resMgr.find_path("bottom.jpg"),
       resMgr.find_path("front.jpg"), resMgr.find_path("back.jpg"),
   };
-  skyboxTexture = DRL::TextureCubeARB(faces, true, false);
+  skyboxTexture = DRL::TextureCubeARB(faces, 1, true, false);
   skyboxTexture.make_resident();
   shader.bind();
   shader.set_uniform("skybox", skyboxTexture.tex_handle_ARB());

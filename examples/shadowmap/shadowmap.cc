@@ -99,15 +99,16 @@ void ShadowMapRender::setup_states() {
   planeVAO.lazy_bind_attrib(0, GL_FLOAT, 3, 0);
   planeVAO.lazy_bind_attrib(1, GL_FLOAT, 3, 3);
   planeVAO.lazy_bind_attrib(2, GL_FLOAT, 2, 6);
-  planeVAO.update_bind(planeVBO, 0, 8, sizeof(GL_FLOAT));
+  planeVAO.update_bind(planeVBO, 0, 8, sizeof(float));
 
   // load textures
   // -------------
-  woodTexture = DRL::Texture2D(resMgr.find_path("wood.png"), false, true);
+  woodTexture = DRL::Texture2D(resMgr.find_path("wood.png"), 1, false, true);
+  woodTexture.set_wrap_s(GL_REPEAT);
+  woodTexture.set_wrap_t(GL_REPEAT);
 
-  depthMap = std::make_shared<DRL::Texture2D>(SHADOW_WIDTH, SHADOW_HEIGHT,
-                                              GL_DEPTH_COMPONENT32F, GL_R32F,
-                                              GL_FLOAT, nullptr);
+  depthMap = std::make_shared<DRL::Texture2D>(SHADOW_WIDTH, SHADOW_HEIGHT, 1,
+                                              GL_DEPTH_COMPONENT32F);
   depthMap->set_wrap_s(GL_CLAMP_TO_EDGE);
   depthMap->set_wrap_t(GL_CLAMP_TO_EDGE);
   depthMap->bind();

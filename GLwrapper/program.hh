@@ -22,18 +22,18 @@ private:
 protected:
   ProgramObj obj_;
   bool linked_ = false;
-  static Program *current_using_program;
 
   using Uniform_t =
       std::variant<bool, int, unsigned int, float, glm::mat3, glm::mat4,
                    glm::vec2, glm::vec3, glm::vec4, GLuint64>;
 
 public:
+  static Program *current_using_program;
   ~Program() {
     AssertLog(linked_, "Program {} is never linked!", obj_);
     // just warning. Because when the process is ending we don't need to unbind
     // current program.
-    AssertWarning(current_using_program == this,
+    AssertWarning(current_using_program != this,
                   "Program {} is using when destroying!", obj_);
   }
   operator GLuint() const { return obj_.handle(); }

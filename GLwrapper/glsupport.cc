@@ -241,7 +241,8 @@ Model::loadMaterialTextures(aiMaterial *mat, aiTextureType type,
       details::Texture texture;
       auto path = directory / texture_path_str;
       texture.tex_ptr =
-          std::make_shared<DRL::Texture2D>(path, gammaCorrection_, true);
+          std::make_shared<DRL::Texture2D>(path, 3, gammaCorrection_, true);
+      texture.tex_ptr->generateMipmap();
       texture.type = typeName;
       //      texture.path = str.C_Str();
       res.push_back(texture);
@@ -478,7 +479,7 @@ void RenderBase::loop() {
   while (!glfwWindowShouldClose(window_)) {
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();
-    float currentFrame = (float)glfwGetTime();
+    auto currentFrame = (float)glfwGetTime();
     deltaTime_ = currentFrame - lastFrame_;
     lastFrame_ = currentFrame;
     render();
@@ -487,6 +488,7 @@ void RenderBase::loop() {
     glfwSwapBuffers(window_);
     glfwPollEvents();
   }
+  shutdown();
 }
 void RenderBase::on_resize(int width, int height) {
   glViewport(0, 0, width, height);

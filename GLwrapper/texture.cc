@@ -71,13 +71,17 @@ static LoadReturnType TextureFromFile(const fs::path &path, bool gamma,
   stbi_set_flip_vertically_on_load(false);
   return {data, gamma, nrComponents, height, width};
 }
-void Texture2D::update_data(const fs::path &path, bool gamma, bool flip) {
+void Texture2D::update_data(const fs::path &path, int num_mipmaps, bool gamma,
+                            bool flip) {
 #ifndef NDEBUG
   file_ = path;
 #endif
+  AssertLog(num_mipmaps >= 1, "Texture2D needs at least base mipmap!");
+  num_mipmaps_ = num_mipmaps;
   auto res = TextureFromFile(path, gamma, flip);
   auto [internal_format, img_format, img_data_type] = get_internalf_format(res);
-  glTextureStorage2D(obj_, 6, internal_format, res.width, res.height);
+  glTextureStorage2D(obj_, num_mipmaps_, internal_format, res.width,
+                     res.height);
   if (img_data_type == GL_FLOAT) // float
   {
     glTextureSubImage2D(obj_, 0, 0, 0, res.width, res.height, img_format,
@@ -88,23 +92,36 @@ void Texture2D::update_data(const fs::path &path, bool gamma, bool flip) {
   }
   updated_ = true;
 }
-Texture2D::Texture2D(const fs::path &path, bool gamma, bool flip)
+Texture2D::Texture2D(const fs::path &path, int num_mipmaps, bool gamma,
+                     bool flip)
     : Texture(GL_TEXTURE_2D) {
-  update_data(path, gamma, flip);
+  update_data(path, num_mipmaps, gamma, flip);
 }
-Texture2D::Texture2D(int width, int height, GLenum internal_format,
-                     GLenum img_format, GLenum img_data_type, const void *data)
+Texture2D::Texture2D(int width, int height, int num_mipmaps,
+                     GLenum internal_format, GLenum img_format,
+                     GLenum img_data_type, const void *data)
     : Texture(GL_TEXTURE_2D) {
-  glTextureStorage2D(obj_, 6, internal_format, width, height);
-  if (data) {
-    glTextureSubImage2D(obj_, 0, 0, 0, width, height, img_format, img_data_type,
-                        data);
-  }
+  AssertLog(data, "Texture2D doesn't allow nullptr!");
+  AssertLog(num_mipmaps >= 1, "Texture2D needs at least base mipmap!");
+  glTextureStorage2D(obj_, num_mipmaps, internal_format, width, height);
+  glTextureSubImage2D(obj_, 0, 0, 0, width, height, img_format, img_data_type,
+                      data);
   updated_ = true;
 }
-void TextureCube::update_data(const std::vector<fs::path> &paths, bool gamma,
-                              bool flip) {
+
+Texture2D::Texture2D(int width, int height, int num_mipmaps,
+                     GLenum internal_format)
+    : Texture(GL_TEXTURE_2D) {
+  AssertLog(num_mipmaps >= 1, "Texture2D needs at least base mipmap!");
+  glTextureStorage2D(obj_, num_mipmaps, internal_format, width, height);
+  updated_ = true;
+}
+
+void TextureCube::update_data(const std::vector<fs::path> &paths,
+                              int num_mipmaps, bool gamma, bool flip) {
   AssertLog(paths.size() == 6, "Wrong numbers of images {}", paths.size());
+  AssertLog(num_mipmaps >= 1, "TextureCube needs at least base mipmap!");
+  num_mipmaps_ = num_mipmaps;
 #ifndef NDEBUG
   file_ = paths[0];
 #endif
@@ -116,16 +133,9 @@ void TextureCube::update_data(const std::vector<fs::path> &paths, bool gamma,
       std::tie(internal_format, img_format, img_data_type) =
           get_internalf_format(res);
       // 6 mipmaps
-      glTextureStorage2D(obj_, 6, internal_format, res.width, res.height);
+      glTextureStorage2D(obj_, num_mipmaps, internal_format, res.width,
+                         res.height);
     }
-    // An ugly hack here is to use glTextureSubImage3D to remove the binding
-    // like  glTextureSubImage3D(cubemap, 0, 0, 0, 0, N, N, 6, GL_RGBA,
-    // GL_HALF_FLOAT, cubemap_data.data());
-
-    //        glBindTexture(GL_TEXTURE_CUBE_MAP, obj_);
-    //        glTexSubImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, 0, 0,
-    //        res.width, res.height, format, GL_UNSIGNED_BYTE,
-    //        res.bytes.get()); glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
     // correct DSA way
     if (res.data_ptr.index() == 0) // float
     {
@@ -149,26 +159,36 @@ void TextureCube::update_data(const std::vector<fs::path> &paths, bool gamma,
   }
 }
 
-TextureCube::TextureCube(const std::vector<fs::path> &paths, bool gamma,
-                         bool flip)
+TextureCube::TextureCube(const std::vector<fs::path> &paths, int num_mipmaps,
+                         bool gamma, bool flip)
     : Texture(GL_TEXTURE_CUBE_MAP) {
-  update_data(paths, gamma, flip);
+  update_data(paths, num_mipmaps, gamma, flip);
   glTextureParameteri(obj_, GL_TEXTURE_WRAP_R, wrap_r_);
 }
-TextureCube::TextureCube(int width, int height, GLenum internal_format,
-                         GLenum img_format, GLenum img_data_type,
-                         const void *data)
+TextureCube::TextureCube(int width, int height, int num_mipmaps,
+                         GLenum internal_format)
+    : Texture(GL_TEXTURE_CUBE_MAP) {
+  AssertLog(num_mipmaps >= 1, "TextureCube needs at least base mipmap!");
+  num_mipmaps_ = num_mipmaps;
+  glTextureStorage2D(obj_, num_mipmaps, internal_format, width, height);
+  updated_ = true;
+}
+
+TextureCube::TextureCube(int width, int height, int num_mipmaps,
+                         GLenum internal_format, GLenum img_format,
+                         GLenum img_data_type, const void *data)
     : Texture(GL_TEXTURE_CUBE_MAP) {
 
-  glTextureStorage2D(obj_, 6, internal_format, width, height);
-  if (data) {
-    glTextureSubImage3D(obj_, 0, 0, 0,
-                        0, // offset: from 0 to store value
-                        width, height,
-                        6, // faces: we want to set 6 faces at one time
-                        img_format, img_data_type,
-                        data); // data should be continuous
-  }
+  AssertLog(data, "TextureCube doesn't allow nullptr!");
+  AssertLog(num_mipmaps >= 1, "TextureCube needs at least base mipmap!");
+  num_mipmaps_ = num_mipmaps;
+  glTextureStorage2D(obj_, num_mipmaps, internal_format, width, height);
+  glTextureSubImage3D(obj_, 0, 0, 0,
+                      0, // offset: from 0 to store value
+                      width, height,
+                      6, // faces: we want to set 6 faces at one time
+                      img_format, img_data_type,
+                      data); // data should be continuous
   updated_ = true;
 }
 Texture::Texture(GLenum textureType) : obj_(textureType) {
@@ -179,6 +199,11 @@ Texture::Texture(GLenum textureType) : obj_(textureType) {
 }
 void Texture::bind() {
   AssertLog(updated_, "Texture {} has not been updated!", obj_.handle());
+  if (num_mipmaps_ > 1 && (min_filter_ == GL_LINEAR)) {
+    spdlog::warn("Texture has mipmaps {} but the min filter is not set to "
+                 "mipmap related filter!",
+                 num_mipmaps_);
+  }
   glBindTextureUnit(slot_, obj_);
   bounded_ = true;
   first_bounded = true;
