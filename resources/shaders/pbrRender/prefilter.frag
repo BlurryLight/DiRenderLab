@@ -1,8 +1,16 @@
-#version 330 core
+#version 450 core
+
+#if defined(GL_ARB_bindless_texture)
+#extension GL_ARB_bindless_texture : enable
+#endif
+#if defined(GL_ARB_bindless_texture)
+layout(bindless_sampler) uniform samplerCube  environmentMap;
+#else
+layout(binding = 0 ) uniform samplerCube environmentMap;
+#endif
+
 out vec4 FragColor;
 in vec3 TexCoords;
-
-uniform samplerCube environmentMap;
 uniform float roughness;
 
 const float PI = 3.14159265359;

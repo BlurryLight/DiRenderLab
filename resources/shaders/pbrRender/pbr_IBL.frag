@@ -21,17 +21,18 @@ layout(bindless_sampler) uniform sampler2D  u_albedoMap;
 layout(bindless_sampler) uniform sampler2D  u_metallicMap;
 layout(bindless_sampler) uniform sampler2D  u_roughnessMap;
 layout(bindless_sampler) uniform sampler2D  u_normalMap;
-//layout(bindless_sampler) uniform sampler2D  u_aoMap;
+layout(bindless_sampler) uniform samplerCube irradianceMap;
+layout(bindless_sampler) uniform samplerCube prefilterMap;
+layout(bindless_sampler) uniform sampler2D brdfMap;
 #else
 layout(binding=0) uniform sampler2D  u_albedoMap;
 layout(binding=1) uniform sampler2D  u_metallicMap;
 layout(binding=2) uniform sampler2D  u_roughnessMap;
 layout(binding=3) uniform sampler2D  u_normalMap;
-//layout(binding=3) uniform sampler2D  u_aoMap;
-#endif
 layout(binding=4) uniform samplerCube irradianceMap;
 layout(binding=5) uniform samplerCube prefilterMap;
 layout(binding=6) uniform sampler2D brdfMap;
+#endif
 // lights
 uniform vec3 lightPosition;
 uniform vec3 lightColor;

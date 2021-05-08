@@ -26,12 +26,12 @@ struct uniform_block {
   DRL::Texture2DARB metallicARB;
   DRL::Texture2DARB roughnessARB;
 
-  DRL::Texture2D hdrTexture;
+  DRL::Texture2DARB hdrTexture;
   DRL::Framebuffer captureFBO;
-  std::shared_ptr<TextureCube> envCubemap{nullptr};
-  std::shared_ptr<TextureCube> irradianceCubemap{nullptr};
-  std::shared_ptr<TextureCube> prefilterCubemap{nullptr};
-  std::shared_ptr<Texture2D> brdfMap{nullptr};
+  std::shared_ptr<TextureCubeARB> envCubemap{nullptr};
+  std::shared_ptr<TextureCubeARB> irradianceCubemap{nullptr};
+  std::shared_ptr<TextureCubeARB> prefilterCubemap{nullptr};
+  std::shared_ptr<Texture2DARB> brdfMap{nullptr};
   float skybox_lod = 1.0f;
 };
 class PbrRender : public RenderBase {

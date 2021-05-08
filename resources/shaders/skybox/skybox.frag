@@ -1,10 +1,18 @@
 #version 450 core
+#if defined(GL_ARB_bindless_texture)
 #extension GL_ARB_bindless_texture : enable
-out vec4 FragColor;
+#endif
 
+out vec4 FragColor;
 in vec3 TexCoords;
 
+#if defined(GL_ARB_bindless_texture)
 layout(bindless_sampler) uniform samplerCube skybox;
+#else
+layout(binding=0) uniform samplerCube skybox;
+#endif
+
+
 uniform float u_lod_level= 1.0;
 void main()
 {

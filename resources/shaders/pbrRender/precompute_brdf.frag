@@ -94,7 +94,9 @@ vec2 IntegrateBRDF(float NdotV, float roughness)
         if (NdotL > 0.0)
         {
             float G = GeometrySmith(N, V, L, roughness);
-            float G_Vis = (G * VdotH) / (NdotH * NdotV);
+            // https://schuttejoe.github.io/post/ggximportancesamplingpart1/
+            // https://zhuanlan.zhihu.com/p/360944842
+            float G_Vis = (G * VdotH) / (NdotH * NdotV); // 这个是对的，因为除以了pdf
             float Fc = pow(1.0 - VdotH, 5.0);
 
             A += (1.0 - Fc) * G_Vis;

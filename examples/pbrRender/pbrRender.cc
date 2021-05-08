@@ -57,12 +57,12 @@ void PbrRender::render() {
   {
     DRL::bind_guard gd(pbrShader);
 
-    uniform_.irradianceCubemap->set_slot(4);
-    uniform_.prefilterCubemap->set_slot(5);
-    uniform_.brdfMap->set_slot(6);
-    uniform_.irradianceCubemap->bind();
-    uniform_.prefilterCubemap->bind();
-    uniform_.brdfMap->bind();
+    uniform_.irradianceCubemap->make_resident();
+    uniform_.prefilterCubemap->make_resident();
+    uniform_.brdfMap->make_resident();
+    //    uniform_.irradianceCubemap->bind();
+    //    uniform_.prefilterCubemap->bind();
+    //    uniform_.brdfMap->bind();
     pbrShader.set_uniform("projection", uniform_.proj);
     pbrShader.set_uniform("view", view);
     pbrShader.set_uniform("model", glm::mat4(1.0));
@@ -73,6 +73,11 @@ void PbrRender::render() {
                           uniform_.roughnessARB.tex_handle_ARB());
     pbrShader.set_uniform("u_normalMap", uniform_.normalARB.tex_handle_ARB());
     pbrShader.set_uniform("u_albedoMap", uniform_.albedoARB.tex_handle_ARB());
+    pbrShader.set_uniform("irradianceMap",
+                          uniform_.irradianceCubemap->tex_handle_ARB());
+    pbrShader.set_uniform("prefilterMap",
+                          uniform_.prefilterCubemap->tex_handle_ARB());
+    pbrShader.set_uniform("brdfMap", uniform_.brdfMap->tex_handle_ARB());
     pbrShader.set_uniform("lightPosition", uniform_.lightPos);
     pbrShader.set_uniform("lightColor", uniform_.lightColor);
     pbrShader.set_uniform("u_metallic_index", uniform_.metallic_index);
@@ -93,11 +98,10 @@ void PbrRender::render() {
     skyboxShader.bind();
     skyboxShader.set_uniform("view", glm::mat4(glm::mat3(view)));
     skyboxShader.set_uniform("projection", uniform_.proj);
-    //    uniform_.prefilterCubemap->bind();
     skyboxShader.set_uniform("u_lod_level", uniform_.skybox_lod);
-    //    uniform_.prefilterCubemap->bind();
-    uniform_.envCubemap->bind();
-    //    uniform_.irradianceCubemap->set_slot(0);
+    //    skyboxShader.set_uniform("skybox",
+    //    uniform_.envCubemap->tex_handle_ARB());
+    skyboxShader.set_uniform("skybox", uniform_.envCubemap->tex_handle_ARB());
     //    uniform_.irradianceCubemap->bind();
     renderCube();
   }
@@ -157,11 +161,11 @@ void PbrRender::setup_states() {
       resMgr.find_path("rustediron2_metallic.png"), 1, false, false);
   uniform_.metallicARB.make_resident();
 
-  uniform_.hdrTexture = DRL::Texture2D(
+  uniform_.hdrTexture = DRL::Texture2DARB(
       resMgr.find_path("Factory_Catwalk_2k.hdr").string(), 1, true, false);
-  auto envCubemap =
-      std::make_shared<DRL::TextureCube>(2048, 2048, 1, GL_RGB16F);
-  uniform_.envCubemap = envCubemap;
+  uniform_.envCubemap =
+      std::make_shared<DRL::TextureCubeARB>(2048, 2048, 1, GL_RGB16F);
+  uniform_.envCubemap->make_resident();
 
   glm::mat4 captureProjection =
       glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 10.0f);
@@ -181,17 +185,19 @@ void PbrRender::setup_states() {
 
   // convert HDR equirectangular environment map to cubemap equivalent
   equirectangularToCubemapShader.bind();
-  equirectangularToCubemapShader.set_uniform("equirectangularMap", 0);
+  uniform_.hdrTexture.make_resident();
+  equirectangularToCubemapShader.set_uniform(
+      "equirectangularMap", uniform_.hdrTexture.tex_handle_ARB());
   equirectangularToCubemapShader.set_uniform("projection", captureProjection);
-  uniform_.hdrTexture.bind();
 
   // pbr: setup framebuffer
   // ----------------------
 
-  uniform_.captureFBO.set_viewport(envCubemap, 0);
+  uniform_.captureFBO.set_viewport(uniform_.envCubemap, 0);
   for (unsigned int i = 0; i < 6; ++i) {
     equirectangularToCubemapShader.set_uniform("view", captureViews[i]);
-    uniform_.captureFBO.attach_buffer(GL_COLOR_ATTACHMENT0, envCubemap, 0, i);
+    uniform_.captureFBO.attach_buffer(GL_COLOR_ATTACHMENT0, uniform_.envCubemap,
+                                      0, i);
     uniform_.captureFBO.bind();
     renderCube(); // renders a 1x1 cube
   }
@@ -199,14 +205,15 @@ void PbrRender::setup_states() {
   // calc irradiance
 
   uniform_.irradianceCubemap =
-      std::make_shared<DRL::TextureCube>(32, 32, 1, GL_RGB16F);
+      std::make_shared<DRL::TextureCubeARB>(32, 32, 1, GL_RGB16F);
   uniform_.irradianceCubemap->set_wrap_t(GL_CLAMP_TO_EDGE);
   uniform_.irradianceCubemap->set_wrap_s(GL_CLAMP_TO_EDGE);
   uniform_.irradianceCubemap->set_wrap_r(GL_CLAMP_TO_EDGE);
+  uniform_.irradianceCubemap->make_resident();
   irradianceConvShader.bind();
-  irradianceConvShader.set_uniform("environmentMap", 0);
+  irradianceConvShader.set_uniform("environmentMap",
+                                   uniform_.envCubemap->tex_handle_ARB());
   irradianceConvShader.set_uniform("projection", captureProjection);
-  envCubemap->bind();
   uniform_.captureFBO.set_viewport(32, 32);
   for (int i = 0; i < 6; ++i) {
     irradianceConvShader.set_uniform("view", captureViews[i]);
@@ -218,13 +225,14 @@ void PbrRender::setup_states() {
 
   // calc prefilter
   uniform_.prefilterCubemap =
-      std::make_shared<DRL::TextureCube>(128, 128, 6, GL_RGB16F);
+      std::make_shared<DRL::TextureCubeARB>(128, 128, 6, GL_RGB16F);
   uniform_.prefilterCubemap->generateMipmap();
+  uniform_.prefilterCubemap->make_resident();
   // filter to mip_linear
   prefilterShader.bind();
-  prefilterShader.set_uniform("environmentMap", 0);
+  prefilterShader.set_uniform("environmentMap",
+                              uniform_.envCubemap->tex_handle_ARB());
   prefilterShader.set_uniform("projection", captureProjection);
-  envCubemap->bind();
   int prefilter_size = 128;
   int miplevels = 5;
   for (int mip = 0; mip < miplevels; mip++) {
@@ -242,7 +250,8 @@ void PbrRender::setup_states() {
   }
   // brdf
 
-  uniform_.brdfMap = std::make_shared<DRL::Texture2D>(512, 512, 1, GL_RG16F);
+  uniform_.brdfMap = std::make_shared<DRL::Texture2DARB>(512, 512, 1, GL_RG16F);
+  uniform_.brdfMap->make_resident();
   uniform_.captureFBO.attach_buffer(GL_COLOR_ATTACHMENT0, uniform_.brdfMap, 0);
   uniform_.captureFBO.set_viewport(uniform_.brdfMap, 0);
   uniform_.captureFBO.bind();

@@ -144,6 +144,12 @@ public:
               "Texture2DARB {} has no valid ARB handle! You should update data "
               "first!",
               obj_);
+    if (num_mipmaps_ > 1 && (min_filter_ == GL_LINEAR)) {
+      spdlog::warn(
+          "Texture2DARB has mipmaps {} but the min filter is not set to "
+          "mipmap related filter!",
+          num_mipmaps_);
+    }
     if (!first_residentd_) {
       first_bounded = true; // just to make the check in assertion happy. No
                             // bind really happens
@@ -217,8 +223,14 @@ public:
   }
   TextureCubeARB(const std::vector<fs::path> &paths, int num_mipmaps,
                  bool gamma, bool flip)
-      : TextureCube(paths, num_mipmaps, gamma, flip),
-        ARB_handle_(glGetTextureHandleARB(obj_)) {}
+      : TextureCube(paths, num_mipmaps, gamma, flip) {}
+
+  TextureCubeARB(int width, int height, int num_mipmaps, GLenum internal_format)
+      : TextureCube(width, height, num_mipmaps, internal_format) {}
+  TextureCubeARB(int width, int height, int num_mipmaps, GLenum internal_format,
+                 GLenum img_format, GLenum img_data_type, const void *data)
+      : TextureCube(width, height, num_mipmaps, internal_format, img_format,
+                    img_data_type, data) {}
 
   TextureCubeARB() = default;
   ~TextureCubeARB() {
@@ -242,6 +254,11 @@ public:
         "TextureCubeARB {} has no valid ARB handle! You should update data "
         "first!",
         obj_);
+    if (num_mipmaps_ > 1 && (min_filter_ == GL_LINEAR)) {
+      spdlog::warn("Texture has mipmaps {} but the min filter is not set to "
+                   "mipmap related filter!",
+                   num_mipmaps_);
+    }
     if (!first_residentd_) {
       first_bounded = true; // just to make the check in assertion happy
       first_residentd_ = true;
