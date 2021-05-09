@@ -173,9 +173,10 @@ void DRL::renderSphere() {
         data.push_back(uv[i].y);
       }
     }
-    vbo->upload_data(data.data(), data.size() * sizeof(float), kStaticDraw);
+    vbo->upload_data(data.data(), data.size() * sizeof(float),
+                     GL_DYNAMIC_STORAGE_BIT);
     ebo->upload_data(indices.data(), indices.size() * sizeof(float),
-                     kStaticDraw);
+                     GL_DYNAMIC_STORAGE_BIT);
     int stride = (3 + 2 + 3);
     sphereVAO->lazy_bind_attrib(0, GL_FLOAT, 3, 0);
     sphereVAO->lazy_bind_attrib(1, GL_FLOAT, 3, 3);

@@ -131,7 +131,7 @@ void SkyboxRender::setup_states() {
     };
   // clang-format on
   auto skyboxVBO = std::make_shared<DRL::VertexBuffer>(
-      skyboxVertices, sizeof skyboxVertices, DRL::kStaticDraw);
+      skyboxVertices, sizeof skyboxVertices, GL_DYNAMIC_STORAGE_BIT);
   skyboxVAO.lazy_bind_attrib(0, GL_FLOAT, 3, 0);
   // a simple test: bind vbo to vao's second slot
   skyboxVAO.update_bind_slot(skyboxVBO, 1, 0, 3, sizeof(float));

@@ -94,7 +94,7 @@ void ShadowMapRender::setup_states() {
   // plane VAO
 
   auto planeVBO = std::make_shared<DRL::VertexBuffer>(
-      planeVertices, sizeof(planeVertices), DRL::kStaticDraw);
+      planeVertices, sizeof(planeVertices), GL_DYNAMIC_STORAGE_BIT);
   //    DRL::VertexArray planeVAO;
   planeVAO.lazy_bind_attrib(0, GL_FLOAT, 3, 0);
   planeVAO.lazy_bind_attrib(1, GL_FLOAT, 3, 3);

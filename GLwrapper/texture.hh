@@ -26,9 +26,8 @@ protected:
   unsigned int slot_ = 0;
   explicit Texture(GLenum textureType);
   int num_mipmaps_ = 1;
-#ifndef NDEBUG
+  // for debug use
   fs::path file_;
-#endif
 
 public:
   bool first_bounded = false; // maybe also updated by framebuffer attach
@@ -60,12 +59,8 @@ public:
   Texture2D() : Texture(GL_TEXTURE_2D) {}
   ~Texture2D() {
     AssertLog(first_bounded || (obj_.handle() == 0),
-#ifndef NDEBUG
               "Texture2D {} from file {} is never bounded!", obj_,
               file_.string());
-#else
-              "Texture2D {} is never bounded!", obj_);
-#endif
   }
   Texture2D(const fs::path &path, int num_mipmaps, bool gamma, bool flip);
 
@@ -103,10 +98,10 @@ public:
     if (updated_ && ARB_handle_ == 0 && obj_.handle()) {
       ARB_handle_ = glGetTextureHandleARB(obj_.handle());
     }
-    AssertLog(
-        ARB_handle_,
-        "Texture2DARB {} has no ARB handle! You need to update data first!",
-        obj_.handle());
+    AssertLog(ARB_handle_,
+              "Texture2DARB {} from {} has no ARB handle! You need to update "
+              "data first!",
+              obj_.handle(), file_.string());
     return ARB_handle_;
   }
 
@@ -127,7 +122,8 @@ public:
         ARB_handle_(glGetTextureHandleARB(obj_)) {}
   ~Texture2DARB() {
     AssertLog(first_residentd_ || (ARB_handle_ == 0),
-              "Texture2DARB {} is never used!", obj_.handle());
+              "Texture2DARB {} from file {} is never used!", obj_.handle(),
+              file_.string());
   }
   Texture2DARB(Texture2DARB &&other) noexcept : Texture2D(std::move(other)) {
     ARB_handle_ = other.ARB_handle_;
@@ -140,15 +136,17 @@ public:
     return *this;
   }
   void make_resident() {
-    AssertLog(tex_handle_ARB(),
-              "Texture2DARB {} has no valid ARB handle! You should update data "
-              "first!",
-              obj_);
+    AssertLog(
+        tex_handle_ARB(),
+        "Texture2DARB {} from file {} has no valid ARB handle! You should "
+        "update data "
+        "first!",
+        obj_, file_.string());
     if (num_mipmaps_ > 1 && (min_filter_ == GL_LINEAR)) {
-      spdlog::warn(
-          "Texture2DARB has mipmaps {} but the min filter is not set to "
-          "mipmap related filter!",
-          num_mipmaps_);
+      spdlog::warn("Texture2DARB has mipmaps {} from file {} but the min "
+                   "filter is not set to "
+                   "mipmap related filter!",
+                   num_mipmaps_, file_.string());
     }
     if (!first_residentd_) {
       first_bounded = true; // just to make the check in assertion happy. No
@@ -161,7 +159,8 @@ public:
     }
   }
   void make_non_resident() {
-    AssertLog(residentd_, "Texture2DARB {} is not resident!", obj_);
+    AssertLog(residentd_, "Texture2DARB {} from file {} is not resident!", obj_,
+              file_.string());
     residentd_ = false;
     glMakeTextureHandleNonResidentARB(tex_handle_ARB());
   }
@@ -178,7 +177,8 @@ public:
               GLenum img_format, GLenum img_data_type, const void *data);
   ~TextureCube() {
     AssertLog(first_bounded || (obj_.handle() == 0),
-              "TextureCube {} is never bounded!", obj_);
+              "TextureCube {} from file {} is never bounded!", obj_,
+              file_.string());
   }
   TextureCube(const std::vector<fs::path> &paths, int num_mipmaps, bool gamma,
               bool flip);
@@ -215,10 +215,10 @@ public:
     if (updated_ && ARB_handle_ == 0 && obj_.handle()) {
       ARB_handle_ = glGetTextureHandleARB(obj_.handle());
     }
-    AssertLog(
-        ARB_handle_,
-        "TextureCubeARB {} has no ARB handle! You need to update data first!",
-        obj_.handle());
+    AssertLog(ARB_handle_,
+              "TextureCubeARB {} from file {} has no ARB handle! You need to "
+              "update data first!",
+              obj_.handle(), file_.string());
     return ARB_handle_;
   }
   TextureCubeARB(const std::vector<fs::path> &paths, int num_mipmaps,
@@ -235,7 +235,8 @@ public:
   TextureCubeARB() = default;
   ~TextureCubeARB() {
     AssertLog(first_residentd_ || (ARB_handle_ == 0),
-              "TextureCubeARB {} is never used!", ARB_handle_);
+              "TextureCubeARB {} from file {} is never used!", ARB_handle_,
+              file_.string());
   }
   TextureCubeARB(TextureCubeARB &&other) noexcept
       : TextureCube(std::move(other)) {
@@ -249,15 +250,16 @@ public:
     return *this;
   }
   void make_resident() {
-    AssertLog(
-        tex_handle_ARB(),
-        "TextureCubeARB {} has no valid ARB handle! You should update data "
-        "first!",
-        obj_);
+    AssertLog(tex_handle_ARB(),
+              "TextureCubeARB {} from file {} has no valid ARB handle! You "
+              "should update data "
+              "first!",
+              obj_, file_.string());
     if (num_mipmaps_ > 1 && (min_filter_ == GL_LINEAR)) {
-      spdlog::warn("Texture has mipmaps {} but the min filter is not set to "
+      spdlog::warn("Texture has mipmaps {} from file {} but the min filter is "
+                   "not set to "
                    "mipmap related filter!",
-                   num_mipmaps_);
+                   num_mipmaps_, file_.string());
     }
     if (!first_residentd_) {
       first_bounded = true; // just to make the check in assertion happy
@@ -269,7 +271,8 @@ public:
     }
   }
   void make_non_resident() {
-    AssertLog(residentd_, "TextureCubeARB {} is not resident!", obj_);
+    AssertLog(residentd_, "TextureCubeARB {} from file {} is not resident!",
+              obj_, file_.string());
     residentd_ = false;
     glMakeTextureHandleNonResidentARB(tex_handle_ARB());
   }

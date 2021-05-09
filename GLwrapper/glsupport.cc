@@ -258,9 +258,11 @@ Mesh::Mesh(const std::vector<Vertex> &vertices,
     : textures_(std::move(textures)),
       indices_nums_(static_cast<int>(indices.size())) {
   auto vbo = std::make_shared<DRL::VertexBuffer>(
-      vertices.data(), vertices.size() * sizeof(details::Vertex), kStaticDraw);
+      vertices.data(), vertices.size() * sizeof(details::Vertex),
+      GL_DYNAMIC_STORAGE_BIT);
   auto ebo = std::make_shared<DRL::ElementBuffer>(
-      indices.data(), indices.size() * sizeof(unsigned int), kStaticDraw);
+      indices.data(), indices.size() * sizeof(unsigned int),
+      GL_DYNAMIC_STORAGE_BIT);
 
   vao_.lazy_bind_attrib(0, GL_FLOAT, 3, 0);  // vertex
   vao_.lazy_bind_attrib(1, GL_FLOAT, 3, 3);  // normal
