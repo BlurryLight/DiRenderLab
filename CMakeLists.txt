@@ -48,6 +48,7 @@ set(EXAMPLES
         skybox
         instance
         pbrRender
+        oit
         )
 foreach (EXAMPLE ${EXAMPLES})
     add_executable(${EXAMPLE} examples/${EXAMPLE}/${EXAMPLE}.cc)

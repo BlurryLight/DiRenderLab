@@ -84,11 +84,16 @@ void DRL::renderQuad() {
   static unsigned int quadVAO = 0;
   static unsigned int quadVBO = 0;
   if (quadVAO == 0) {
+
     float quadVertices[] = {
-        // positions        // texture Coords
-        -1.0f, 1.0f, 0.0f, 0.0f, 1.0f, -1.0f, -1.0f, 0.0f, 0.0f, 0.0f,
-        1.0f,  1.0f, 0.0f, 1.0f, 1.0f, 1.0f,  -1.0f, 0.0f, 1.0f, 0.0f,
-    };
+        // positions            // normals         // texcoords
+        1.0f,  -0.5f, 1.0f,  0.0f, 1.0f, 0.0f, 1.0f, 0.0f,
+        -1.0f, -0.5f, 1.0f,  0.0f, 1.0f, 0.0f, 0.0f, 0.0f,
+        -1.0f, -0.5f, -1.0f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f,
+
+        1.0f,  -0.5f, 1.0f,  0.0f, 1.0f, 0.0f, 1.0f, 0.0f,
+        -1.0f, -0.5f, -1.0f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f,
+        1.0f,  -0.5f, -1.0f, 0.0f, 1.0f, 0.0f, 1.0f, 1.0f};
     // setup plane VAO
     glGenVertexArrays(1, &quadVAO);
     glGenBuffers(1, &quadVBO);
@@ -97,14 +102,17 @@ void DRL::renderQuad() {
     glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), &quadVertices,
                  GL_STATIC_DRAW);
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float),
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float),
                           (void *)0);
     glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float),
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float),
                           (void *)(3 * sizeof(float)));
+    glEnableVertexAttribArray(2);
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float),
+                          (void *)(6 * sizeof(float)));
   }
   glBindVertexArray(quadVAO);
-  glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+  glDrawArrays(GL_TRIANGLES, 0, 6);
   glBindVertexArray(0);
 }
 
