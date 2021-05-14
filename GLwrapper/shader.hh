@@ -44,6 +44,7 @@ inline std::string MapShaderTypeToString(ShaderType t) {
 
 class Shader {
 private:
+  // for debug use
   std::string content_{};
 
 protected:

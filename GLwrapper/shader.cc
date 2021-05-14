@@ -12,6 +12,40 @@
 #include <string>
 using namespace DRL;
 
+// will process #include flag
+static std::string LoadShaderFromFileNonStandard(const fs::path &path,
+                                                 bool top_level = true) {
+  std::string code{};
+  std::ifstream file_stream(path);
+  if (!file_stream.is_open()) {
+    spdlog::error("{} not found!", path.string());
+    std::quick_exit(-1);
+  }
+
+  std::string lineBuffer;
+  const static std::string include_token = R"(#include)";
+  auto file_dir_path = path.parent_path();
+  while (std::getline(file_stream, lineBuffer)) {
+    if (lineBuffer.find(include_token) != std::string::npos) {
+      std::string found_path;
+      auto start_position = lineBuffer.find_first_of('\"');
+      ++start_position;
+      auto end_position = lineBuffer.find_last_of('\"');
+      found_path =
+          lineBuffer.substr(start_position, end_position - start_position);
+      auto include_path = canonical((file_dir_path / found_path));
+      AssertLog(include_path != path, "{} self included!",
+                include_path.string());
+      code += LoadShaderFromFileNonStandard(include_path, false);
+      continue;
+    } else if (lineBuffer.find("#version") != std::string::npos && !top_level) {
+      // in included glsl shader, we ignore the #version line
+      continue;
+    }
+    code += lineBuffer + '\n';
+  }
+  return code;
+}
 static std::string LoadShaderFromFile(const fs::path &path) {
   std::string code;
   std::ifstream file_stream(path);
