@@ -137,8 +137,9 @@ void PbrRender::setup_states() {
 
   prefilterShader = DRL::make_program(resMgr.find_path("cube.vert"),
                                       resMgr.find_path("prefilter.frag"));
-  brdfFilterShader = DRL::make_program(
-      resMgr.find_path("quad.vert"), resMgr.find_path("precompute_brdf.frag"));
+  brdfFilterShader =
+      DRL::make_program(resMgr.find_path("screen_quad.vert"),
+                        resMgr.find_path("precompute_brdf.frag"));
 
   uniform_.proj =
       glm::perspective(glm::radians(camera_->Zoom),
@@ -256,7 +257,7 @@ void PbrRender::setup_states() {
   uniform_.captureFBO.set_viewport(uniform_.brdfMap, 0);
   uniform_.captureFBO.bind();
   brdfFilterShader.bind();
-  DRL::renderQuad();
+  DRL::renderScreenQuad();
 
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
   uniform_.captureFBO.unbind();

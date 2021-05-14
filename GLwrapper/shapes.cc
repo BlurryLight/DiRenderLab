@@ -195,3 +195,21 @@ void DRL::renderSphere() {
   bind_guard<VertexArray> gd(*sphereVAO);
   sphereVAO->draw(GL_TRIANGLE_STRIP, sphereIndexSize, GL_UNSIGNED_INT, nullptr);
 }
+void DRL::renderScreenQuad() {
+  static DRL::VertexArray *quadVAO = nullptr;
+  if (!quadVAO) {
+    quadVAO = new DRL::VertexArray();
+    float quadVertices[] = {
+        // positions        // texture Coords
+        -1.0f, 1.0f, 0.0f, 0.0f, 1.0f, -1.0f, -1.0f, 0.0f, 0.0f, 0.0f,
+        1.0f,  1.0f, 0.0f, 1.0f, 1.0f, 1.0f,  -1.0f, 0.0f, 1.0f, 0.0f,
+    };
+    auto quad_vbo_ptr = std::make_shared<DRL::VertexBuffer>(
+        quadVertices, sizeof quadVertices, GL_DYNAMIC_STORAGE_BIT);
+    quadVAO->lazy_bind_attrib(0, GL_FLOAT, 3, 0);
+    quadVAO->lazy_bind_attrib(1, GL_FLOAT, 2, 3);
+    quadVAO->update_bind(quad_vbo_ptr, 0, 5, sizeof(float));
+  }
+  DRL::bind_guard gd(*quadVAO);
+  quadVAO->draw(GL_TRIANGLE_STRIP, 0, 4);
+}

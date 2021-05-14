@@ -7,6 +7,7 @@
 
 namespace DRL {
 
+void renderScreenQuad();
 void renderQuad();
 void renderCube();
 void renderSphere();
