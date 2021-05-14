@@ -29,25 +29,64 @@ int main() {
   return 0;
 }
 void OitRender::setup_states() {
-  glEnable(GL_DEPTH_TEST);
   glEnable(GL_BLEND);
+  glEnable(GL_DEPTH_TEST);
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
   resMgr.add_path(decltype(resMgr)::root_path / "resources" / "shaders");
+  resMgr.add_path(decltype(resMgr)::root_path / "resources" / "shaders" /
+                  "oit");
   resMgr.add_path(decltype(resMgr)::root_path / "resources" / "textures" /
                   "oit");
 
   transparent_texture_ = std::make_shared<DRL::Texture2DARB>(
       resMgr.find_path("blending_transparent_window.png"), 1, false, false);
-  pos_shader_ =
+  solid_shader_ =
       DRL::make_program(resMgr.find_path("mvp_pos_normal_texture.vert"),
                         resMgr.find_path("mvp_pos_normal_texture.frag"));
   blend_shader_ =
       DRL::make_program(resMgr.find_path("mvp_pos_normal_texture.vert"),
                         resMgr.find_path("mvp_pos_n_t_sampler.frag"));
+  transparent_shader_ =
+      DRL::make_program(resMgr.find_path("mvp_pos_normal_texture.vert"),
+                        resMgr.find_path("oit_transparent.frag"));
+
+  composite_shader_ = DRL::make_program(resMgr.find_path("screen_quad.vert"),
+                                        resMgr.find_path("oit_composite.frag"));
+  screen_shader_ = DRL::make_program(resMgr.find_path("screen_quad.vert"),
+                                     resMgr.find_path("screen_quad.frag"));
+
+  opaque_texture_ = std::make_shared<DRL::Texture2DARB>(
+      info_.width, info_.height, 1, GL_RGBA32F);
+  accum_texture_ = std::make_shared<DRL::Texture2DARB>(
+      info_.width, info_.height, 1, GL_RGBA32F);
+  reveal_texture_ = std::make_shared<DRL::Texture2DARB>(
+      info_.width, info_.height, 1, GL_R32F);
+  depth_texture_ = std::make_shared<DRL::Texture2DARB>(
+      info_.width, info_.height, 1, GL_DEPTH_COMPONENT32F);
+
   transparent_texture_->make_resident();
+  opaque_texture_->make_resident();
+  accum_texture_->make_resident();
+  reveal_texture_->make_resident();
+
+  opaque_fbo_.attach_buffer(GL_COLOR_ATTACHMENT0, opaque_texture_, 0);
+  opaque_fbo_.attach_buffer(GL_DEPTH_ATTACHMENT, depth_texture_, 0);
+  opaque_fbo_.set_viewport(info_.width, info_.height);
+  opaque_fbo_.clear_color_ = glm::vec4(0.1, 0.1, 0.1, 1.0);
+
+  transparent_fbo_.attach_buffer(GL_COLOR_ATTACHMENT0, accum_texture_, 0);
+  transparent_fbo_.attach_buffer(GL_COLOR_ATTACHMENT1, reveal_texture_, 0);
+  transparent_fbo_.attach_buffer(GL_DEPTH_ATTACHMENT, depth_texture_, 0);
+  transparent_fbo_.set_viewport(info_.width, info_.height);
+  transparent_fbo_.set_draw_buffer(
+      {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1});
+  transparent_fbo_.clear_color_ = glm::vec4(0.1, 0.1, 0.1, 1.0);
 
   for (int i = 5; i >= 0; i--) {
     quad_pos_.emplace_back(0.0, 0.0, i);
+  }
+  for (int i = 1; i >= 0; i--) {
+    solid_quad_pos_.emplace_back(0.0, 0.0, -6 + 12 * i);
   }
 }
 void OitRender::render() {
@@ -57,44 +96,114 @@ void OitRender::render() {
     ImGui::Begin("Background Color", 0); // Create a window called "Hello,
     ImGui::Text("Application average %.3f ms/frame (%.1f FPS)",
                 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+    ImGui::Checkbox("Weighted Blended OIT", &oit_);
     ImGui::End();
   }
   ImGui::Render();
 
   glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-  auto model = glm::mat4(1.0f);
-  model = glm::translate(model, glm::vec3(0, 0, -5));
-  model = glm::rotate(model, (float)glfwGetTime(), glm::vec3(1, 0, 0));
+
+  std::vector<glm::mat4> solid_model_mat4s;
+  for (const auto &solid_pos : solid_quad_pos_) {
+    auto model = glm::translate(glm::mat4(1.0f), solid_pos);
+    model = glm::rotate(model, (float)glfwGetTime(), glm::vec3(1, 0, 0));
+    solid_model_mat4s.push_back(model);
+  }
   auto view = camera_->GetViewMatrix();
   auto proj =
       glm::perspective(glm::radians(camera_->Zoom),
                        (float)info_.width / (float)info_.height, 0.1f, 100.0f);
-  {
-    DRL::bind_guard gd(pos_shader_);
-    pos_shader_.set_uniform("model", model);
-    pos_shader_.set_uniform("view", view);
-    pos_shader_.set_uniform("projection", proj);
-    DRL::renderQuad();
-  }
-
-  {
-    DRL::bind_guard gd(blend_shader_);
-    blend_shader_.set_uniform("view", view);
-    blend_shader_.set_uniform("projection", proj);
-    blend_shader_.set_uniform("transparent_texture",
-                              transparent_texture_->tex_handle_ARB());
-    std::map<float, glm::vec3> sorted_quad;
-    for (const auto &pos : quad_pos_) {
-      float distance = glm::distance(pos, camera_->Position);
-      sorted_quad[distance] = pos;
+  if (!oit_) {
+    {
+      DRL::bind_guard gd(solid_shader_);
+      solid_shader_.set_uniform("view", view);
+      solid_shader_.set_uniform("projection", proj);
+      for (auto &model : solid_model_mat4s) {
+        solid_shader_.set_uniform("model", model);
+        DRL::renderQuad();
+      }
     }
-    for (auto it = sorted_quad.rbegin(); it != sorted_quad.rend(); it++) {
-      auto i_model = glm::translate(glm::mat4(1.0f), it->second);
-      i_model =
-          glm::rotate(i_model, glm::radians(90.0f), glm::vec3(1.0, 0.0, 0.0));
-      blend_shader_.set_uniform("model", i_model);
-      DRL::renderQuad();
+
+    {
+      DRL::bind_guard gd(blend_shader_);
+      blend_shader_.set_uniform("view", view);
+      blend_shader_.set_uniform("projection", proj);
+      blend_shader_.set_uniform("texture0",
+                                transparent_texture_->tex_handle_ARB());
+      std::map<float, glm::vec3> sorted_quad;
+      for (const auto &pos : quad_pos_) {
+        float distance = glm::distance(pos, camera_->Position);
+        sorted_quad[distance] = pos;
+      }
+      glDepthMask(false);
+      for (auto it = sorted_quad.rbegin(); it != sorted_quad.rend(); it++) {
+        auto i_model = glm::translate(glm::mat4(1.0f), it->second);
+        i_model =
+            glm::rotate(i_model, glm::radians(90.0f), glm::vec3(1.0, 0.0, 0.0));
+        blend_shader_.set_uniform("model", i_model);
+        DRL::renderQuad();
+      }
+      glDepthMask(true);
+    }
+  } else {
+    glEnable(GL_DEPTH_TEST);
+    glDepthFunc(GL_LESS);
+    glDepthMask(GL_TRUE);
+    glDisable(GL_BLEND);
+    {
+      DRL::bind_guard gd(opaque_fbo_, solid_shader_);
+      solid_shader_.set_uniform("view", view);
+      solid_shader_.set_uniform("projection", proj);
+      for (auto &solid_model_mat4 : solid_model_mat4s) {
+        solid_shader_.set_uniform("model", solid_model_mat4);
+        DRL::renderQuad();
+      }
+    }
+
+    glDepthMask(GL_FALSE);
+    // we need the depth test,but ban the depth writing.
+    // when transparent obj is behind the solid objs, they should be discarded.
+    glEnable(GL_BLEND);
+    glBlendFunci(0, GL_ONE, GL_ONE);
+    glBlendFunci(1, GL_ZERO, GL_ONE_MINUS_SRC_COLOR);
+    glBlendEquation(GL_FUNC_ADD);
+    {
+      glClearNamedFramebufferfv(transparent_fbo_, GL_COLOR, 0,
+                                glm::value_ptr(glm::vec4(0.0f)));
+      glClearNamedFramebufferfv(transparent_fbo_, GL_COLOR, 1,
+                                glm::value_ptr(glm::vec4(1.0f)));
+      glClearNamedFramebufferfv(transparent_fbo_, GL_DEPTH, 0,
+                                &transparent_fbo_.clear_depth_);
+      glBindFramebuffer(GL_FRAMEBUFFER, transparent_fbo_);
+      transparent_shader_.bind();
+      transparent_shader_.set_uniform("view", view);
+      transparent_shader_.set_uniform("projection", proj);
+      transparent_shader_.set_uniform("texture0",
+                                      transparent_texture_->tex_handle_ARB());
+      for (const auto &pos : quad_pos_) {
+        auto i_model = glm::translate(glm::mat4(1.0f), pos);
+        i_model =
+            glm::rotate(i_model, glm::radians(90.0f), glm::vec3(1.0, 0.0, 0.0));
+        transparent_shader_.set_uniform("model", i_model);
+        DRL::renderQuad();
+      }
+    }
+    {
+      DRL::bind_guard gd(composite_shader_);
+      glBindFramebuffer(GL_FRAMEBUFFER, opaque_fbo_);
+      glEnable(GL_BLEND);
+      glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+      composite_shader_.set_uniform("accum", accum_texture_->tex_handle_ARB());
+      composite_shader_.set_uniform("reveal",
+                                    reveal_texture_->tex_handle_ARB());
+      DRL::renderScreenQuad();
+      glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    }
+    {
+      DRL::bind_guard gd(screen_shader_);
+      screen_shader_.set_uniform("screen", opaque_texture_->tex_handle_ARB());
+      DRL::renderScreenQuad();
     }
   }
 }

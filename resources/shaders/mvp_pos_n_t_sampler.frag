@@ -4,9 +4,9 @@
 #extension GL_ARB_bindless_texture : enable
 #endif
 #if defined(GL_ARB_bindless_texture)
-layout(bindless_sampler) uniform sampler2D transparent_texture;
+layout(bindless_sampler) uniform sampler2D texture0;
 #else
-layout(binding = 0) uniform sampler2D transparent_texture;
+layout(binding = 0) uniform sampler2D texture0;
 #endif
 
 out vec4 FragColor;
@@ -20,5 +20,5 @@ in VS_OUT
 } fs_in;
 void main()
 {
-    FragColor = texture(transparent_texture,fs_in.TexCoords);
+    FragColor = texture(texture0, fs_in.TexCoords);
 }

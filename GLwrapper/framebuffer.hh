@@ -28,8 +28,8 @@ protected:
   std::set<attachable_obj> attachments_;
 
 public:
-  glm::vec3 clear_color_ = {};
-  glm::vec3 clear_depth_{1.0};
+  glm::vec4 clear_color_ = {};
+  float clear_depth_{1.0};
   ~Framebuffer() {
     AssertLog(complete_ || (handle() == 0),
               "Framebuffer {} is not complete until destroying!", obj_);
@@ -40,8 +40,8 @@ public:
   Framebuffer(Framebuffer &&) = default;
   Framebuffer &operator=(Framebuffer &&) = default;
   Framebuffer(GLenum attachment, const Texture2DPtr &texture_obj,
-              GLint mipmap_level, glm::vec3 clear_color = glm::vec3(0.0f),
-              glm::vec3 clear_depth = glm::vec3(1.0f))
+              GLint mipmap_level, glm::vec4 clear_color = glm::vec4(0.0f),
+              float clear_depth = 1.0f)
       : clear_color_(clear_color), clear_depth_(clear_depth) {
     attach_buffer(attachment, texture_obj, mipmap_level);
     set_viewport(texture_obj, mipmap_level);
@@ -106,7 +106,7 @@ public:
     glBindFramebuffer(GL_FRAMEBUFFER, obj_);
     glViewport(0, 0, vwidth_, vheight_);
     glClearNamedFramebufferfv(obj_, GL_COLOR, 0, glm::value_ptr(clear_color_));
-    glClearNamedFramebufferfv(obj_, GL_DEPTH, 0, glm::value_ptr(clear_depth_));
+    glClearNamedFramebufferfv(obj_, GL_DEPTH, 0, &clear_depth_);
   }
   void unbind() { glBindFramebuffer(GL_FRAMEBUFFER, 0); }
 };
