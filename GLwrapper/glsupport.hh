@@ -4,10 +4,10 @@
 #include "shader.hh"
 #include "texture.hh"
 #include "vertex_array.hh"
-#if defined _GNUC_ || defined _CLANG_CL
+#if defined _GNUC_ || defined _CLANG_CL || defined __clang__
 // lmao: Clang-cl will pretend it is MSVC, but actually it accepts gcc #pragma
 // flags.
-#pragma GCC diagnostic push // gcc way to suppress -Wpgrama-pck
+#pragma GCC diagnostic push // gcc way to suppress -Wpgrama-pack
 #pragma GCC diagnostic ignored "-Wpragma-pack"
 #elif _MSC_VER
 #pragma warning(push, 0) // MSVC way to suppress external headers warning

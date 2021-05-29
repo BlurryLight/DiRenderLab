@@ -23,7 +23,7 @@ int main() {
   info.height = 900;
   info.width = 1600;
   OitRender rd(info);
-  rd.camera_ = std::make_unique<DRL::Camera>(glm::vec3{0.0, 0.0, 3.0});
+  rd.camera_ = std::make_unique<DRL::Camera>(glm::vec3{0.0, 0.0, 10.0});
   rd.loop();
 
   return 0;
@@ -82,8 +82,8 @@ void OitRender::setup_states() {
       {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1});
   transparent_fbo_.clear_color_ = glm::vec4(0.1, 0.1, 0.1, 1.0);
 
-  for (int i = 5; i >= 0; i--) {
-    quad_pos_.emplace_back(0.0, 0.0, i);
+  for (int i = 100; i >= 0; i--) {
+    quad_pos_.emplace_back(0, 0.0, 0.1 * i);
   }
   for (int i = 1; i >= 0; i--) {
     solid_quad_pos_.emplace_back(0.0, 0.0, -6 + 12 * i);
@@ -113,8 +113,11 @@ void OitRender::render() {
   auto view = camera_->GetViewMatrix();
   auto proj =
       glm::perspective(glm::radians(camera_->Zoom),
-                       (float)info_.width / (float)info_.height, 0.1f, 100.0f);
+                       (float)info_.width / (float)info_.height, 0.1f, 500.0f);
   if (!oit_) {
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_BLEND);
+    //    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     {
       DRL::bind_guard gd(solid_shader_);
       solid_shader_.set_uniform("view", view);
