@@ -32,12 +32,14 @@ struct uniform_block {
   std::shared_ptr<TextureCubeARB> irradianceCubemap{nullptr};
   std::shared_ptr<TextureCubeARB> prefilterCubemap{nullptr};
   std::shared_ptr<Texture2DARB> brdfMap{nullptr};
+  std::shared_ptr<Texture2DARB> brdfAvgMap{nullptr};
   float skybox_lod = 1.0f;
 };
 class PbrRender : public RenderBase {
 protected:
   DRL::ResourcePathSearcher resMgr;
   DRL::Program pbrShader;
+  DRL::Program pbrKCShader;
   DRL::Program lightShader; // for visualize light sphere
   DRL::Program equirectangularToCubemapShader;
   DRL::Program skyboxShader;

@@ -23,6 +23,7 @@ layout(bindless_sampler) uniform sampler2D  u_roughnessMap;
 layout(bindless_sampler) uniform sampler2D  u_normalMap;
 layout(bindless_sampler) uniform samplerCube prefilterMap;
 layout(bindless_sampler) uniform sampler2D brdfMap;
+layout(bindless_sampler) uniform sampler2D brdfAvgMap;
 #else
 layout(binding=0) uniform sampler2D  u_albedoMap;
 layout(binding=1) uniform sampler2D  u_metallicMap;
@@ -99,6 +100,28 @@ vec3 fresnelSchlickRoughness(float cosTheta, vec3 F0, float roughness)
     return F0 + (max(vec3(1.0 - roughness), F0) - F0) * pow(max(1.0 - cosTheta, 0.0), 5.0);
 }
 // ----------------------------------------------------------------------------
+vec3 AverageFresnel(vec3 r, vec3 g)
+{
+    return vec3(0.087237) + 0.0230685*g - 0.0864902*g*g + 0.0774594*g*g*g
+    + 0.782654*r - 0.136432*r*r + 0.278708*r*r*r
+    + 0.19744*g*r + 0.0360605*g*g*r - 0.2586*g*r*r;
+}
+
+vec3 MultiScatterBRDF(float NdotL, float NdotV,vec3 F0,vec3 albedo,float roughness)
+{
+
+    vec2 Eo = texture2D(brdfMap, vec2(NdotL, roughness)).xy;
+    vec3 E_o = vec3(Eo.x) + vec3(Eo.y);
+    vec2 Ei = texture2D(brdfMap, vec2(NdotV, roughness)).xy;
+    vec3 E_i = vec3(Ei.x) + (Ei.y);
+
+    vec3 E_avg = texture2D(brdfAvgMap, vec2(0, roughness)).xyz;
+    vec3 F_avg = AverageFresnel(albedo, F0);
+
+    vec3 fms = (( 1.0- E_o) * ( 1.0 - E_i)) / (PI * (1.0  - E_avg));
+    vec3 fadd = F_avg * E_avg / ( 1.0 - F_avg*( 1.0 - E_avg));
+    return fadd * fms;
+}
 void main()
 {
     vec3 tex_normal = texture(u_normalMap, fs_in.TexCoords).rgb * 2.0 - 1.0;
@@ -112,9 +135,11 @@ void main()
     vec3 albedo  = pow(texture(u_albedoMap, fs_in.TexCoords).rgb, vec3(2.2));
     float metallic = texture(u_metallicMap, fs_in.TexCoords).r * u_metallic_index;
     float roughness = clamp(texture(u_roughnessMap, fs_in.TexCoords).r * u_roughness_index,0.0,1.0);
+//    float roughness = u_roughness_index;
 //     float ao = texture(u_aoMap, fs_in.TexCoords).r;
     float ao = 1.0;
     F0 = mix(F0, albedo, metallic);
+    float NdotV = max(dot(N,V),0.0);
 
     vec3 Lo = vec3(0.0);
     //Direct Lighting
@@ -134,13 +159,14 @@ void main()
 
         vec3 nominator    = NDF * G * F;
         float denominator = 4 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0);
-        vec3 specular = nominator / max(denominator, EPS);// prevent divide by zero for NdotV=0.0 or NdotL=0.0
+        vec3 brdf= nominator / max(denominator, EPS);// prevent divide by zero for NdotV=0.0 or NdotL=0.0
 
         // scale light by NdotL
         float NdotL = max(dot(N, L), 0.0);
+        vec3 Fms = MultiScatterBRDF(NdotL, NdotV,F0,albedo,roughness);
 
         // add to outgoing radiance Lo
-        Lo +=  specular * radiance * NdotL;
+        Lo +=  clamp((brdf + Fms),0.0,1.0)* radiance * NdotL;
     }
 
     //IBL
@@ -148,11 +174,14 @@ void main()
 
     const float MAX_REFLECTION_LOD = 4.0;
     vec3 prefilteredColor = textureLod(prefilterMap, R, roughness * MAX_REFLECTION_LOD).rgb;
-    vec2 brdf  = texture(brdfMap, vec2(max(dot(N, V), 0.0), roughness)).rg;
-    vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);//schilick 被拆开的结果
+    vec2 brdf  = texture(brdfMap, vec2(NdotV, roughness)).rg;
+    vec3 Fms = MultiScatterBRDF(1.0, NdotV,F0,albedo,roughness);
+    vec3 specular = prefilteredColor * clamp((F * brdf.x + brdf.y + Fms),0.0,1.0);//schilick 被拆开的结果
 
     vec3 ambient   =  specular * ao;
     vec3 color = ambient + Lo;
+//    color -= (0.1000001 * Lo * 10.0);
+    color = clamp(color,0.0,1.0);
     // HDR tonemapping
     color = color / (color + vec3(1.0));
     // gamma correct

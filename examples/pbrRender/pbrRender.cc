@@ -73,16 +73,81 @@ void PbrRender::render() {
                           uniform_.roughnessARB.tex_handle_ARB());
     pbrShader.set_uniform("u_normalMap", uniform_.normalARB.tex_handle_ARB());
     pbrShader.set_uniform("u_albedoMap", uniform_.albedoARB.tex_handle_ARB());
-    pbrShader.set_uniform("irradianceMap",
-                          uniform_.irradianceCubemap->tex_handle_ARB());
     pbrShader.set_uniform("prefilterMap",
                           uniform_.prefilterCubemap->tex_handle_ARB());
     pbrShader.set_uniform("brdfMap", uniform_.brdfMap->tex_handle_ARB());
     pbrShader.set_uniform("lightPosition", uniform_.lightPos);
     pbrShader.set_uniform("lightColor", uniform_.lightColor);
     pbrShader.set_uniform("u_metallic_index", uniform_.metallic_index);
-    pbrShader.set_uniform("u_roughness_index", uniform_.roughness_index);
+
+    //draw 5 spheres
+    pbrShader.set_uniform("u_roughness_index", 0.2f * uniform_.roughness_index);
+    pbrShader.set_uniform("model", glm::translate(glm::mat4(1.0),glm::vec3(-3.0,0.0,0.0)));
     model_ptr->Draw(pbrShader);
+
+    pbrShader.set_uniform("u_roughness_index", 0.4f * uniform_.roughness_index);
+    pbrShader.set_uniform("model", glm::translate(glm::mat4(1.0),glm::vec3(-1.0,0.0,0.0)));
+    model_ptr->Draw(pbrShader);
+
+    pbrShader.set_uniform("u_roughness_index", 0.6f * uniform_.roughness_index);
+    pbrShader.set_uniform("model", glm::translate(glm::mat4(1.0),glm::vec3(1.0,0.0,0.0)));
+    model_ptr->Draw(pbrShader);
+
+    pbrShader.set_uniform("u_roughness_index", 0.8f * uniform_.roughness_index);
+    pbrShader.set_uniform("model", glm::translate(glm::mat4(1.0),glm::vec3(3.0,0.0,0.0)));
+    model_ptr->Draw(pbrShader);
+
+    pbrShader.set_uniform("u_roughness_index", 1.0f * uniform_.roughness_index);
+    pbrShader.set_uniform("model", glm::translate(glm::mat4(1.0),glm::vec3(5.0,0.0,0.0)));
+    model_ptr->Draw(pbrShader);
+  }
+
+  {
+    DRL::bind_guard gd(pbrKCShader);
+
+    uniform_.irradianceCubemap->make_resident();
+    uniform_.prefilterCubemap->make_resident();
+    uniform_.brdfMap->make_resident();
+
+    pbrKCShader.set_uniform("projection", uniform_.proj);
+    pbrKCShader.set_uniform("view", view);
+    pbrKCShader.set_uniform("model", glm::mat4(1.0));
+    pbrKCShader.set_uniform("camPos", camera_->Position);
+    pbrKCShader.set_uniform("u_metallicMap",
+                          uniform_.metallicARB.tex_handle_ARB());
+    pbrKCShader.set_uniform("u_roughnessMap",
+                          uniform_.roughnessARB.tex_handle_ARB());
+
+    pbrKCShader.set_uniform("u_normalMap", uniform_.normalARB.tex_handle_ARB());
+    pbrKCShader.set_uniform("u_albedoMap", uniform_.albedoARB.tex_handle_ARB());
+    pbrKCShader.set_uniform("prefilterMap",
+                          uniform_.prefilterCubemap->tex_handle_ARB());
+    pbrKCShader.set_uniform("brdfMap", uniform_.brdfMap->tex_handle_ARB());
+    pbrKCShader.set_uniform("brdfAvgMap", uniform_.brdfAvgMap->tex_handle_ARB());
+    pbrKCShader.set_uniform("lightPosition", uniform_.lightPos);
+    pbrKCShader.set_uniform("lightColor", uniform_.lightColor);
+    pbrKCShader.set_uniform("u_metallic_index", uniform_.metallic_index);
+
+    //draw 5 spheres
+    pbrKCShader.set_uniform("u_roughness_index", 0.2f * uniform_.roughness_index);
+    pbrKCShader.set_uniform("model", glm::translate(glm::mat4(1.0),glm::vec3(-3.0,-5.0,0.0)));
+    model_ptr->Draw(pbrKCShader);
+
+    pbrKCShader.set_uniform("u_roughness_index", 0.4f * uniform_.roughness_index);
+    pbrKCShader.set_uniform("model", glm::translate(glm::mat4(1.0),glm::vec3(-1.0,-5.0,0.0)));
+    model_ptr->Draw(pbrKCShader);
+
+    pbrKCShader.set_uniform("u_roughness_index", 0.6f * uniform_.roughness_index);
+    pbrKCShader.set_uniform("model", glm::translate(glm::mat4(1.0),glm::vec3(1.0,-5.0,0.0)));
+    model_ptr->Draw(pbrKCShader);
+
+    pbrKCShader.set_uniform("u_roughness_index", 0.8f * uniform_.roughness_index);
+    pbrKCShader.set_uniform("model", glm::translate(glm::mat4(1.0),glm::vec3(3.0,-5.0,0.0)));
+    model_ptr->Draw(pbrKCShader);
+
+    pbrKCShader.set_uniform("u_roughness_index", 1.0f * uniform_.roughness_index);
+    pbrKCShader.set_uniform("model", glm::translate(glm::mat4(1.0),glm::vec3(5.0,-5.0,0.0)));
+    model_ptr->Draw(pbrKCShader);
   }
 
   {
@@ -93,6 +158,7 @@ void PbrRender::render() {
     lightShader.set_uniform("model", glm::scale(model, glm::vec3(0.1)));
     DRL::renderSphere();
   }
+
 
   {
     skyboxShader.bind();
@@ -114,6 +180,8 @@ void PbrRender::setup_states() {
   resMgr.add_path(decltype(resMgr)::root_path / "resources" / "textures" /
                   "pbr");
   resMgr.add_path(decltype(resMgr)::root_path / "resources" / "textures" /
+                  "pbr" / "kulla-conty");
+  resMgr.add_path(decltype(resMgr)::root_path / "resources" / "textures" /
                   "pbr" / "envmap" / "factory");
   resMgr.add_path(decltype(resMgr)::root_path / "resources" / "shaders" /
                   "pbrRender");
@@ -123,6 +191,8 @@ void PbrRender::setup_states() {
                   "basic");
   pbrShader = DRL::make_program(resMgr.find_path("pbr.vert"),
                                 resMgr.find_path("pbr_IBL.frag"));
+  pbrKCShader = DRL::make_program(resMgr.find_path("pbr.vert"),
+                                resMgr.find_path("pbr_IBL_kulla_conty.frag"));
 
   lightShader = DRL::make_program(resMgr.find_path("pbr.vert"),
                                   resMgr.find_path("light.frag"));
@@ -167,6 +237,10 @@ void PbrRender::setup_states() {
   uniform_.envCubemap =
       std::make_shared<DRL::TextureCubeARB>(2048, 2048, 1, GL_RGB16F);
   uniform_.envCubemap->make_resident();
+
+  uniform_.brdfAvgMap = std::make_shared<DRL::Texture2DARB>(
+      resMgr.find_path("GGX_Eavg_LUT.png").string(), 1, false, false);
+  uniform_.brdfAvgMap->make_resident();
 
   glm::mat4 captureProjection =
       glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 10.0f);

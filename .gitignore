@@ -36,3 +36,4 @@ build
 *.user
 #images/
 cmake_vars.h
+cmake*
