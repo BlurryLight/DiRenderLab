@@ -124,6 +124,7 @@ void PbrRender::render() {
                           uniform_.prefilterCubemap->tex_handle_ARB());
     pbrKCShader.set_uniform("brdfMap", uniform_.brdfMap->tex_handle_ARB());
     pbrKCShader.set_uniform("brdfAvgMap", uniform_.brdfAvgMap->tex_handle_ARB());
+    pbrKCShader.set_uniform("brdfMuMap", uniform_.brdfMuMap->tex_handle_ARB());
     pbrKCShader.set_uniform("lightPosition", uniform_.lightPos);
     pbrKCShader.set_uniform("lightColor", uniform_.lightColor);
     pbrKCShader.set_uniform("u_metallic_index", uniform_.metallic_index);
@@ -239,8 +240,12 @@ void PbrRender::setup_states() {
   uniform_.envCubemap->make_resident();
 
   uniform_.brdfAvgMap = std::make_shared<DRL::Texture2DARB>(
-      resMgr.find_path("GGX_Eavg_LUT.png").string(), 1, false, false);
+      resMgr.find_path("GGX_Eavg_LUT.png").string(), 1, false, true);
   uniform_.brdfAvgMap->make_resident();
+
+  uniform_.brdfMuMap = std::make_shared<DRL::Texture2DARB>(
+      resMgr.find_path("GGX_E_LUT.png").string(), 1, false, true);
+  uniform_.brdfMuMap->make_resident();
 
   glm::mat4 captureProjection =
       glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 10.0f);

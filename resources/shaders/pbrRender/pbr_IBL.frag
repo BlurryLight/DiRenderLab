@@ -112,7 +112,6 @@ void main()
     vec3 albedo  = pow(texture(u_albedoMap, fs_in.TexCoords).rgb, vec3(2.2));
     float metallic = texture(u_metallicMap, fs_in.TexCoords).r * u_metallic_index;
     float roughness = clamp(texture(u_roughnessMap, fs_in.TexCoords).r * u_roughness_index,0.0,1.0);
-//     float ao = texture(u_aoMap, fs_in.TexCoords).r;
     float ao = 1.0;
     F0 = mix(F0, albedo, metallic);
 

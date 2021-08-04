@@ -24,6 +24,7 @@ layout(bindless_sampler) uniform sampler2D  u_normalMap;
 layout(bindless_sampler) uniform samplerCube prefilterMap;
 layout(bindless_sampler) uniform sampler2D brdfMap;
 layout(bindless_sampler) uniform sampler2D brdfAvgMap;
+layout(bindless_sampler) uniform sampler2D brdfMuMap;
 #else
 layout(binding=0) uniform sampler2D  u_albedoMap;
 layout(binding=1) uniform sampler2D  u_metallicMap;
@@ -110,10 +111,8 @@ vec3 AverageFresnel(vec3 r, vec3 g)
 vec3 MultiScatterBRDF(float NdotL, float NdotV,vec3 F0,vec3 albedo,float roughness)
 {
 
-    vec2 Eo = texture2D(brdfMap, vec2(NdotL, roughness)).xy;
-    vec3 E_o = vec3(Eo.x) + vec3(Eo.y);
-    vec2 Ei = texture2D(brdfMap, vec2(NdotV, roughness)).xy;
-    vec3 E_i = vec3(Ei.x) + (Ei.y);
+    vec3 E_o = texture2D(brdfMuMap, vec2(NdotL, roughness)).xyz;
+    vec3 E_i = texture2D(brdfMuMap, vec2(NdotV, roughness)).xyz;
 
     vec3 E_avg = texture2D(brdfAvgMap, vec2(0, roughness)).xyz;
     vec3 F_avg = AverageFresnel(albedo, F0);
@@ -135,7 +134,6 @@ void main()
     vec3 albedo  = pow(texture(u_albedoMap, fs_in.TexCoords).rgb, vec3(2.2));
     float metallic = texture(u_metallicMap, fs_in.TexCoords).r * u_metallic_index;
     float roughness = clamp(texture(u_roughnessMap, fs_in.TexCoords).r * u_roughness_index,0.0,1.0);
-//    float roughness = u_roughness_index;
 //     float ao = texture(u_aoMap, fs_in.TexCoords).r;
     float ao = 1.0;
     F0 = mix(F0, albedo, metallic);
@@ -166,7 +164,7 @@ void main()
         vec3 Fms = MultiScatterBRDF(NdotL, NdotV,F0,albedo,roughness);
 
         // add to outgoing radiance Lo
-        Lo +=  clamp((brdf + Fms),0.0,1.0)* radiance * NdotL;
+        Lo += (brdf +  Fms)* radiance * NdotL;
     }
 
     //IBL
@@ -176,7 +174,7 @@ void main()
     vec3 prefilteredColor = textureLod(prefilterMap, R, roughness * MAX_REFLECTION_LOD).rgb;
     vec2 brdf  = texture(brdfMap, vec2(NdotV, roughness)).rg;
     vec3 Fms = MultiScatterBRDF(1.0, NdotV,F0,albedo,roughness);
-    vec3 specular = prefilteredColor * clamp((F * brdf.x + brdf.y + Fms),0.0,1.0);//schilick 被拆开的结果
+    vec3 specular = prefilteredColor * (F * brdf.x + brdf.y + Fms);//schilick 被拆开的结果
 
     vec3 ambient   =  specular * ao;
     vec3 color = ambient + Lo;
