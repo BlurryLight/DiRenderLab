@@ -27,6 +27,7 @@ struct uniform_block {
   glm::vec3 lightAngle{0};
   glm::vec3 lightScale{1.0};
   bool twoSided = false;
+  float roughness = 0.3;
 };
 
 class LTCRender : public DRL::RenderBase {
@@ -100,15 +101,15 @@ void LTCRender::setup_states() {
   woodTexture.set_wrap_s(GL_REPEAT);
   woodTexture.set_wrap_t(GL_REPEAT);
 
-  ltc1tex = DRL::Texture2D(resMgr.find_path("ltc_1.png"), 1, false, true);
-  ltc2tex = DRL::Texture2D(resMgr.find_path("ltc_2.png"), 1, false, true);
+  ltc1tex = DRL::Texture2D(resMgr.find_path("ltc_1.png"), 1, false, false);
+  ltc2tex = DRL::Texture2D(resMgr.find_path("ltc_2.png"), 1, false, false);
 
   // shader configuration
   // --------------------
   LTCShader.bind();
   LTCShader.set_uniform("diffuseTexture", 0);
-//  LTCShader.set_uniform("ltc_1", 1);
-//  LTCShader.set_uniform("ltc_2", 2);
+  LTCShader.set_uniform("ltc_1", 1);
+  LTCShader.set_uniform("ltc_2", 2);
 
   // lighting info
   // -------------
@@ -122,11 +123,12 @@ void LTCRender::render() {
                 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
     ImGui::SliderFloat3("LightPos", glm::value_ptr(uniforms_.lightPos), -10.0f,
                         10.0f, "%.3f");
-    ImGui::SliderFloat3("LightRotation", glm::value_ptr(uniforms_.lightAngle), 0,
-                        3.14f, "%.3f");
+    ImGui::SliderFloat3("LightRotation", glm::value_ptr(uniforms_.lightAngle),
+                        0, 3.14f, "%.3f");
     ImGui::SliderFloat3("LightScale", glm::value_ptr(uniforms_.lightScale), 0.1,
                         2.0f, "%.3f");
-    ImGui::Checkbox("TwoSided",&uniforms_.twoSided);
+    ImGui::Checkbox("TwoSided", &uniforms_.twoSided);
+    ImGui::SliderFloat("roughness", &uniforms_.roughness, 0.01, 1.0, "%.3f");
     ImGui::End();
   }
   ImGui::Render();
@@ -146,29 +148,40 @@ void LTCRender::render() {
   LightShader.bind();
   auto model = glm::mat4(1.0f);
   model = glm::translate(model, uniforms_.lightPos);
-  model = glm::rotate(glm::rotate(glm::rotate(model,uniforms_.lightAngle.y,glm::vec3(0,1,0)),uniforms_.lightAngle.z,glm::vec3(0,0,1)),
-                      uniforms_.lightAngle.x,glm::vec3(1,0,0));
-  model = glm::scale(model,uniforms_.lightScale);
+  model = glm::rotate(glm::rotate(glm::rotate(model, uniforms_.lightAngle.y,
+                                              glm::vec3(0, 1, 0)),
+                                  uniforms_.lightAngle.z, glm::vec3(0, 0, 1)),
+                      uniforms_.lightAngle.x, glm::vec3(1, 0, 0));
+  model = glm::scale(model, uniforms_.lightScale);
   LightShader.set_uniform("model", model);
   LightShader.set_uniform("projection", projection);
   LightShader.set_uniform("view", view);
   DRL::renderQuad();
 
   LTCShader.bind();
-  glm::vec3 lightCenter  = glm::vec3(model * glm::vec4(lightCenter_,1.0));
-//  LTCShader.set_uniform("lightCenter", lightCenter);
-  LTCShader.set_uniform("lightPoints[0]", glm::vec3(model * glm::vec4(lightCorners_[0],1.0)));
-  LTCShader.set_uniform("lightPoints[1]", glm::vec3(model * glm::vec4(lightCorners_[1],1.0)));
-  LTCShader.set_uniform("lightPoints[2]", glm::vec3(model * glm::vec4(lightCorners_[2],1.0)));
-  LTCShader.set_uniform("lightPoints[3]", glm::vec3(model * glm::vec4(lightCorners_[3],1.0)));
-  LTCShader.set_uniform("camPos",camera_->Position);
+  glm::vec3 lightCenter = glm::vec3(model * glm::vec4(lightCenter_, 1.0));
+  //  LTCShader.set_uniform("lightCenter", lightCenter);
+  LTCShader.set_uniform("lightPoints[0]",
+                        glm::vec3(model * glm::vec4(lightCorners_[0], 1.0)));
+  LTCShader.set_uniform("lightPoints[1]",
+                        glm::vec3(model * glm::vec4(lightCorners_[1], 1.0)));
+  LTCShader.set_uniform("lightPoints[2]",
+                        glm::vec3(model * glm::vec4(lightCorners_[2], 1.0)));
+  LTCShader.set_uniform("lightPoints[3]",
+                        glm::vec3(model * glm::vec4(lightCorners_[3], 1.0)));
+  LTCShader.set_uniform("camPos", camera_->Position);
 
   LTCShader.set_uniform("projection", projection);
   LTCShader.set_uniform("view", view);
-  LTCShader.set_uniform("model",glm::mat4(1.0));
-  LTCShader.set_uniform("twoSided",uniforms_.twoSided);
+  LTCShader.set_uniform("model", glm::mat4(1.0));
+  LTCShader.set_uniform("twoSided", uniforms_.twoSided);
+  LTCShader.set_uniform("roughness", uniforms_.roughness);
   woodTexture.set_slot(0);
   woodTexture.bind();
+  ltc1tex.set_slot(1);
+  ltc1tex.bind();
+  ltc2tex.set_slot(2);
+  ltc2tex.bind();
   renderScene(LTCShader);
 
   // render Depth map to quad for visual debugging

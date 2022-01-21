@@ -32,14 +32,13 @@ The Framework is originally based on LearnOpenGL.com. Some code and resources ar
   note: Code, especially the shader code, is copied from [LearnOpenGL](https://learnopengl.com/PBR/IBL/Specular-IBL).
 
   ![pbr](images/pbr_IBL.jpg)
-  
+
 - PBR(Kulla-conty)
- 
- work from [siggraph](https://fpsunflower.github.io/ckulla/data/s2017_pbs_imageworks_slides_v2.pdf)
- PBR模型由于不考虑多次反射，在表面粗糙度大的时候会造成能量损失。Kulla-conty方法将损失的能量预计算后补偿回去。
- 可见第一排不补偿能量随着粗糙度增加逐渐变暗。
- 
-  ![pbr](images/pbr_kulla_conty.jpg)
+
+work from [siggraph](https://fpsunflower.github.io/ckulla/data/s2017_pbs_imageworks_slides_v2.pdf)
+PBR模型由于不考虑多次反射，在表面粗糙度大的时候会造成能量损失。Kulla-conty方法将损失的能量预计算后补偿回去。 可见第一排不补偿能量随着粗糙度增加逐渐变暗。
+
+![pbr](images/pbr_kulla_conty.jpg)
 
 - Weighted Blended OIT
 
@@ -47,3 +46,10 @@ The Framework is originally based on LearnOpenGL.com. Some code and resources ar
 
   ![oit](images/weighted_blended_oit.jpg)
 
+- Linearly Transformed Cosines
+
+Don't take any code as reference. This is a minimal demo for verifying with **Lots of BUGS**. If you are interested, a
+good beginning is [the paper](https://eheitzresearch.wordpress.com/415-2/)
+and [webgl demo](https://blog.selfshadow.com/ltc/webgl/ltc_quad.html)
+
+![LTC](images/ltc.jpg)
