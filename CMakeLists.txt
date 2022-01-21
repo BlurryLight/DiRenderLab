@@ -24,12 +24,12 @@ file(GLOB THIRD_PARTY
         third_party/*.c third_party/*.cc third_party/*.h utils/*.cc utils/*.h
         )
 message(${THIRD_PARTY})
-include_directories("third_party")
 add_subdirectory(third_party/glad)
 
 
 add_library(glsupport STATIC ${HEADER_LIST} ${THIRD_PARTY} ${IMGUI_SOURCE} ${SOURCE_LIST})
 target_include_directories(glsupport PRIVATE ${CMAKE_SOURCE_DIR})
+target_include_directories(glsupport SYSTEM PUBLIC "third_party")
 target_compile_definitions(glsupport PRIVATE -DIMGUI_IMPL_OPENGL_LOADER_GLAD)
 target_link_libraries(glsupport PUBLIC glfw ${CMAKE_DL_LIBS} spdlog::spdlog)
 target_link_libraries(glsupport PRIVATE debug "glad_d" optimized "glad")
@@ -49,6 +49,7 @@ set(EXAMPLES
         instance
         pbrRender
         oit
+        LTC
         )
 foreach (EXAMPLE ${EXAMPLES})
     add_executable(${EXAMPLE} examples/${EXAMPLE}/${EXAMPLE}.cc)

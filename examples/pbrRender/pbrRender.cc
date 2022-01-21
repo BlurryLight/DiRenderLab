@@ -160,7 +160,6 @@ void PbrRender::render() {
     DRL::renderSphere();
   }
 
-
   {
     skyboxShader.bind();
     skyboxShader.set_uniform("view", glm::mat4(glm::mat3(view)));
@@ -169,6 +168,8 @@ void PbrRender::render() {
     //    skyboxShader.set_uniform("skybox",
     //    uniform_.envCubemap->tex_handle_ARB());
     skyboxShader.set_uniform("skybox", uniform_.envCubemap->tex_handle_ARB());
+    //    skyboxShader.set_uniform("skybox",
+    //                             uniform_.irradianceCubemap->tex_handle_ARB());
     //    uniform_.irradianceCubemap->bind();
     renderCube();
   }
@@ -236,8 +237,8 @@ void PbrRender::setup_states() {
   uniform_.hdrTexture = DRL::Texture2DARB(
       resMgr.find_path("Factory_Catwalk_2k.hdr").string(), 1, true, false);
   uniform_.envCubemap =
-      std::make_shared<DRL::TextureCubeARB>(2048, 2048, 1, GL_RGB16F);
-  uniform_.envCubemap->make_resident();
+      std::make_shared<DRL::TextureCubeARB>(2048, 2048, 4, GL_RGB16F);
+  //  uniform_.envCubemap->make_resident();
 
   uniform_.brdfAvgMap = std::make_shared<DRL::Texture2DARB>(
       resMgr.find_path("GGX_Eavg_LUT.png").string(), 1, false, true);
@@ -282,6 +283,13 @@ void PbrRender::setup_states() {
     renderCube(); // renders a 1x1 cube
   }
   uniform_.captureFBO.unbind();
+
+  // this maybe not standard. I cannot remmerber accurately.
+  // should it be make_resident before it bind to captureFBO
+  // but if it is made_resident the texture will be immutable and there is noway
+  // to generateMipmap()
+  uniform_.envCubemap->generateMipmap();
+  uniform_.envCubemap->make_resident();
   // calc irradiance
 
   uniform_.irradianceCubemap =

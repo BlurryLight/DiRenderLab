@@ -11,7 +11,8 @@ function(target_set_warning_flags arg)
             target_compile_options(${arg} PRIVATE /EHa /EHs) # 打开异常
             target_compile_definitions(${arg} PRIVATE -D_CLANG_CL) # 打开异常
         endif ()
-        target_compile_options(${arg} PRIVATE /W3 /WX)
+#        target_compile_options(${arg} PRIVATE /W3 /WX)
+        target_compile_options(${arg} PRIVATE /W3)
         # ignore stupid conversion warnings
         target_compile_options(${arg} PRIVATE /wd4305 /wd4244 /wd4287 /wd4838)
         # special case: nameless struct/union is nonstandard but major compilers support it so I use it

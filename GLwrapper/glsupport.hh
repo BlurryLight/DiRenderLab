@@ -1,9 +1,7 @@
 #pragma once
 
-#include "program.hh"
-#include "shader.hh"
-#include "texture.hh"
-#include "vertex_array.hh"
+
+
 #if defined _GNUC_ || defined _CLANG_CL || defined __clang__
 // lmao: Clang-cl will pretend it is MSVC, but actually it accepts gcc #pragma
 // flags.
@@ -12,12 +10,11 @@
 #elif _MSC_VER
 #pragma warning(push, 0) // MSVC way to suppress external headers warning
 #endif
-#include <GLFW/glfw3.h>
+//#include <glad/glad.h>
 #include <assimp/Importer.hpp>
 #include <assimp/postprocess.h>
 #include <assimp/scene.h>
 #include <fstream>
-#include <glad/glad.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <iostream>
@@ -38,6 +35,12 @@
 #elif _MSC_VER
 #pragma warning(pop)
 #endif
+
+#include "program.hh"
+#include "shader.hh"
+#include "texture.hh"
+#include "vertex_array.hh"
+#include <GLFW/glfw3.h>
 namespace DRL {
 // Defines several possible options for camera movement. Used as abstraction to
 // stay away from window-system specific input methods
@@ -188,6 +191,7 @@ void APIENTRY glDebugOutput(GLenum source, GLenum type, unsigned int id,
                             GLenum severity, GLsizei length,
                             const char *message, const void *userParam);
 // clang-format on
+
 
 class RenderBase {
 private:
