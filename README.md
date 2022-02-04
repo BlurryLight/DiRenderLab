@@ -36,7 +36,7 @@ The Framework is originally based on LearnOpenGL.com. Some code and resources ar
 - PBR(Kulla-conty)
 
 work from [siggraph](https://fpsunflower.github.io/ckulla/data/s2017_pbs_imageworks_slides_v2.pdf)
-PBR模型由于不考虑多次反射，在表面粗糙度大的时候会造成能量损失。Kulla-conty方法将损失的能量预计算后补偿回去。 可见第一排不补偿能量随着粗糙度增加逐渐变暗。
+PBR模型由于不考虑多次反射，在表面粗糙度大的时候会造成能量损失。Kulla-conty方法将损失的能量预计算后补偿回去。 可见第一排不补偿能量随着粗糙度增加逐渐变暗。 实现的感觉有Bug，但是没想清楚Bug在哪里，有空修吧。
 
 ![pbr](images/pbr_kulla_conty.jpg)
 

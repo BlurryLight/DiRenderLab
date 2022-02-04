@@ -35,6 +35,7 @@ struct uniform_block {
   std::shared_ptr<Texture2DARB> brdfMuMap{nullptr};
   std::shared_ptr<Texture2DARB> brdfAvgMap{nullptr};
   float skybox_lod = 1.0f;
+  bool add_diffuse = false;
 };
 class PbrRender : public RenderBase {
 protected:

@@ -23,6 +23,7 @@ layout(bindless_sampler) uniform sampler2D  u_roughnessMap;
 layout(bindless_sampler) uniform sampler2D  u_normalMap;
 layout(bindless_sampler) uniform samplerCube prefilterMap;
 layout(bindless_sampler) uniform sampler2D brdfMap;
+layout(bindless_sampler) uniform samplerCube irradianceMap;
 #else
 layout(binding=0) uniform sampler2D  u_albedoMap;
 layout(binding=1) uniform sampler2D  u_metallicMap;
@@ -37,6 +38,7 @@ uniform vec3 lightColor;
 uniform vec3 camPos;
 uniform float u_metallic_index;
 uniform float u_roughness_index;
+uniform bool u_add_diffuse;
 const float PI = 3.14159265359;
 #define EPS 1e-6
 
@@ -134,12 +136,27 @@ void main()
         vec3 nominator    = NDF * G * F;
         float denominator = 4 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0);
         vec3 specular = nominator / max(denominator, EPS);// prevent divide by zero for NdotV=0.0 or NdotL=0.0
-
         // scale light by NdotL
         float NdotL = max(dot(N, L), 0.0);
+        if (u_add_diffuse)
+        {
+            vec3 kS = F;
+            // for energy conservation, the diffuse and specular light can't
+            // be above 1.0 (unless the surface emits light); to preserve this
+            // relationship the diffuse component (kD) should equal 1.0 - kS.
+            vec3 kD = vec3(1.0) - kS;
+            // multiply kD by the inverse metalness such that only non-metals
+            // have diffuse lighting, or a linear blend if partly metal (pure metals
+            // have no diffuse light).
+            kD *= 1.0 - metallic;
+            // add to outgoing radiance Lo
+            Lo += (kD * albedo / PI + specular) * radiance * NdotL;// note that we already multiplied the BRDF by the Fresnel (kS) so we won't multiply by kS again
 
-        // add to outgoing radiance Lo
-        Lo +=  specular * radiance * NdotL;
+        }
+        else {
+            // add to outgoing radiance Lo
+            Lo +=  specular * radiance * NdotL;
+        }
     }
 
     //IBL
@@ -150,7 +167,19 @@ void main()
     vec2 brdf  = texture(brdfMap, vec2(max(dot(N, V), 0.0), roughness)).rg;
     vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);//schilick 被拆开的结果
 
-    vec3 ambient   =  specular * ao;
+    vec3 ambient;
+    if (u_add_diffuse)
+    {
+        vec3 kS = fresnelSchlick(max(dot(N, V), 0.0), F0);
+        vec3 kD = 1.0 - kS;
+        vec3 irradiance = texture(irradianceMap, N).rgb;
+        vec3 diffuse    = irradiance * albedo;
+        ambient    = (kD * diffuse + specular) * ao;
+    }
+    else
+    {
+        ambient =  specular * ao;
+    }
     vec3 color = ambient + Lo;
     // HDR tonemapping
     color = color / (color + vec3(1.0));

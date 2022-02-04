@@ -8,6 +8,7 @@
 #include "third_party/imgui/imgui_impl_glfw.h"
 #include "third_party/imgui/imgui_impl_opengl3.h"
 #include <glm/gtc/type_ptr.hpp>
+#include <array>
 using namespace DRL;
 int main() {
   // spdlog init
@@ -47,6 +48,7 @@ void PbrRender::render() {
     ImGui::SliderFloat("roughness", &uniform_.roughness_index, 0.0f, 1.0f,
                        "%.3f");
     ImGui::SliderFloat("lod level", &uniform_.skybox_lod, 0.0f, 4.0f, "%.3f");
+    ImGui::Checkbox("Add diffuse Irradiance", &uniform_.add_diffuse);
     ImGui::End();
   }
   ImGui::Render();
@@ -79,27 +81,23 @@ void PbrRender::render() {
     pbrShader.set_uniform("lightPosition", uniform_.lightPos);
     pbrShader.set_uniform("lightColor", uniform_.lightColor);
     pbrShader.set_uniform("u_metallic_index", uniform_.metallic_index);
+    pbrShader.set_uniform("u_add_diffuse", uniform_.add_diffuse);
+    if (uniform_.add_diffuse) {
+      pbrShader.set_uniform("irradianceMap",
+                            uniform_.irradianceCubemap->tex_handle_ARB());
+    }
 
-    //draw 5 spheres
-    pbrShader.set_uniform("u_roughness_index", 0.2f * uniform_.roughness_index);
-    pbrShader.set_uniform("model", glm::translate(glm::mat4(1.0),glm::vec3(-3.0,0.0,0.0)));
-    model_ptr->Draw(pbrShader);
-
-    pbrShader.set_uniform("u_roughness_index", 0.4f * uniform_.roughness_index);
-    pbrShader.set_uniform("model", glm::translate(glm::mat4(1.0),glm::vec3(-1.0,0.0,0.0)));
-    model_ptr->Draw(pbrShader);
-
-    pbrShader.set_uniform("u_roughness_index", 0.6f * uniform_.roughness_index);
-    pbrShader.set_uniform("model", glm::translate(glm::mat4(1.0),glm::vec3(1.0,0.0,0.0)));
-    model_ptr->Draw(pbrShader);
-
-    pbrShader.set_uniform("u_roughness_index", 0.8f * uniform_.roughness_index);
-    pbrShader.set_uniform("model", glm::translate(glm::mat4(1.0),glm::vec3(3.0,0.0,0.0)));
-    model_ptr->Draw(pbrShader);
-
-    pbrShader.set_uniform("u_roughness_index", 1.0f * uniform_.roughness_index);
-    pbrShader.set_uniform("model", glm::translate(glm::mat4(1.0),glm::vec3(5.0,0.0,0.0)));
-    model_ptr->Draw(pbrShader);
+    // draw 5 spheres
+    static std::array<float, 5> roughness = {0.2f, 0.4f, 0.6f, 0.8f, 1.0f};
+    static std::array<float, 5> x_poses = {-3.0, -1.0, 1.0, 3.0, 5.0};
+    for (int i = 0; i < 5; i++) {
+      pbrShader.set_uniform("u_roughness_index",
+                            roughness[i] * uniform_.roughness_index);
+      pbrShader.set_uniform(
+          "model",
+          glm::translate(glm::mat4(1.0), glm::vec3(x_poses[i], 0.0, 0.0)));
+      model_ptr->Draw(pbrShader);
+    }
   }
 
   {
@@ -114,41 +112,34 @@ void PbrRender::render() {
     pbrKCShader.set_uniform("model", glm::mat4(1.0));
     pbrKCShader.set_uniform("camPos", camera_->Position);
     pbrKCShader.set_uniform("u_metallicMap",
-                          uniform_.metallicARB.tex_handle_ARB());
+                            uniform_.metallicARB.tex_handle_ARB());
     pbrKCShader.set_uniform("u_roughnessMap",
-                          uniform_.roughnessARB.tex_handle_ARB());
+                            uniform_.roughnessARB.tex_handle_ARB());
 
     pbrKCShader.set_uniform("u_normalMap", uniform_.normalARB.tex_handle_ARB());
     pbrKCShader.set_uniform("u_albedoMap", uniform_.albedoARB.tex_handle_ARB());
     pbrKCShader.set_uniform("prefilterMap",
-                          uniform_.prefilterCubemap->tex_handle_ARB());
+                            uniform_.prefilterCubemap->tex_handle_ARB());
     pbrKCShader.set_uniform("brdfMap", uniform_.brdfMap->tex_handle_ARB());
-    pbrKCShader.set_uniform("brdfAvgMap", uniform_.brdfAvgMap->tex_handle_ARB());
+    pbrKCShader.set_uniform("brdfAvgMap",
+                            uniform_.brdfAvgMap->tex_handle_ARB());
     pbrKCShader.set_uniform("brdfMuMap", uniform_.brdfMuMap->tex_handle_ARB());
     pbrKCShader.set_uniform("lightPosition", uniform_.lightPos);
     pbrKCShader.set_uniform("lightColor", uniform_.lightColor);
     pbrKCShader.set_uniform("u_metallic_index", uniform_.metallic_index);
 
-    //draw 5 spheres
-    pbrKCShader.set_uniform("u_roughness_index", 0.2f * uniform_.roughness_index);
-    pbrKCShader.set_uniform("model", glm::translate(glm::mat4(1.0),glm::vec3(-3.0,-5.0,0.0)));
-    model_ptr->Draw(pbrKCShader);
+    // draw 5 spheres
 
-    pbrKCShader.set_uniform("u_roughness_index", 0.4f * uniform_.roughness_index);
-    pbrKCShader.set_uniform("model", glm::translate(glm::mat4(1.0),glm::vec3(-1.0,-5.0,0.0)));
-    model_ptr->Draw(pbrKCShader);
-
-    pbrKCShader.set_uniform("u_roughness_index", 0.6f * uniform_.roughness_index);
-    pbrKCShader.set_uniform("model", glm::translate(glm::mat4(1.0),glm::vec3(1.0,-5.0,0.0)));
-    model_ptr->Draw(pbrKCShader);
-
-    pbrKCShader.set_uniform("u_roughness_index", 0.8f * uniform_.roughness_index);
-    pbrKCShader.set_uniform("model", glm::translate(glm::mat4(1.0),glm::vec3(3.0,-5.0,0.0)));
-    model_ptr->Draw(pbrKCShader);
-
-    pbrKCShader.set_uniform("u_roughness_index", 1.0f * uniform_.roughness_index);
-    pbrKCShader.set_uniform("model", glm::translate(glm::mat4(1.0),glm::vec3(5.0,-5.0,0.0)));
-    model_ptr->Draw(pbrKCShader);
+    static std::array<float, 5> roughness = {0.2f, 0.4f, 0.6f, 0.8f, 1.0f};
+    static std::array<float, 5> x_poses = {-3.0, -1.0, 1.0, 3.0, 5.0};
+    for (int i = 0; i < 5; i++) {
+      pbrKCShader.set_uniform("u_roughness_index",
+                              roughness[i] * uniform_.roughness_index);
+      pbrKCShader.set_uniform(
+          "model",
+          glm::translate(glm::mat4(1.0), glm::vec3(x_poses[i], -5.0, 0.0)));
+      model_ptr->Draw(pbrKCShader);
+    }
   }
 
   {
