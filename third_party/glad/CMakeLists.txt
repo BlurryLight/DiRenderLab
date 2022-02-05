@@ -1,4 +1,6 @@
 cmake_minimum_required(VERSION 3.0)
 project(Glad)
-add_subdirectory(glad_debug)
-add_subdirectory(glad_release)
+add_subdirectory(glad_core_debug)
+add_subdirectory(glad_core_release)
+add_subdirectory(glad_bindless_debug)
+add_subdirectory(glad_bindless_release)

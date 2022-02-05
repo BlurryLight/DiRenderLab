@@ -23,9 +23,14 @@ protected:
   ProgramObj obj_;
   bool linked_ = false;
 
+#ifdef GL_ARB_BINDLESS
   using Uniform_t =
       std::variant<bool, int, unsigned int, float, glm::mat3, glm::mat4,
                    glm::vec2, glm::vec3, glm::vec4, GLuint64>;
+#else
+  using Uniform_t = std::variant<bool, int, unsigned int, float, glm::mat3,
+                                 glm::mat4, glm::vec2, glm::vec3, glm::vec4>;
+#endif
 
 public:
   static Program *current_using_program;

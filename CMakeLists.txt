@@ -17,8 +17,10 @@ else ()
     find_package(PkgConfig REQUIRED)
     pkg_search_module(GLFW REQUIRED glfw3)
 endif (DEFINED VCPKG_TARGET_TRIPLET)
-set(SOURCE_LIST GLwrapper/globject.cc GLwrapper/globject.hh)
-set(HEADER_LIST GLwrapper/glsupport.hh GLwrapper/shader.cc GLwrapper/shader.hh GLwrapper/global.hh GLwrapper/program.cc GLwrapper/program.hh GLwrapper/vertex_buffer.cc GLwrapper/vertex_buffer.hh GLwrapper/vertex_array.cc GLwrapper/vertex_array.hh GLwrapper/texture.cc GLwrapper/texture.hh GLwrapper/glsupport.cc GLwrapper/shapes.cc GLwrapper/shapes.hh GLwrapper/framebuffer.cc GLwrapper/framebuffer.hh)
+
+
+set(SOURCE_LIST GLwrapper/globject.cc GLwrapper/globject.hh GLwrapper/program.cc GLwrapper/texture.cc)
+set(HEADER_LIST GLwrapper/glsupport.hh GLwrapper/shader.cc GLwrapper/shader.hh GLwrapper/global.hh GLwrapper/program.hh GLwrapper/vertex_buffer.cc GLwrapper/vertex_buffer.hh GLwrapper/vertex_array.cc GLwrapper/vertex_array.hh  GLwrapper/texture.hh GLwrapper/glsupport.cc GLwrapper/shapes.cc GLwrapper/shapes.hh GLwrapper/framebuffer.cc GLwrapper/framebuffer.hh)
 file(GLOB IMGUI_SOURCE "${CMAKE_CURRENT_SOURCE_DIR}/third_party/imgui/*")
 file(GLOB THIRD_PARTY
         third_party/*.c third_party/*.cc third_party/*.h utils/*.cc utils/*.h
@@ -27,37 +29,60 @@ message(${THIRD_PARTY})
 add_subdirectory(third_party/glad)
 
 
-add_library(glsupport STATIC ${HEADER_LIST} ${THIRD_PARTY} ${IMGUI_SOURCE} ${SOURCE_LIST})
-target_include_directories(glsupport PRIVATE ${CMAKE_SOURCE_DIR})
-target_include_directories(glsupport SYSTEM PUBLIC "third_party")
-target_compile_definitions(glsupport PRIVATE -DIMGUI_IMPL_OPENGL_LOADER_GLAD)
-target_link_libraries(glsupport PUBLIC glfw ${CMAKE_DL_LIBS} spdlog::spdlog)
-target_link_libraries(glsupport PRIVATE debug "glad_d" optimized "glad")
-if (DEFINED VCPKG_TARGET_TRIPLET)
-    target_link_libraries(glsupport PRIVATE assimp::assimp glm::glm)
-else ()
-    # In Linux with assimp installed from pacman, there is no target named assimp::assimp
-    target_link_libraries(glsupport PRIVATE assimp)
-endif ()
-target_set_warning_flags(glsupport)
 
-set(EXAMPLES
-        imgui_example
-        ssao
-        shadowmap
+function(set_flags name)
+    target_include_directories(${name} PUBLIC ${CMAKE_SOURCE_DIR})
+    target_include_directories(${name} SYSTEM PUBLIC "third_party")
+    target_compile_definitions(${name} PUBLIC -DIMGUI_IMPL_OPENGL_LOADER_GLAD)
+    target_link_libraries(${name} PUBLIC glfw ${CMAKE_DL_LIBS} spdlog::spdlog)
+    if (DEFINED VCPKG_TARGET_TRIPLET)
+        target_link_libraries(${name} PUBLIC assimp::assimp glm::glm)
+    else ()
+        # In Linux with assimp installed from pacman, there is no target named assimp::assimp
+        target_link_libraries(${name} PUBLIC assimp)
+    endif ()
+endfunction()
+
+# add_library(glsupport_bindless STATIC $<TARGET_OBJECTS:glsupport_objs> GLwrapper/program.cc GLwrapper/texture.cc)
+add_library(glsupport_bindless STATIC ${HEADER_LIST} ${THIRD_PARTY} ${IMGUI_SOURCE} ${SOURCE_LIST})
+target_compile_definitions(glsupport_bindless PUBLIC -DGL_ARB_BINDLESS)
+target_link_libraries(glsupport_bindless PUBLIC debug "glad_bindless_d" optimized "glad_bindless" )
+target_set_warning_flags(glsupport_bindless)
+set_flags("glsupport_bindless")
+
+add_library(glsupport_core STATIC ${HEADER_LIST} ${THIRD_PARTY} ${IMGUI_SOURCE} ${SOURCE_LIST})
+target_link_libraries(glsupport_core PUBLIC debug "glad_core_d" optimized "glad_core" )
+target_set_warning_flags(glsupport_core)
+set_flags("glsupport_core")
+
+
+set(BINDLESS_EXAMPLES
         skybox
-        instance
         pbrRender
         oit
-        LTC
         )
-foreach (EXAMPLE ${EXAMPLES})
+foreach (EXAMPLE ${BINDLESS_EXAMPLES})
     add_executable(${EXAMPLE} examples/${EXAMPLE}/${EXAMPLE}.cc)
     target_include_directories(${EXAMPLE} PRIVATE ${CMAKE_SOURCE_DIR})
     target_compile_definitions(${EXAMPLE} PRIVATE -DIMGUI_IMPL_OPENGL_LOADER_GLAD)
-    target_link_libraries(${EXAMPLE} PRIVATE glsupport)
+    target_link_libraries(${EXAMPLE} PRIVATE glsupport_bindless)
     # Flags are added only with the main target
     target_set_warning_flags(${EXAMPLE})
 endforeach ()
 
 
+set(CORE_EXAMPLES
+        imgui_example
+        ssao
+        shadowmap
+        instance
+        LTC
+        )
+foreach (EXAMPLE ${CORE_EXAMPLES})
+    add_executable(${EXAMPLE} examples/${EXAMPLE}/${EXAMPLE}.cc)
+    target_include_directories(${EXAMPLE} PRIVATE ${CMAKE_SOURCE_DIR})
+    target_compile_definitions(${EXAMPLE} PRIVATE -DIMGUI_IMPL_OPENGL_LOADER_GLAD)
+    target_link_libraries(${EXAMPLE} PRIVATE glsupport_core)
+    # Flags are added only with the main target
+    target_set_warning_flags(${EXAMPLE})
+endforeach ()

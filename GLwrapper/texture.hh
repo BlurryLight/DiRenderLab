@@ -15,8 +15,10 @@ namespace DRL {
 //        cubemap = GL_TEXTURE_CUBE_MAP
 //    };
 
+#ifdef GL_ARB_BINDLESS
 class Texture2DARB;
 class TextureCubeARB;
+#endif
 
 class Texture {
 protected:
@@ -75,6 +77,7 @@ public:
   Texture2D &operator=(Texture2D &&) = default;
 };
 
+#ifdef GL_ARB_BINDLESS
 class Texture2DARB : public Texture2D {
 private:
   // disable some functions
@@ -165,6 +168,7 @@ public:
     glMakeTextureHandleNonResidentARB(tex_handle_ARB());
   }
 };
+#endif
 
 class TextureCube : public Texture {
 public:
@@ -192,6 +196,7 @@ public:
   }
 };
 
+#ifdef GL_ARB_BINDLESS
 class TextureCubeARB : public TextureCube {
 private:
   // disable some functions
@@ -277,6 +282,7 @@ public:
     glMakeTextureHandleNonResidentARB(tex_handle_ARB());
   }
 };
+#endif
 } // namespace DRL
 
 #endif // DIRENDERLAB_TEXTURE_HH

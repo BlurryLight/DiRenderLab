@@ -99,7 +99,10 @@ void Program::set_uniform(std::string_view name,
           [&](const glm::mat4 v) {
             glUniformMatrix4fv(loc, 1u, GL_FALSE, glm::value_ptr(v));
           },
-          [&](const GLuint64 v) { glUniformHandleui64ARB(loc, v); }},
+#ifdef GL_ARB_BINDLESS
+          [&](const GLuint64 v) { glUniformHandleui64ARB(loc, v); }
+#endif
+      },
       value);
 }
 
