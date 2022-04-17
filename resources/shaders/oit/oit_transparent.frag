@@ -1,13 +1,6 @@
 #version 450 core
 
-#if defined(GL_ARB_bindless_texture)
-#extension GL_ARB_bindless_texture : enable
-#endif
-#if defined(GL_ARB_bindless_texture)
-layout(bindless_sampler) uniform sampler2D texture0;
-#else
 layout(binding = 0) uniform sampler2D texture0;
-#endif
 // shader outputs
 layout (location = 0) out vec4 accum;
 layout (location = 1) out float reveal;

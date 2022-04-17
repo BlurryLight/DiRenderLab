@@ -1,4 +1,5 @@
-if ((${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang" AND "x${CMAKE_CXX_SIMULATE_ID}" STREQUAL "xMSVC"))
+#if ((${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang" AND "x${CMAKE_CXX_SIMULATE_ID}" STREQUAL "xMSVC"))
+if (CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND CMAKE_CXX_SIMULATE_ID MATCHES "MSVC")
     # clang-cl
     set(CLANG_CL True)
     message("clang-cl detected!")
@@ -11,7 +12,7 @@ function(target_set_warning_flags arg)
             target_compile_options(${arg} PRIVATE /EHa /EHs) # 打开异常
             target_compile_definitions(${arg} PRIVATE -D_CLANG_CL) # 打开异常
         endif ()
-#        target_compile_options(${arg} PRIVATE /W3 /WX)
+        #        target_compile_options(${arg} PRIVATE /W3 /WX)
         target_compile_options(${arg} PRIVATE /W3)
         # ignore stupid conversion warnings
         target_compile_options(${arg} PRIVATE /wd4305 /wd4244 /wd4287 /wd4838)

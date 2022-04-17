@@ -1,14 +1,13 @@
 #version 450 core
 
-#extension GL_ARB_bindless_texture : enable
 // shader outputs
 layout (location = 0) out vec4 frag;
 
 // color accumulation buffer
-layout (bindless_sampler) uniform sampler2D accum;
+layout (binding = 0) uniform sampler2D accum;
 
 // revealage threshold buffer
-layout (bindless_sampler) uniform sampler2D reveal;
+layout (binding = 1) uniform sampler2D reveal;
 
 // epsilon number
 const float EPSILON = 0.00001f;

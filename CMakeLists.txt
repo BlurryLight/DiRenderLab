@@ -20,14 +20,13 @@ endif (DEFINED VCPKG_TARGET_TRIPLET)
 
 
 set(SOURCE_LIST GLwrapper/globject.cc GLwrapper/globject.hh GLwrapper/program.cc GLwrapper/texture.cc)
-set(HEADER_LIST GLwrapper/glsupport.hh GLwrapper/shader.cc GLwrapper/shader.hh GLwrapper/global.hh GLwrapper/program.hh GLwrapper/vertex_buffer.cc GLwrapper/vertex_buffer.hh GLwrapper/vertex_array.cc GLwrapper/vertex_array.hh  GLwrapper/texture.hh GLwrapper/glsupport.cc GLwrapper/shapes.cc GLwrapper/shapes.hh GLwrapper/framebuffer.cc GLwrapper/framebuffer.hh)
+set(HEADER_LIST GLwrapper/glsupport.hh GLwrapper/shader.cc GLwrapper/shader.hh GLwrapper/global.hh GLwrapper/program.hh GLwrapper/vertex_buffer.cc GLwrapper/vertex_buffer.hh GLwrapper/vertex_array.cc GLwrapper/vertex_array.hh GLwrapper/texture.hh GLwrapper/glsupport.cc GLwrapper/shapes.cc GLwrapper/shapes.hh GLwrapper/framebuffer.cc GLwrapper/framebuffer.hh)
 file(GLOB IMGUI_SOURCE "${CMAKE_CURRENT_SOURCE_DIR}/third_party/imgui/*")
 file(GLOB THIRD_PARTY
         third_party/*.c third_party/*.cc third_party/*.h utils/*.cc utils/*.h
         )
 message(${THIRD_PARTY})
 add_subdirectory(third_party/glad)
-
 
 
 function(set_flags name)
@@ -46,12 +45,12 @@ endfunction()
 # add_library(glsupport_bindless STATIC $<TARGET_OBJECTS:glsupport_objs> GLwrapper/program.cc GLwrapper/texture.cc)
 add_library(glsupport_bindless STATIC ${HEADER_LIST} ${THIRD_PARTY} ${IMGUI_SOURCE} ${SOURCE_LIST})
 target_compile_definitions(glsupport_bindless PUBLIC -DGL_ARB_BINDLESS)
-target_link_libraries(glsupport_bindless PUBLIC debug "glad_bindless_d" optimized "glad_bindless" )
+target_link_libraries(glsupport_bindless PUBLIC debug "glad_bindless_d" optimized "glad_bindless")
 target_set_warning_flags(glsupport_bindless)
 set_flags("glsupport_bindless")
 
 add_library(glsupport_core STATIC ${HEADER_LIST} ${THIRD_PARTY} ${IMGUI_SOURCE} ${SOURCE_LIST})
-target_link_libraries(glsupport_core PUBLIC debug "glad_core_d" optimized "glad_core" )
+target_link_libraries(glsupport_core PUBLIC debug "glad_core_d" optimized "glad_core")
 target_set_warning_flags(glsupport_core)
 set_flags("glsupport_core")
 
@@ -59,7 +58,6 @@ set_flags("glsupport_core")
 set(BINDLESS_EXAMPLES
         skybox
         pbrRender
-        oit
         )
 foreach (EXAMPLE ${BINDLESS_EXAMPLES})
     add_executable(${EXAMPLE} examples/${EXAMPLE}/${EXAMPLE}.cc)
@@ -77,6 +75,7 @@ set(CORE_EXAMPLES
         shadowmap
         instance
         LTC
+        oit
         )
 foreach (EXAMPLE ${CORE_EXAMPLES})
     add_executable(${EXAMPLE} examples/${EXAMPLE}/${EXAMPLE}.cc)
