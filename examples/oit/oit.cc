@@ -46,7 +46,7 @@ void OitRender::setup_states() {
   solid_shader_ =
       DRL::make_program(resMgr.find_path("mvp_pos_normal_texture.vert"),
                         resMgr.find_path("mvp_pos_normal_texture.frag"));
-  blend_shader_ =
+  sorted_blend_shader_ =
       DRL::make_program(resMgr.find_path("mvp_pos_normal_texture.vert"),
                         resMgr.find_path("mvp_pos_n_t_sampler.frag"));
   transparent_shader_ =
@@ -70,10 +70,6 @@ void OitRender::setup_states() {
   accum_texture_->set_slot(0);
   reveal_texture_->set_slot(1);
   opaque_texture_->set_slot(0);
-  //  transparent_texture_->make_resident();
-  //  opaque_texture_->make_resident();
-  //  accum_texture_->make_resident();
-  //  reveal_texture_->make_resident();
 
   opaque_fbo_.attach_buffer(GL_COLOR_ATTACHMENT0, opaque_texture_, 0);
   opaque_fbo_.attach_buffer(GL_DEPTH_ATTACHMENT, depth_texture_, 0);
@@ -151,8 +147,7 @@ void OitRender::back_to_front_render(
     const std::vector<glm::mat4> &solid_model_mat4s, const glm::mat4 &view,
     const glm::mat4 &proj) {
   glEnable(GL_DEPTH_TEST);
-  glEnable(GL_BLEND);
-  //    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+  //先渲染不透明物体
   {
     DRL::bind_guard gd(solid_shader_);
     solid_shader_.set_uniform("view", view);
@@ -164,22 +159,28 @@ void OitRender::back_to_front_render(
   }
 
   {
-    DRL::bind_guard gd(blend_shader_, *transparent_texture_);
-    blend_shader_.set_uniform("view", view);
-    blend_shader_.set_uniform("projection", proj);
-    //    blend_shader_.set_uniform("texture0",
-    //                              transparent_texture_->tex_handle_ARB());
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    // sorted_blend_shader_的frag
+    // FragColor = texture(texture0, fs_in.TexCoords)
+    //采样具有alpha通道的纹理作为颜色
+    DRL::bind_guard gd(sorted_blend_shader_, *transparent_texture_);
+    sorted_blend_shader_.set_uniform("view", view);
+    sorted_blend_shader_.set_uniform("projection", proj);
     std::map<float, glm::vec3> sorted_quad;
+    //计算所有的物体距离相机的位置，按升序排列
     for (const auto &pos : quad_pos_) {
       float distance = glm::distance(pos, camera_->Position);
       sorted_quad[distance] = pos;
     }
+    //禁止写深度，一般而言渲染透明物体都不写深度
     glDepthMask(false);
+    //画家算法，从后到前渲染透明物体
     for (auto it = sorted_quad.rbegin(); it != sorted_quad.rend(); it++) {
       auto i_model = glm::translate(glm::mat4(1.0f), it->second);
       i_model =
           glm::rotate(i_model, glm::radians(90.0f), glm::vec3(1.0, 0.0, 0.0));
-      blend_shader_.set_uniform("model", i_model);
+      sorted_blend_shader_.set_uniform("model", i_model);
       DRL::renderQuad();
     }
     glDepthMask(true);
@@ -192,6 +193,7 @@ void OitRender::weighted_blended_render(
   glDepthFunc(GL_LESS);
   glDepthMask(GL_TRUE);
   glDisable(GL_BLEND);
+  // 渲染所有不透明物体
   {
     DRL::bind_guard gd(opaque_fbo_, solid_shader_);
     solid_shader_.set_uniform("view", view);
@@ -206,6 +208,7 @@ void OitRender::weighted_blended_render(
   // we need the depth test,but ban the depth writing.
   // when transparent obj is behind the solid objs, they should be discarded.
   glEnable(GL_BLEND);
+  // glBlendFunci支持指定MRT的不同Buffer的混合模式，从4.0引入
   glBlendFunci(0, GL_ONE, GL_ONE);
   glBlendFunci(1, GL_ZERO, GL_ONE_MINUS_SRC_COLOR);
   glBlendEquation(GL_FUNC_ADD);
@@ -221,7 +224,7 @@ void OitRender::weighted_blended_render(
     glBindFramebuffer(GL_FRAMEBUFFER, transparent_fbo_);
     transparent_shader_.set_uniform("view", view);
     transparent_shader_.set_uniform("projection", proj);
-    ;
+
     for (const auto &pos : quad_pos_) {
       auto i_model = glm::translate(glm::mat4(1.0f), pos);
       i_model =
@@ -234,13 +237,18 @@ void OitRender::weighted_blended_render(
   {
     DRL::bind_guard gd(composite_shader_, *accum_texture_, *reveal_texture_);
     // 不要用fbo.bind() 因为那个api没设计好，里面会有clear所有内容的操作
+    // opaque_fbo_里面是solid的渲染结果，其alpha是1
     glBindFramebuffer(GL_FRAMEBUFFER, opaque_fbo_);
     glEnable(GL_BLEND);
+    // SRC是fragment输出的结果，Dst是FBO里存储的结果
+    // 所以混合结果是transparent * (1 - Π(1 - a))  + solid * (Π(1 - a))
+    // 透明的物体堆叠的越多，越接近transparent的颜色
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     DRL::renderScreenQuad();
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
   }
   {
+    //采样纹理，上屏
     DRL::bind_guard gd(screen_shader_, *opaque_texture_);
     DRL::renderScreenQuad();
   }
