@@ -75,6 +75,7 @@ void OitRender::setup_states() {
   opaque_fbo_.attach_buffer(GL_DEPTH_ATTACHMENT, depth_texture_, 0);
   opaque_fbo_.set_viewport(info_.width, info_.height);
   opaque_fbo_.clear_color_ = glm::vec4(0.1, 0.1, 0.1, 1.0);
+  opaque_fbo_.clear_when_bind = false;
 
   transparent_fbo_.attach_buffer(GL_COLOR_ATTACHMENT0, accum_texture_, 0);
   transparent_fbo_.attach_buffer(GL_COLOR_ATTACHMENT1, reveal_texture_, 0);
@@ -83,6 +84,7 @@ void OitRender::setup_states() {
   transparent_fbo_.set_draw_buffer(
       {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1});
   transparent_fbo_.clear_color_ = glm::vec4(0.1, 0.1, 0.1, 1.0);
+  transparent_fbo_.clear_when_bind = false;
 
   for (int i = QUAD_NUM; i >= 0; i--) {
     quad_pos_.emplace_back(0, 0.0, STEP * i);
@@ -164,7 +166,7 @@ void OitRender::back_to_front_render(
     // sorted_blend_shader_的frag
     // FragColor = texture(texture0, fs_in.TexCoords)
     //采样具有alpha通道的纹理作为颜色
-    DRL::bind_guard gd(sorted_blend_shader_, *transparent_texture_);
+    DRL::bind_guard gd(sorted_blend_shader_, transparent_texture_);
     sorted_blend_shader_.set_uniform("view", view);
     sorted_blend_shader_.set_uniform("projection", proj);
     std::map<float, glm::vec3> sorted_quad;
@@ -196,6 +198,8 @@ void OitRender::weighted_blended_render(
   // 渲染所有不透明物体
   {
     DRL::bind_guard gd(opaque_fbo_, solid_shader_);
+    // we must mannully clear opaque_fbo_
+    opaque_fbo_.clear();
     solid_shader_.set_uniform("view", view);
     solid_shader_.set_uniform("projection", proj);
     for (auto &solid_model_mat4 : solid_model_mat4s) {
@@ -213,15 +217,14 @@ void OitRender::weighted_blended_render(
   glBlendFunci(1, GL_ZERO, GL_ONE_MINUS_SRC_COLOR);
   glBlendEquation(GL_FUNC_ADD);
   {
+    DRL::bind_guard gd(transparent_fbo_, transparent_shader_,
+                       transparent_texture_);
     glClearNamedFramebufferfv(transparent_fbo_, GL_COLOR, 0,
                               glm::value_ptr(glm::vec4(0.0f)));
     glClearNamedFramebufferfv(transparent_fbo_, GL_COLOR, 1,
                               glm::value_ptr(glm::vec4(1.0f)));
     glClearNamedFramebufferfv(transparent_fbo_, GL_DEPTH, 0,
                               &transparent_fbo_.clear_depth_);
-    DRL::bind_guard gd(transparent_shader_, *transparent_texture_);
-    // 不要用fbo.bind() 因为那个api没设计好，里面会重新clear
-    glBindFramebuffer(GL_FRAMEBUFFER, transparent_fbo_);
     transparent_shader_.set_uniform("view", view);
     transparent_shader_.set_uniform("projection", proj);
 
@@ -232,24 +235,21 @@ void OitRender::weighted_blended_render(
       transparent_shader_.set_uniform("model", i_model);
       DRL::renderQuad();
     }
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
   }
   {
-    DRL::bind_guard gd(composite_shader_, *accum_texture_, *reveal_texture_);
-    // 不要用fbo.bind() 因为那个api没设计好，里面会有clear所有内容的操作
+    DRL::bind_guard gd(opaque_fbo_, composite_shader_, accum_texture_,
+                       reveal_texture_);
     // opaque_fbo_里面是solid的渲染结果，其alpha是1
-    glBindFramebuffer(GL_FRAMEBUFFER, opaque_fbo_);
     glEnable(GL_BLEND);
     // SRC是fragment输出的结果，Dst是FBO里存储的结果
     // 所以混合结果是transparent * (1 - Π(1 - a))  + solid * (Π(1 - a))
     // 透明的物体堆叠的越多，越接近transparent的颜色
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     DRL::renderScreenQuad();
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
   }
   {
     //采样纹理，上屏
-    DRL::bind_guard gd(screen_shader_, *opaque_texture_);
+    DRL::bind_guard gd(screen_shader_, opaque_texture_);
     DRL::renderScreenQuad();
   }
 }

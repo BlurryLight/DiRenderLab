@@ -1,7 +1,5 @@
 #pragma once
 
-
-
 #if defined _GNUC_ || defined _CLANG_CL || defined __clang__
 // lmao: Clang-cl will pretend it is MSVC, but actually it accepts gcc #pragma
 // flags.
@@ -192,7 +190,6 @@ void APIENTRY glDebugOutput(GLenum source, GLenum type, unsigned int id,
                             const char *message, const void *userParam);
 // clang-format on
 
-
 class RenderBase {
 private:
   void InitWindow();
@@ -234,6 +231,11 @@ protected:
     }
   }
   virtual void render() = 0;
+  /**
+   * set up initial status and states for rendering.\n
+   * For example: compile and link shaders, allocate for textures and
+   * framebuffers, load models
+   */
   virtual void setup_states() {}
 
 public:

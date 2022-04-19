@@ -23,7 +23,7 @@ class VertexArray {
 protected:
   VertexArrayObject obj_;
   //        std::optional<std::vector<IndexInfo>> indices_;
-  bool bounded_ = false;
+  bool bound_ = false;
   bool changed_ = false; // attribute changed since last update_bind
   std::vector<AttributeInfo> attribs_;
   std::vector<VboPtr> vbos_;
@@ -99,10 +99,10 @@ public:
               "update_bind() firstly!",
               obj_.handle());
     glBindVertexArray(obj_);
-    bounded_ = true;
+    bound_ = true;
   }
   void draw(GLenum mode, GLint first_index, GLsizei indices_nums) {
-    AssertLog(bounded_, "VAO {} hasn't been bounded before drawing!",
+    AssertLog(bound_, "VAO {} hasn't been bounded before drawing!",
               obj_.handle());
     AssertLog((ebo_ == nullptr),
               "VAO {} has ebo, wrong version of draw() is called!!",
@@ -112,7 +112,7 @@ public:
 
   void draw(GLenum mode, GLsizei indices_nums, GLenum indices_type,
             void *ebo_offset = nullptr) {
-    AssertLog(bounded_, "VAO {} hasn't been bounded before drawing!",
+    AssertLog(bound_, "VAO {} hasn't been bounded before drawing!",
               obj_.handle());
     AssertLog((bool)ebo_,
               "VAO {} has not ebo, wrong version of draw() is called!!",
@@ -121,7 +121,7 @@ public:
   }
   void unbind() {
     glBindVertexArray(0);
-    bounded_ = false;
+    bound_ = false;
   }
 };
 } // namespace DRL

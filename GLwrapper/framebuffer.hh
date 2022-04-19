@@ -28,6 +28,7 @@ protected:
   std::set<attachable_obj> attachments_;
 
 public:
+  bool clear_when_bind = true;
   glm::vec4 clear_color_ = {};
   float clear_depth_{1.0};
   ~Framebuffer() {
@@ -39,38 +40,40 @@ public:
   Framebuffer() = default;
   Framebuffer(Framebuffer &&) = default;
   Framebuffer &operator=(Framebuffer &&) = default;
+  /**
+   * construct Framebuffer object from a texture obj
+   * @param attachment GL_DEPTH_ATTACHMENT or COLOR_ATTACHMENT, decided by the
+   * use of texture_obj
+   * @param texture_obj the attachment to FBO
+   * @param mipmap_level mipmap level of the texture
+   * @param clear_color RGBA value to write when clear FBO. If multiple
+   * color attachment attached, all of them will be cleared.
+   * @param clear_depth float Depth value to write when clear FBO
+   * @param clear_when_bind Whether to clear FBO when bind()
+   */
   Framebuffer(GLenum attachment, const Texture2DPtr &texture_obj,
               GLint mipmap_level, glm::vec4 clear_color = glm::vec4(0.0f),
-              float clear_depth = 1.0f)
-      : clear_color_(clear_color), clear_depth_(clear_depth) {
-    attach_buffer(attachment, texture_obj, mipmap_level);
-    set_viewport(texture_obj, mipmap_level);
-  }
+              float clear_depth = 1.0f, bool clear_when_bind = true);
 
-  void set_viewport(const Texture2DPtr &texture_obj, GLint mipmap_level) {
-    glGetTextureLevelParameteriv(*texture_obj, mipmap_level, GL_TEXTURE_HEIGHT,
-                                 &vheight_);
-    glGetTextureLevelParameteriv(*texture_obj, mipmap_level, GL_TEXTURE_WIDTH,
-                                 &vwidth_);
-  }
+  /**
+   * set framebuffer viewport weight/height by properties from the nth mipmap of
+   * the texture
+   * @param texture_obj
+   * @param mipmap_level
+   */
+  void set_viewport(const Texture2DPtr &texture_obj, GLint mipmap_level);
 
-  void set_viewport(const TextureCubePtr &texture_obj, GLint mipmap_level) {
-    glGetTextureLevelParameteriv(*texture_obj, mipmap_level, GL_TEXTURE_HEIGHT,
-                                 &vheight_);
-    glGetTextureLevelParameteriv(*texture_obj, mipmap_level, GL_TEXTURE_WIDTH,
-                                 &vwidth_);
-  }
-  void set_viewport(int w, int h) {
-    vwidth_ = w;
-    vheight_ = h;
-  }
+  void set_viewport(const TextureCubePtr &texture_obj, GLint mipmap_level);
+  /**
+   *
+   * set framebuffer viewport weight/height by weight and height
+   * @param w weight pixels
+   * @param h  height pixels
+   */
+  void set_viewport(int w, int h);
   void attach_buffer(GLenum attachment_slot, const Texture2DPtr &texture_obj,
-                     GLint mipmap_level) {
-    attachments_.emplace(texture_obj);
-    texture_obj->first_bounded = true;
-    glNamedFramebufferTexture(obj_, attachment_slot, *texture_obj,
-                              mipmap_level);
-  }
+                     GLint mipmap_level);
+  // currently doesn't support renderbuffer object
   //        void attach_buffer(GLenum attachment_slot, const RenderbufferPtr
   //        &renderbuf_obj, GLint mipmap_level) {
   //            attachments_.push_back(texture_obj);
@@ -78,37 +81,33 @@ public:
   //            GL_RENDERBUFFER,*renderbuf_obj);
   //        }
   void attach_buffer(GLenum attachment_slot, const TextureCubePtr &texture_obj,
-                     GLint mipmap_level, GLint layer) {
-    attachments_.emplace(texture_obj);
-    texture_obj->first_bounded = true;
-    glNamedFramebufferTextureLayer(obj_, attachment_slot, *texture_obj,
-                                   mipmap_level, layer);
-  }
-  void set_draw_buffer(GLenum buffer) const {
-    glNamedFramebufferDrawBuffer(obj_, buffer);
-  }
-  void set_read_buffer(GLenum buffer) const {
-    glNamedFramebufferReadBuffer(obj_, buffer);
-  }
-  void set_draw_buffer(const std::vector<GLenum> &buffers) const {
-    glNamedFramebufferDrawBuffers(obj_, static_cast<int>(buffers.size()),
-                                  buffers.data());
-  }
-  void bind() {
-    if (!complete_) {
-      auto res = glCheckNamedFramebufferStatus(obj_, GL_FRAMEBUFFER);
-      AssertLog(res == GL_FRAMEBUFFER_COMPLETE,
-                "Framebuffer {} is not complete! Return value is {} ", obj_,
-                res);
-      // if here, the framebuffer is complete
-      complete_ = true;
-    }
-    glBindFramebuffer(GL_FRAMEBUFFER, obj_);
-    glViewport(0, 0, vwidth_, vheight_);
-    glClearNamedFramebufferfv(obj_, GL_COLOR, 0, glm::value_ptr(clear_color_));
-    glClearNamedFramebufferfv(obj_, GL_DEPTH, 0, &clear_depth_);
-  }
-  void unbind() { glBindFramebuffer(GL_FRAMEBUFFER, 0); }
+                     GLint mipmap_level, GLint layer);
+  /**
+   * specify which color buffers are to be drawn into
+   * For default framebuffer, the argument specifies up to four color buffers to
+   * be drawn into.
+   * https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/glDrawBuffer.xhtml\n
+   * GL_NONE: No colorbuffers will be written\n
+   * GL_FRONT/BACK(_LEFT/RIGHT): if texture is cubemap they are valid\n
+   * GL_COLOR_ATTACHMENT$m$: valid for MRT\n
+   * @param buffer
+   */
+  void set_draw_buffer(GLenum buffer) const;
+  /**
+   * same as set_draw_buffer()
+   * @param buffer
+   */
+  void set_read_buffer(GLenum buffer) const;
+  void set_draw_buffer(const std::vector<GLenum> &buffers) const;
+  void bind();
+  void unbind();
+  /**
+   *
+   * we only clear first color buffer
+   * for mrt the user must other colors manually
+   * since we don't track how many color buffers are attached to FBO
+   */
+  void clear();
 };
 
 } // namespace DRL

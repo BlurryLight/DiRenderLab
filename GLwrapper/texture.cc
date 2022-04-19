@@ -18,9 +18,9 @@ struct LoadReturnType {
   int width = -1;
 };
 
-std::tuple<GLenum, GLenum, GLenum>
-get_internalf_format(const LoadReturnType &res) {
-  // defualt value: OpenGL internal format:GL_RGB8
+static std::tuple<GLenum, GLenum, GLenum>
+get_internal_format(const LoadReturnType &res) {
+  // default value: OpenGL internal format:GL_RGB8
   // loaded image value: GL_RGB, data type:unsigned byte
   GLenum internal_format = GL_RGB8, img_format = GL_RGB,
          img_data_type = GL_UNSIGNED_BYTE;
@@ -79,7 +79,7 @@ void Texture2D::update_data(const fs::path &path, int num_mipmaps, bool gamma,
   AssertLog(num_mipmaps >= 1, "Texture2D needs at least base mipmap!");
   num_mipmaps_ = num_mipmaps;
   auto res = TextureFromFile(path, gamma, flip);
-  auto [internal_format, img_format, img_data_type] = get_internalf_format(res);
+  auto [internal_format, img_format, img_data_type] = get_internal_format(res);
   glTextureStorage2D(obj_, num_mipmaps_, internal_format, res.width,
                      res.height);
   if (img_data_type == GL_FLOAT) // float
@@ -131,7 +131,7 @@ void TextureCube::update_data(const std::vector<fs::path> &paths,
            img_data_type = GL_FLOAT;
     if (i == 0) {
       std::tie(internal_format, img_format, img_data_type) =
-          get_internalf_format(res);
+          get_internal_format(res);
       // 6 mipmaps
       glTextureStorage2D(obj_, num_mipmaps, internal_format, res.width,
                          res.height);
@@ -205,13 +205,13 @@ void Texture::bind() {
                  num_mipmaps_);
   }
   glBindTextureUnit(slot_, obj_);
-  bounded_ = true;
+  bound_ = true;
   first_bounded = true;
 }
 void Texture::unbind() {
-  AssertLog(bounded_, "Unbind a unbound texture {}!", obj_.handle());
+  AssertLog(bound_, "Unbind a unbound texture {}!", obj_.handle());
   glBindTextureUnit(slot_, 0);
-  bounded_ = false;
+  bound_ = false;
 }
 void Texture::set_wrap_t(GLint value) {
   glTextureParameteri(obj_, GL_TEXTURE_WRAP_T, value);

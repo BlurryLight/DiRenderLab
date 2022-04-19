@@ -23,7 +23,7 @@ class TextureCubeARB;
 class Texture {
 protected:
   TextureObject obj_;
-  bool bounded_ = false;
+  bool bound_ = false;
   bool updated_ = false;
   unsigned int slot_ = 0;
   explicit Texture(GLenum textureType);
@@ -39,6 +39,10 @@ public:
   GLint mag_filter_ = GL_LINEAR;
   GLint wrap_s_ = GL_CLAMP_TO_EDGE;
   GLint wrap_t_ = GL_CLAMP_TO_EDGE;
+  /**
+   * generate mipmaps for a specified texture object \n
+   * Will throw an warning if the desired number of mipmaps is 1
+   */
   void generateMipmap() {
     if (num_mipmaps_ <= 1) {
       spdlog::warn("Texture has only {} mipmap levels!", num_mipmaps_);
@@ -50,6 +54,10 @@ public:
   void set_mag_filter(GLint value);
   void set_wrap_s(GLint value);
   void set_wrap_t(GLint value);
+  /**
+   * set the texture unit(GL_TEXTURE0/GL_TEXTURE1 and etc.)
+   * @param value which texture unit will this texture be bound to when bind()
+   */
   void set_slot(unsigned int value) { slot_ = value; }
   void bind();
   void unbind();
@@ -66,10 +74,30 @@ public:
   }
   Texture2D(const fs::path &path, int num_mipmaps, bool gamma, bool flip);
 
-  // This function doesn't allow nullptr
-  // if mipmaps_levels > 1, data will only be filled in level 0
+  /**
+   * Allocate space for texture and load from data
+   * This function doesn't allow nullptr.\n if mipmaps_levels > 1, data will
+   * only be filled in level 0
+   * @param width
+   * @param height
+   * @param num_mipmaps
+   * @param internal_format GL_RGB8/GL_R16F/GL_RGBA16F and etc. The format how
+   * OpenGL store the texture
+   * @param img_format GL_RGB/GL_RGBA/GL_R and etc. The format of pixel value in
+   * the data
+   * @param img_data_type GL_FLOAT/GL_UNSIGNED_BYTES. GL_FLOAT is for HDR
+   * texture
+   * @param data
+   */
   Texture2D(int width, int height, int num_mipmaps, GLenum internal_format,
             GLenum img_format, GLenum img_data_type, const void *data);
+  /**
+   * Allocate data for texture but don't fill it.
+   * @param width
+   * @param height
+   * @param num_mipmaps
+   * @param internal_format
+   */
   Texture2D(int width, int height, int num_mipmaps, GLenum internal_format);
   void update_data(const fs::path &path, int num_mipmaps, bool gamma,
                    bool flip);

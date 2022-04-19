@@ -11,7 +11,7 @@
 
 namespace DRL {
 template <typename String, typename... Args>
-inline void AssertLog(bool condition, const String &fmt, Args &&... args) {
+inline void AssertLog(bool condition, const String &fmt, Args &&...args) {
   if (!condition) {
     std::string fmtstring =
         std::string("Assertion Failed: ") + std::string(fmt);
@@ -22,50 +22,68 @@ inline void AssertLog(bool condition, const String &fmt, Args &&... args) {
 }
 
 template <typename String, typename... Args>
-inline void AssertWarning(bool condition, const String &fmt, Args &&... args) {
+inline void AssertWarning(bool condition, const String &fmt, Args &&...args) {
   if (!condition) {
     std::string fmtstring =
         std::string("Assertion Failed: ") + std::string(fmt);
     spdlog::warn(fmtstring, std::forward<Args>(args)...);
   }
 }
+template <typename T, typename = void>
+struct is_pointer_like_arrow_dereferencable : std::false_type {};
 
-namespace details {
-template <class T, class = std::void_t<>>
-struct bind_check : std::false_type {};
+// 检测是否有->函数
+template <typename T>
+struct is_pointer_like_arrow_dereferencable<
+    T, std::void_t<decltype(std::declval<T>().operator->())>> : std::true_type {
+};
 
-template <class T>
-struct bind_check<T, std::void_t<decltype(std::declval<T>().bind())>>
-    : std::true_type {};
-
-template <class T, class = std::void_t<>>
-struct unbind_check : std::false_type {};
-
-template <class T>
-struct unbind_check<T, std::void_t<decltype(std::declval<T>().unbind())>>
-    : std::true_type {};
-
-template <class...> constexpr std::false_type always_false{};
-} // namespace details
+//如果有，再检测是否是int*这种类型
+template <typename T>
+struct is_pointer_like_arrow_dereferencable<T *, void>
+    : std::disjunction<std::is_class<T>, std::is_union<T>> {};
 
 template <typename... T> struct bind_guard {
+  // https://godbolt.org/z/q8TE4Maed SFINAE
+  // https://godbolt.org/z/TPE3197ax
+  // 这里不要写很复杂，std::apply碰见没有实现bind和unbind的类型会给出很友好的提示
   std::tuple<T &...> objs_;
-  explicit bind_guard(T &... bindable_obj) : objs_(std::tie(bindable_obj...)) {
-    std::apply([](auto &... obj) { (obj.bind(), ...); }, objs_);
+  template <typename... Args>
+
+  explicit bind_guard(T &...bindable_obj) : objs_(std::tie(bindable_obj...)) {
+    std::apply([](auto &&...args) { bind(args...); }, objs_);
   }
   ~bind_guard() {
-    std::apply([](auto &... obj) { (obj.unbind(), ...); }, objs_);
+    std::apply([](auto &&...args) { unbind(args...); }, objs_);
   }
   bind_guard(const bind_guard &) = delete;
   bind_guard &operator=(const bind_guard &) = delete;
+
+private:
+  template <typename T> static void bind(T &&t) {
+    if constexpr (is_pointer_like_arrow_dereferencable<T>::value)
+      t->bind();
+    else
+      t.bind();
+  }
+  template <typename T, typename... Args>
+  static void bind(T &&t, Args &&...rest) {
+    bind(t);
+    bind(rest...);
+  }
+  template <typename T> static void unbind(T &&t) {
+    if constexpr (is_pointer_like_arrow_dereferencable<T>::value)
+      t->unbind();
+    else
+      t.unbind();
+  }
+  template <typename T, typename... Args>
+  static void unbind(T &&t, Args &&...rest) {
+    unbind(t);
+    unbind(rest...);
+  }
 };
 
-template <> struct bind_guard<> {
-  bind_guard() = default;
-  ~bind_guard() = default;
-  bind_guard(const bind_guard &) = delete;
-  bind_guard &operator=(const bind_guard &) = delete;
-};
 } // namespace DRL
 
 ////fwd declaration
