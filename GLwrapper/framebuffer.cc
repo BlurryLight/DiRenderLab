@@ -67,8 +67,8 @@ DRL::Framebuffer::Framebuffer(GLenum attachment,
                               const DRL::Texture2DPtr &texture_obj,
                               GLint mipmap_level, glm::vec4 clear_color,
                               float clear_depth, bool clear_when_bind)
-    : clear_color_(clear_color), clear_depth_(clear_depth),
-      clear_when_bind(clear_when_bind) {
+    : clear_when_bind(clear_when_bind), clear_color_(clear_color),
+      clear_depth_(clear_depth) {
   attach_buffer(attachment, texture_obj, mipmap_level);
   set_viewport(texture_obj, mipmap_level);
 }

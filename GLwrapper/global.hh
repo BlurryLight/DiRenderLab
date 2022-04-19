@@ -60,25 +60,25 @@ template <typename... T> struct bind_guard {
   bind_guard &operator=(const bind_guard &) = delete;
 
 private:
-  template <typename T> static void bind(T &&t) {
-    if constexpr (is_pointer_like_arrow_dereferencable<T>::value)
+  template <typename U> static void bind(U &&t) {
+    if constexpr (is_pointer_like_arrow_dereferencable<U>::value)
       t->bind();
     else
       t.bind();
   }
-  template <typename T, typename... Args>
-  static void bind(T &&t, Args &&...rest) {
+  template <typename U, typename... Args>
+  static void bind(U &&t, Args &&...rest) {
     bind(t);
     bind(rest...);
   }
-  template <typename T> static void unbind(T &&t) {
-    if constexpr (is_pointer_like_arrow_dereferencable<T>::value)
+  template <typename U> static void unbind(U &&t) {
+    if constexpr (is_pointer_like_arrow_dereferencable<U>::value)
       t->unbind();
     else
       t.unbind();
   }
-  template <typename T, typename... Args>
-  static void unbind(T &&t, Args &&...rest) {
+  template <typename U, typename... Args>
+  static void unbind(U &&t, Args &&...rest) {
     unbind(t);
     unbind(rest...);
   }
