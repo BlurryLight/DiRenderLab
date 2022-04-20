@@ -8,6 +8,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include <glm/gtx/euler_angles.hpp>
 
 #include "GLwrapper/framebuffer.hh"
 #include "GLwrapper/glsupport.hh"
@@ -124,7 +125,7 @@ void LTCRender::render() {
     ImGui::SliderFloat3("LightPos", glm::value_ptr(uniforms_.lightPos), -10.0f,
                         10.0f, "%.3f");
     ImGui::SliderFloat3("LightRotation", glm::value_ptr(uniforms_.lightAngle),
-                        0, 3.14f, "%.3f");
+                        0, 180.0f, "%.3f");
     ImGui::SliderFloat3("LightScale", glm::value_ptr(uniforms_.lightScale), 0.1,
                         2.0f, "%.3f");
     ImGui::Checkbox("TwoSided", &uniforms_.twoSided);
@@ -148,10 +149,8 @@ void LTCRender::render() {
   LightShader.bind();
   auto model = glm::mat4(1.0f);
   model = glm::translate(model, uniforms_.lightPos);
-  model = glm::rotate(glm::rotate(glm::rotate(model, uniforms_.lightAngle.y,
-                                              glm::vec3(0, 1, 0)),
-                                  uniforms_.lightAngle.z, glm::vec3(0, 0, 1)),
-                      uniforms_.lightAngle.x, glm::vec3(1, 0, 0));
+  auto radians = glm::radians(uniforms_.lightAngle);
+  model = model * glm::eulerAngleYXZ(radians.y,radians.x,radians.z); //gimbal block when x == 90.0
   model = glm::scale(model, uniforms_.lightScale);
   LightShader.set_uniform("model", model);
   LightShader.set_uniform("projection", projection);
@@ -159,7 +158,7 @@ void LTCRender::render() {
   DRL::renderQuad();
 
   LTCShader.bind();
-  glm::vec3 lightCenter = glm::vec3(model * glm::vec4(lightCenter_, 1.0));
+  // glm::vec3 lightCenter = glm::vec3(model * glm::vec4(lightCenter_, 1.0));
   //  LTCShader.set_uniform("lightCenter", lightCenter);
   LTCShader.set_uniform("lightPoints[0]",
                         glm::vec3(model * glm::vec4(lightCorners_[0], 1.0)));
@@ -184,16 +183,7 @@ void LTCRender::render() {
   ltc2tex.bind();
   renderScene(LTCShader);
 
-  // render Depth map to quad for visual debugging
-  // ---------------------------------------------
-  //        DepthMapShader.bind();
-  //        DepthMapShader.set_uniform("near_plane", near_plane);
-  //        DepthMapShader.set_uniform("far_plane", far_plane);
-  //        depthMap.set_slot(0);
-  //        depthMap.bind();
-  //        glActiveTexture(GL_TEXTURE0);
-  //        glBindTexture(GL_TEXTURE_2D, depthMap);
-  //        DRL::renderQuad();
+
 }
 
 int main() {
