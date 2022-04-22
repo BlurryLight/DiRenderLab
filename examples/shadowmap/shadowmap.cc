@@ -167,6 +167,11 @@ void ShadowMapRender::render() {
       glm::ortho(-50.0f, 50.0f, -50.0f, 50.0f, near_plane, far_plane);
   auto lightPosNew = lightPos + glm::vec3(5 * glm::sin(glfwGetTime()), 20,
                                           5 * glm::sin(glfwGetTime()));
+  //  auto light_trans = glm::translate(glm::mat4(1.0f), lightPos);
+  //  light_trans = glm::rotate(light_trans, glm::radians(5.0f * glfwGetTime()),
+  //                            glm::vec3(0.0f, 0.0f, 1.0f));
+
+  //  auto lightPosNew = lightPos;
   lightView =
       glm::lookAt(lightPosNew, glm::vec3(0.0f), glm::vec3(0.0, 1.0, 0.0));
   lightSpaceMatrix = lightProjection * lightView;
@@ -279,10 +284,12 @@ void ShadowMapRender::renderScene(const DRL::Program &shader) {
   shader.set_uniform("model", model);
   DRL::renderCube();
   model = glm::mat4(1.0f);
+  //
+  model = glm::rotate(model, glm::radians(60.0f * (float)glfwGetTime()),
+                      glm::vec3(0.0, 1.0, 0.0));
   model = glm::translate(model, glm::vec3(-1.0f, 0.0f, 2.0));
-  model = glm::rotate(model, glm::radians(60.0f),
-                      glm::normalize(glm::vec3(1.0, 0.0, 1.0)));
-  model = glm::scale(model, glm::vec3(0.25));
+  model = glm::scale(model, glm::vec3(0.05));
+
   shader.set_uniform("model", model);
   //    renderCube();
   DRL::renderSphere();

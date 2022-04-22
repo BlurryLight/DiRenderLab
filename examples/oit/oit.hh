@@ -28,6 +28,16 @@ protected:
   DRL::Framebuffer transparent_fbo_;
 
   //  DepthPeeling Render
+  DRL::Program dp_final_shader_;
+  DRL::Program dp_blend_shader_;
+  DRL::Program dp_peeling_shader_;
+  DRL::Framebuffer dp_fbos_[2];
+  std::shared_ptr<DRL::Texture2D> dp_color_texes_[2];
+  std::shared_ptr<DRL::Texture2D> dp_depth_texes_[2];
+  DRL::Framebuffer dp_color_blender_fbo_;
+  std::shared_ptr<DRL::Texture2D> dp_color_blender_tex;
+
+  // Dual DepthPeeling Render
 
   // end
   std::shared_ptr<DRL::Texture2D> depth_texture_;
@@ -46,6 +56,8 @@ private:
                             const glm::mat4 &view, const glm::mat4 &proj);
   void weighted_blended_render(const std::vector<glm::mat4> &solid_model_mat4s,
                                const glm::mat4 &view, const glm::mat4 &proj);
+  void depth_peeling_render(const std::vector<glm::mat4> &solid_model_mat4s,
+                            const glm::mat4 &view, const glm::mat4 &proj);
 };
 
 #endif // DIRENDERLAB_OIT_HH

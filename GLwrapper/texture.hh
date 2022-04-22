@@ -64,6 +64,11 @@ public:
   Texture(Texture &&other) = default;
   Texture &operator=(Texture &&) = default;
 };
+class TextureRect : public Texture {
+public:
+  TextureRect() : Texture(GL_TEXTURE_RECTANGLE) {}
+  TextureRect(int width, int height, int num_mipmaps, GLenum internal_format);
+};
 class Texture2D : public Texture {
 public:
   Texture2D() : Texture(GL_TEXTURE_2D) {}

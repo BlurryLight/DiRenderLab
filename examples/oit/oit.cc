@@ -57,7 +57,14 @@ void OitRender::setup_states() {
                                         resMgr.find_path("oit_composite.frag"));
   screen_shader_ = DRL::make_program(resMgr.find_path("screen_quad.vert"),
                                      resMgr.find_path("screen_quad.frag"));
+  dp_final_shader_ = DRL::make_program(resMgr.find_path("screen_quad.vert"),
+                                       resMgr.find_path("dp_finalshader.frag"));
 
+  dp_blend_shader_ = DRL::make_program(resMgr.find_path("screen_quad.vert"),
+                                       resMgr.find_path("dp_blend.frag"));
+  dp_peeling_shader_ =
+      DRL::make_program(resMgr.find_path("mvp_pos_normal_texture.vert"),
+                        resMgr.find_path("dp_front_peel.frag"));
   opaque_texture_ = std::make_shared<DRL::Texture2D>(info_.width, info_.height,
                                                      1, GL_RGBA32F);
   accum_texture_ = std::make_shared<DRL::Texture2D>(info_.width, info_.height,
@@ -86,6 +93,25 @@ void OitRender::setup_states() {
   transparent_fbo_.clear_color_ = glm::vec4(0.1, 0.1, 0.1, 1.0);
   transparent_fbo_.clear_when_bind = false;
 
+  // init depth peeling
+  for (int i = 0; i < 2; i++) {
+    dp_color_texes_[i] = std::make_shared<DRL::Texture2D>(
+        info_.width, info_.height, 1, GL_RGBA32F);
+    dp_depth_texes_[i] = std::make_shared<DRL::Texture2D>(
+        info_.width, info_.height, 1, GL_DEPTH_COMPONENT32);
+    dp_fbos_[i].set_viewport(info_.width, info_.height);
+    dp_fbos_[i].attach_buffer(GL_COLOR_ATTACHMENT0, dp_color_texes_[i], 0);
+    dp_fbos_[i].attach_buffer(GL_DEPTH_ATTACHMENT, dp_depth_texes_[i], 0);
+    dp_fbos_[i].clear_when_bind = false;
+  }
+  dp_color_blender_tex = std::make_shared<DRL::Texture2D>(
+      info_.width, info_.height, 1, GL_RGBA32F);
+  dp_color_blender_fbo_.attach_buffer(GL_COLOR_ATTACHMENT0,
+                                      dp_color_blender_tex, 0);
+  dp_color_blender_fbo_.attach_buffer(GL_DEPTH_ATTACHMENT, dp_depth_texes_[0],
+                                      0);
+  dp_color_blender_fbo_.set_viewport(info_.width, info_.height);
+  dp_color_blender_fbo_.clear_when_bind = false;
   for (int i = QUAD_NUM; i >= 0; i--) {
     quad_pos_.emplace_back(0, 0.0, STEP * i);
   }
@@ -96,7 +122,7 @@ void OitRender::setup_states() {
 
 void OitRender::render() {
 
-  static int method_index = 1;
+  static int method_index = 2;
   ImGui::NewFrame();
   {
     ImGui::Begin("Background Color", 0); // Create a window called "Hello,
@@ -137,6 +163,9 @@ void OitRender::render() {
     break;
   case 1:
     weighted_blended_render(solid_model_mat4s, view, proj);
+    break;
+  case 2:
+    depth_peeling_render(solid_model_mat4s, view, proj);
     break;
   default:
     // other doesn't implement
@@ -252,4 +281,83 @@ void OitRender::weighted_blended_render(
     DRL::bind_guard gd(screen_shader_, opaque_texture_);
     DRL::renderScreenQuad();
   }
+}
+void OitRender::depth_peeling_render(
+    const std::vector<glm::mat4> &solid_model_mat4s, const glm::mat4 &view,
+    const glm::mat4 &proj) {
+  auto draw_scene = [&](Program &shader) {
+    //    solid_shader_.bind();
+    //    solid_shader_.set_uniform("view", view);
+    //    solid_shader_.set_uniform("projection", proj);
+    //    for (auto &solid_model_mat4 : solid_model_mat4s) {
+    //      solid_shader_.set_uniform("model", solid_model_mat4);
+    //      DRL::renderQuad();
+    //    }
+
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    DRL::bind_guard gd(shader, transparent_texture_);
+    shader.set_uniform("view", view);
+    shader.set_uniform("projection", proj);
+    for (const auto &pos : quad_pos_) {
+      auto i_model = glm::translate(glm::mat4(1.0f), pos);
+      i_model =
+          glm::rotate(i_model, glm::radians(90.0f), glm::vec3(1.0, 0.0, 0.0));
+      shader.set_uniform("model", i_model);
+      DRL::renderQuad();
+    }
+  };
+
+  dp_color_blender_fbo_.bind();
+  dp_color_blender_fbo_.clear();
+  // get the first layer
+  glEnable(GL_DEPTH_TEST);
+  draw_scene(sorted_blend_shader_);
+  dp_color_blender_fbo_.unbind();
+
+#define NUM_PASSES 3
+  int numLayers = (NUM_PASSES - 1) * 2;
+  for (int layer = 1; layer < numLayers; layer++) {
+    int currId = layer % 2;
+    int prevId = 1 - currId;
+    dp_fbos_[currId].bind();
+    glClearColor(0, 0, 0, 0);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glDisable(GL_BLEND);
+    glEnable(GL_DEPTH_TEST);
+    dp_depth_texes_[prevId]->set_slot(1);
+    //    dp_color_texes_[prevId]->set_slot(0);
+    dp_depth_texes_[prevId]->bind();
+    //    dp_color_texes_[prevId]->bind();
+    draw_scene(dp_peeling_shader_);
+    //    dp_color_texes_[prevId]->set_slot(0);
+    dp_depth_texes_[prevId]->set_slot(0);
+    dp_depth_texes_[prevId]->unbind();
+    //    dp_color_texes_[prevId]->unbind();
+
+    dp_color_blender_fbo_.bind();
+    glDisable(GL_DEPTH_TEST);
+    glEnable(GL_BLEND);
+    //    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    // use separate blending function
+    glBlendEquation(GL_FUNC_ADD);
+
+    glBlendFuncSeparate(GL_DST_ALPHA, GL_ONE, GL_ZERO, GL_ONE_MINUS_SRC_ALPHA);
+    dp_color_texes_[currId]->set_slot(0);
+    dp_color_texes_[currId]->bind();
+    dp_blend_shader_.bind();
+    DRL::renderScreenQuad();
+    glDisable(GL_BLEND);
+  }
+  //  // final pass
+  glBindFramebuffer(GL_FRAMEBUFFER, 0);
+  glDrawBuffer(GL_BACK_LEFT);
+  glDisable(GL_DEPTH_TEST);
+  glDisable(GL_BLEND);
+  dp_color_blender_tex->set_slot(0);
+  DRL::bind_guard gd(dp_final_shader_, dp_color_blender_tex);
+  //  dp_final_shader_.set_uniform("vBackgroundColor", glm::vec4(0.0));
+  DRL::renderScreenQuad();
+  glEnable(GL_DEPTH_TEST);
+  glEnable(GL_BLEND);
 }

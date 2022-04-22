@@ -468,6 +468,11 @@ void RenderBase::InitWindow() {
   ImGui::StyleColorsDark();
   ImGui_ImplGlfw_InitForOpenGL(window, true);
   ImGui_ImplOpenGL3_Init(info_.glsl_version.c_str());
+
+  spdlog::info("Vendor: {}", glGetString(GL_VENDOR));
+  spdlog::info("Renderer: {}", glGetString(GL_RENDERER));
+  spdlog::info("Version: {}", glGetString(GL_VERSION));
+  spdlog::info("GLSL : {}", glGetString(GL_SHADING_LANGUAGE_VERSION));
 }
 RenderBase::~RenderBase() {
   ImGui_ImplOpenGL3_Shutdown();

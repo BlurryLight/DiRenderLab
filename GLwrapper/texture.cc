@@ -229,3 +229,10 @@ void Texture::set_min_filter(GLint value) {
   glTextureParameteri(obj_, GL_TEXTURE_MIN_FILTER, value);
   min_filter_ = value;
 }
+TextureRect::TextureRect(int width, int height, int num_mipmaps,
+                         GLenum internal_format)
+    : Texture(GL_TEXTURE_RECTANGLE) {
+  AssertLog(num_mipmaps >= 1, "TextureRect needs at least base mipmap!");
+  glTextureStorage2D(obj_, num_mipmaps, internal_format, width, height);
+  updated_ = true;
+}
