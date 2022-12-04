@@ -9,6 +9,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtx/euler_angles.hpp>
+#include <glm/gtx/quaternion.hpp>
 
 #include "GLwrapper/framebuffer.hh"
 #include "GLwrapper/glsupport.hh"
@@ -23,11 +24,17 @@ using DRL::Shader;
 
 #include <iostream>
 
+static glm::vec3 LightEulerAngles = glm::vec3(90, 0, 0);
+
+bool gUseQuat = false;
+bool gQuatRight = true;
+
 struct uniform_block {
-  glm::vec3 lightPos{0,1,0};
+  glm::vec3 lightPos{0, 1, 0};
+  glm::quat lightRotation;
   glm::vec3 lightAngle{0};
   glm::vec3 lightScale{1.0};
-  bool twoSided = false;
+  bool twoSided = true;
   float roughness = 0.3;
 };
 
@@ -38,7 +45,7 @@ public:
   DRL::Program LightShader;
   DRL::VertexArray planeVAO;
   DRL::Texture2D woodTexture;
-  DRL::Texture2D ltc1tex,ltc2tex;
+  DRL::Texture2D ltc1tex, ltc2tex;
   uniform_block uniforms_;
   glm::vec3 lightCenter_;
   std::vector<glm::vec3> lightCorners_;
@@ -48,6 +55,7 @@ public:
   void setup_states() override;
   void render() override;
   void renderScene(const DRL::Program &shader);
+  virtual void processInput() override;
 };
 void LTCRender::setup_states() {
 
@@ -61,20 +69,22 @@ void LTCRender::setup_states() {
   resMgr.add_path(decltype(resMgr)::root_path / "resources" / "shaders" /
                   "LTC");
   resMgr.add_path(decltype(resMgr)::root_path / "resources" / "textures");
-  resMgr.add_path(decltype(resMgr)::root_path / "resources" / "textures"/"ltc");
+  resMgr.add_path(decltype(resMgr)::root_path / "resources" / "textures" /
+                  "ltc");
   // build and compile shaders
   // -------------------------
   LTCShader = DRL::make_program(resMgr.find_path("mvp_pos_normal_texture.vert"),
-                             resMgr.find_path("ltc.frag"));
+                                resMgr.find_path("ltc.frag"));
 
-  LightShader = DRL::make_program(resMgr.find_path("mvp_pos_normal_texture.vert"),
-                                  resMgr.find_path("light.frag"));
+  LightShader =
+      DRL::make_program(resMgr.find_path("mvp_pos_normal_texture.vert"),
+                        resMgr.find_path("light.frag"));
 
-  lightCenter_ = glm::vec3(0.0,-0.5,0.0);
-  lightCorners_.push_back(glm::vec3(1.0,-0.5,1.0));
-  lightCorners_.push_back(glm::vec3(-1.0,-0.5,1.0));
-  lightCorners_.push_back(glm::vec3(-1.0,-0.5,-1.0));
-  lightCorners_.push_back(glm::vec3(1.0,-0.5,-1.0));
+  lightCenter_ = glm::vec3(0.0, -0.5, 0.0);
+  lightCorners_.push_back(glm::vec3(1.0, -0.5, 1.0));
+  lightCorners_.push_back(glm::vec3(-1.0, -0.5, 1.0));
+  lightCorners_.push_back(glm::vec3(-1.0, -0.5, -1.0));
+  lightCorners_.push_back(glm::vec3(1.0, -0.5, -1.0));
   // set up vertex data (and buffer(s)) and configure vertex attributes
   // ------------------------------------------------------------------
   float planeVertices[] = {
@@ -114,7 +124,38 @@ void LTCRender::setup_states() {
 
   // lighting info
   // -------------
+  uniforms_.lightRotation =
+      glm::quat(glm::radians(glm::vec3(90.0f, 0.0f, 0.0f)));
 }
+
+  // God save us:
+  // https://paroj.github.io/gltut/Positioning/Tut08%20Quaternions.html
+  // > In particular, pay attention to the difference between right multiplication and left multiplication. 
+  // When you right-multiply, the offset orientation is in model space. When you left-multiply, the offset is in world space. 
+  // Both of these can be useful for different purposes.
+  // 对于普通的MVP变换，其旋转应该发生在model空间
+  // 所以默认right 应该是true
+glm::quat OffsetOrientation(const glm::vec3 &_axis, float fAngDeg,
+                            glm::quat inQuat, bool right) {
+  float fAngRad = glm::radians(fAngDeg);
+
+  glm::vec3 axis = glm::normalize(_axis);
+
+  axis = axis * sinf(fAngRad / 2.0f);
+  float scalar = cosf(fAngRad / 2.0f);
+
+  glm::fquat offset(scalar, axis.x, axis.y, axis.z);
+
+  glm::quat quat;
+  if (right) {
+    quat = inQuat * offset;
+  } else {
+    quat = offset * inQuat;
+  }
+  return glm::normalize(quat);
+
+}
+
 void LTCRender::render() {
 
   ImGui::NewFrame();
@@ -124,11 +165,25 @@ void LTCRender::render() {
                 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
     ImGui::SliderFloat3("LightPos", glm::value_ptr(uniforms_.lightPos), -10.0f,
                         10.0f, "%.3f");
-    ImGui::SliderFloat3("LightRotation", glm::value_ptr(uniforms_.lightAngle),
+    ImGui::SliderFloat3("LightQuatAngles", glm::value_ptr(uniforms_.lightAngle),
                         0, 180.0f, "%.3f");
+    ImGui::SliderFloat4("LightQuatValues",
+                        glm::value_ptr(uniforms_.lightRotation), 0, 1.0f,
+                        "%.3f");
+
+    ImGui::SliderFloat3("LightEulerAngles", glm::value_ptr(LightEulerAngles), 0,
+                        180.0f, "%.3f");
     ImGui::SliderFloat3("LightScale", glm::value_ptr(uniforms_.lightScale), 0.1,
                         2.0f, "%.3f");
     ImGui::Checkbox("TwoSided", &uniforms_.twoSided);
+    ImGui::Checkbox("Use Quat", &gUseQuat);
+    ImGui::Checkbox("Quat Right",&gQuatRight);
+    if(ImGui::Button("Reset Quat / Euler"))
+    {
+      uniforms_.lightRotation =
+      glm::quat(glm::radians(glm::vec3(90.0f, 0.0f, 0.0f)));
+      LightEulerAngles = glm::vec3(90, 0, 0);
+    }
     ImGui::SliderFloat("roughness", &uniforms_.roughness, 0.01, 1.0, "%.3f");
     ImGui::End();
   }
@@ -139,7 +194,6 @@ void LTCRender::render() {
   glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-
   glm::mat4 projection =
       glm::perspective(glm::radians(camera_->Zoom),
                        (float)info_.width / (float)info_.height, 0.1f, 100.0f);
@@ -149,8 +203,22 @@ void LTCRender::render() {
   LightShader.bind();
   auto model = glm::mat4(1.0f);
   model = glm::translate(model, uniforms_.lightPos);
-  auto radians = glm::radians(uniforms_.lightAngle);
-  model = model * glm::eulerAngleYXZ(radians.y,radians.x,radians.z); //gimbal block when x == 90.0
+
+  // model = model * glm::eulerAngleYXZ(radians.y,radians.x,radians.z); //gimbal
+  // block when x == 90.0
+  uniforms_.lightAngle =
+      glm::degrees(glm::eulerAngles(uniforms_.lightRotation));
+
+  if(gUseQuat)
+  {
+    model = model * glm::mat4_cast(uniforms_.lightRotation); // quat version
+  }
+  else
+  {
+    auto radians = glm::radians(LightEulerAngles);
+    glm::mat4 rotationEuler = glm::eulerAngleYXZ(radians.y, radians.x, radians.z);
+    model = model * rotationEuler; // euler version
+  }
   model = glm::scale(model, uniforms_.lightScale);
   LightShader.set_uniform("model", model);
   LightShader.set_uniform("projection", projection);
@@ -182,8 +250,6 @@ void LTCRender::render() {
   ltc2tex.set_slot(2);
   ltc2tex.bind();
   renderScene(LTCShader);
-
-
 }
 
 int main() {
@@ -228,4 +294,45 @@ void LTCRender::renderScene(const DRL::Program &shader) {
   model = glm::scale(model, glm::vec3(0.5f));
   shader.set_uniform("model", model);
   DRL::renderCube();
+}
+
+inline void LTCRender::processInput() {
+  DRL::RenderBase::processInput();
+  if (!gUseQuat) {
+    if (glfwGetKey(window_, GLFW_KEY_J) == GLFW_PRESS)
+      LightEulerAngles.x -= 0.1;
+    if (glfwGetKey(window_, GLFW_KEY_U) == GLFW_PRESS)
+      LightEulerAngles.x += 0.1;
+
+    if (glfwGetKey(window_, GLFW_KEY_K) == GLFW_PRESS)
+      LightEulerAngles.y -= 0.1;
+    if (glfwGetKey(window_, GLFW_KEY_I) == GLFW_PRESS)
+      LightEulerAngles.y += 0.1;
+
+    if (glfwGetKey(window_, GLFW_KEY_L) == GLFW_PRESS)
+      LightEulerAngles.z -= 0.1;
+    if (glfwGetKey(window_, GLFW_KEY_O) == GLFW_PRESS)
+      LightEulerAngles.z += 0.1;
+  } else {
+    if (glfwGetKey(window_, GLFW_KEY_J) == GLFW_PRESS)
+      uniforms_.lightRotation = OffsetOrientation(
+          glm::vec3(1.0f, 0.0f, 0.0f), -0.1, uniforms_.lightRotation,gQuatRight);
+    if (glfwGetKey(window_, GLFW_KEY_U) == GLFW_PRESS)
+      uniforms_.lightRotation = OffsetOrientation(glm::vec3(1.0f, 0.0f, 0.0f),
+                                                  0.1, uniforms_.lightRotation,gQuatRight);
+
+    if (glfwGetKey(window_, GLFW_KEY_K) == GLFW_PRESS)
+      uniforms_.lightRotation = OffsetOrientation(
+          glm::vec3(0.0f, 1.0f, 0.0f), -0.1, uniforms_.lightRotation,gQuatRight);
+    if (glfwGetKey(window_, GLFW_KEY_I) == GLFW_PRESS)
+      uniforms_.lightRotation = OffsetOrientation(glm::vec3(0.0f, 1.0f, 0.0f),
+                                                  0.1, uniforms_.lightRotation,gQuatRight);
+
+    if (glfwGetKey(window_, GLFW_KEY_L) == GLFW_PRESS)
+      uniforms_.lightRotation = OffsetOrientation(
+          glm::vec3(0.0f, 0.0f, 1.0f), -0.1, uniforms_.lightRotation,gQuatRight);
+    if (glfwGetKey(window_, GLFW_KEY_O) == GLFW_PRESS)
+      uniforms_.lightRotation = OffsetOrientation(glm::vec3(0.0f, 0.0f, 1.0f),
+                                                  0.1, uniforms_.lightRotation,gQuatRight);
+  }
 }

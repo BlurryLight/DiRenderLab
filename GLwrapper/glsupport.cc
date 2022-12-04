@@ -557,13 +557,13 @@ void RenderBase::processInput() {
 
   if (!camera_)
     return;
-  // J for speed up
-  // K for speed down
-  if (glfwGetKey(window_, GLFW_KEY_J) == GLFW_PRESS) {
+  // Z for speed up
+  // X for speed down
+  if (glfwGetKey(window_, GLFW_KEY_Z) == GLFW_PRESS) {
     camera_->MovementSpeed += 1.0;
     spdlog::info("Current camera speed:{}", camera_->MovementSpeed);
   }
-  if (glfwGetKey(window_, GLFW_KEY_K) == GLFW_PRESS) {
+  if (glfwGetKey(window_, GLFW_KEY_X) == GLFW_PRESS) {
     camera_->MovementSpeed = std::min(camera_->MovementSpeed - 1.0f, 0.0f);
     spdlog::info("Current camera speed:{}", camera_->MovementSpeed);
   }
