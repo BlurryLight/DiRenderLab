@@ -47,7 +47,7 @@ namespace DRL {
 enum Camera_Movement { FORWARD, BACKWARD, LEFT, RIGHT };
 
 // Default camera values
-constexpr inline float YAW = 90.0f; // 相机面朝负向，根据右手法则，Yaw应该为正90度 (逆时针为正)
+constexpr inline float YAW = -90.0f; 
 constexpr inline float PITCH = 0.0f;
 constexpr inline float SPEED = 2.5f;
 constexpr inline float SENSITIVITY = 0.1f;
@@ -75,10 +75,9 @@ public:
   glm::vec3 Up{};
   glm::vec3 Right{};
   glm::vec3 WorldUp{};
-
-//https://community.khronos.org/t/how-to-limit-x-axis-rotation/75515/11
-  float pitch; // to limit pitch it has to be stored seperately
-  glm::quat Rotation;
+  // Euler Angles
+  float Yaw;
+  float Pitch;
   // Camera options
   float MovementSpeed;
   float MouseSensitivity;
@@ -95,11 +94,6 @@ public:
   // Returns the view matrix calculated using Euler Angles and the LookAt Matrix
   glm::mat4 GetViewMatrix() {
     return glm::lookAt(Position, Position + Front, Up);
-
-    // if we need to constraint pitch
-    // https://community.khronos.org/t/how-to-limit-x-axis-rotation/75515/10
-    // auto pitchMat = glm::rotate(glm::mat4(1.0), glm::radians(-pitch), glm::vec3(1.0,0.0,0.0));
-    // return pitchMat * glm::lookAt(Position, Position + Front, Up);
   }
 
   // Processes input received from any keyboard-like input system. Accepts input
