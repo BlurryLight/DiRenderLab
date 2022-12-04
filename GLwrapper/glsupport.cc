@@ -4,6 +4,7 @@
 
 #include <utility>
 #include <utils/cmake_vars.h>
+#include <glm/gtx/quaternion.hpp>
 
 #include "glsupport.hh"
 #include "third_party/imgui/imgui.h"
@@ -358,6 +359,15 @@ void Camera::updateCameraVectors() {
                         // closer to 0 the more you look up or down which
                         // results in slower movement.
   Up = glm::normalize(glm::cross(Right, Front));
+
+// Front = glm::vec3(0.0f, 0.0f, -1.0f);
+//   Up = glm::normalize(WorldUp);
+//   Right = glm::normalize(glm::cross(Front,WorldUp));
+//   glm::quat pitch_quat = glm::angleAxis(glm::radians(Pitch), Right);
+//   glm::quat yaw_quat = glm::angleAxis(glm::radians(Yaw), Up);
+//   glm::quat temp = glm::cross(pitch_quat,yaw_quat);
+//   temp = glm::normalize(temp);
+//   Front = glm::rotate(temp,Front);
 }
 Camera::Camera(float posX, float posY, float posZ, float upX, float upY,
                float upZ, float yaw, float pitch)
@@ -469,10 +479,10 @@ void RenderBase::InitWindow() {
   ImGui_ImplGlfw_InitForOpenGL(window, true);
   ImGui_ImplOpenGL3_Init(info_.glsl_version.c_str());
 
-  spdlog::info("Vendor: {}", glGetString(GL_VENDOR));
-  spdlog::info("Renderer: {}", glGetString(GL_RENDERER));
-  spdlog::info("Version: {}", glGetString(GL_VERSION));
-  spdlog::info("GLSL : {}", glGetString(GL_SHADING_LANGUAGE_VERSION));
+  spdlog::info("Vendor: {}", (char*)(glGetString(GL_VENDOR)));
+  spdlog::info("Renderer: {}", (char*)(glGetString(GL_RENDERER)));
+  spdlog::info("Version: {}", (char*)(glGetString(GL_VERSION)));
+  spdlog::info("GLSL : {}", (char*)(glGetString(GL_SHADING_LANGUAGE_VERSION)));
 }
 RenderBase::~RenderBase() {
   ImGui_ImplOpenGL3_Shutdown();
