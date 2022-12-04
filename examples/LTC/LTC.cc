@@ -21,6 +21,7 @@
 #include "utils/resource_path_searcher.h"
 using DRL::Camera;
 using DRL::Shader;
+using DRL::OffsetOrientation;
 
 #include <iostream>
 
@@ -128,33 +129,6 @@ void LTCRender::setup_states() {
       glm::quat(glm::radians(glm::vec3(90.0f, 0.0f, 0.0f)));
 }
 
-  // God save us:
-  // https://paroj.github.io/gltut/Positioning/Tut08%20Quaternions.html
-  // > In particular, pay attention to the difference between right multiplication and left multiplication. 
-  // When you right-multiply, the offset orientation is in model space. When you left-multiply, the offset is in world space. 
-  // Both of these can be useful for different purposes.
-  // 对于普通的MVP变换，其旋转应该发生在model空间
-  // 所以默认right 应该是true
-glm::quat OffsetOrientation(const glm::vec3 &_axis, float fAngDeg,
-                            glm::quat inQuat, bool right) {
-  float fAngRad = glm::radians(fAngDeg);
-
-  glm::vec3 axis = glm::normalize(_axis);
-
-  axis = axis * sinf(fAngRad / 2.0f);
-  float scalar = cosf(fAngRad / 2.0f);
-
-  glm::fquat offset(scalar, axis.x, axis.y, axis.z);
-
-  glm::quat quat;
-  if (right) {
-    quat = inQuat * offset;
-  } else {
-    quat = offset * inQuat;
-  }
-  return glm::normalize(quat);
-
-}
 
 void LTCRender::render() {
 

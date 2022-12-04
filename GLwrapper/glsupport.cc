@@ -2,9 +2,9 @@
 // Created by zhong on 2021/4/26.
 //
 
+#include <glm/gtx/quaternion.hpp>
 #include <utility>
 #include <utils/cmake_vars.h>
-#include <glm/gtx/quaternion.hpp>
 
 #include "glsupport.hh"
 #include "third_party/imgui/imgui.h"
@@ -19,6 +19,26 @@ float DRL::get_random_float(float min, float max) {
   static std::mt19937 generator;
   std::uniform_real_distribution<float> dis(min, max);
   return dis(generator);
+}
+
+glm::quat DRL::OffsetOrientation(const glm::vec3 &_axis, float fAngDeg,
+                                 glm::quat inQuat, bool right) {
+  float fAngRad = glm::radians(fAngDeg);
+
+  glm::vec3 axis = glm::normalize(_axis);
+
+  axis = axis * sinf(fAngRad / 2.0f);
+  float scalar = cosf(fAngRad / 2.0f);
+
+  glm::fquat offset(scalar, axis.x, axis.y, axis.z);
+
+  glm::quat quat;
+  if (right) {
+    quat = inQuat * offset;
+  } else {
+    quat = offset * inQuat;
+  }
+  return glm::normalize(quat);
 }
 void DRL::glDebugOutput(GLenum source, GLenum type, unsigned int id,
                         GLenum severity, GLsizei length, const char *message,
@@ -319,21 +339,43 @@ void Camera::ProcessKeyboard(Camera_Movement direction, float deltaTime) {
   if (direction == RIGHT)
     Position += Right * velocity;
 }
+
 void Camera::ProcessMouseMovement(float xoffset, float yoffset,
                                   GLboolean constrainPitch) {
+
   xoffset *= MouseSensitivity;
   yoffset *= MouseSensitivity;
 
-  Yaw += xoffset;
-  Pitch += yoffset;
+  // 由于面朝-Z轴，鼠标向右，镜头向正X轴旋转，yaw值应该减小，所以是-offset
+  Rotation = OffsetOrientation(glm::vec3(0, 1, 0), -xoffset, Rotation, false);
+
+  // 由于面朝-Z轴，鼠标向上，镜头向正Y轴旋转，这里传进来的yoffset已经反转过一次了，鼠标向上是正yoffset。
+  // 面朝-Z/z轴时，pitch为0，根据右手法则，往上为逆时针，pitch为正
+  //            y
+  //          ▲
+  //          │
+  //          │
+  //          │
+  //          │
+  //         ┌┴──────────►  x
+  //       ┌─┘
+  //      ┌┘
+  //    ┌─┘
+  //   ─┘
+  // z
+  
+  Rotation = OffsetOrientation(glm::vec3(1, 0, 0), yoffset, Rotation, false);
 
   // Make sure that when pitch is out of bounds, screen doesn't get flipped
-  if (constrainPitch) {
-    if (Pitch > 89.0f)
-      Pitch = 89.0f;
-    if (Pitch < -89.0f)
-      Pitch = -89.0f;
-  }
+  // if we need to enable pitch limit 
+  // pitch += yoffset;
+  // if (constrainPitch) {
+  //   if (pitch > 89.0f)
+  //     pitch = 89.0f;
+  //   if (pitch < -89.0f)
+  //     pitch = -89.0f;
+  // }
+
 
   // Update Front, Right and Up Vectors using the updated Euler angles
   updateCameraVectors();
@@ -347,27 +389,15 @@ void Camera::ProcessMouseScroll(float yoffset) {
     Zoom = 45.0f;
 }
 void Camera::updateCameraVectors() {
-  // Calculate the new Front vector
-  glm::vec3 front;
-  front.x = cos(glm::radians(Yaw)) * cos(glm::radians(Pitch));
-  front.y = sin(glm::radians(Pitch));
-  front.z = sin(glm::radians(Yaw)) * cos(glm::radians(Pitch));
-  Front = glm::normalize(front);
+  auto rot = glm::mat3_cast(Rotation);
+  
+  Front = glm::normalize( rot * glm::vec3(1, 0, 0));
   // Also re-calculate the Right and Up vector
   Right = glm::normalize(glm::cross(
       Front, WorldUp)); // Normalize the vectors, because their length gets
                         // closer to 0 the more you look up or down which
                         // results in slower movement.
   Up = glm::normalize(glm::cross(Right, Front));
-
-// Front = glm::vec3(0.0f, 0.0f, -1.0f);
-//   Up = glm::normalize(WorldUp);
-//   Right = glm::normalize(glm::cross(Front,WorldUp));
-//   glm::quat pitch_quat = glm::angleAxis(glm::radians(Pitch), Right);
-//   glm::quat yaw_quat = glm::angleAxis(glm::radians(Yaw), Up);
-//   glm::quat temp = glm::cross(pitch_quat,yaw_quat);
-//   temp = glm::normalize(temp);
-//   Front = glm::rotate(temp,Front);
 }
 Camera::Camera(float posX, float posY, float posZ, float upX, float upY,
                float upZ, float yaw, float pitch)
@@ -375,8 +405,8 @@ Camera::Camera(float posX, float posY, float posZ, float upX, float upY,
       MouseSensitivity(SENSITIVITY), Zoom(ZOOM) {
   Position = glm::vec3(posX, posY, posZ);
   WorldUp = glm::vec3(upX, upY, upZ);
-  Yaw = yaw;
-  Pitch = pitch;
+  this->pitch = pitch;
+  Rotation = glm::quat(glm::radians(glm::vec3(pitch, yaw, 0)));
   updateCameraVectors();
 }
 Camera::Camera(glm::vec3 position, glm::vec3 up, float yaw, float pitch)
@@ -384,8 +414,8 @@ Camera::Camera(glm::vec3 position, glm::vec3 up, float yaw, float pitch)
       MouseSensitivity(SENSITIVITY), Zoom(ZOOM) {
   Position = position;
   WorldUp = up;
-  Yaw = yaw;
-  Pitch = pitch;
+  this->pitch = pitch;
+  Rotation = glm::quat(glm::radians(glm::vec3(pitch, yaw, 0)));
   updateCameraVectors();
 }
 RenderBase::RenderBase() : RenderBase(BaseInfo{}) {}
@@ -479,10 +509,10 @@ void RenderBase::InitWindow() {
   ImGui_ImplGlfw_InitForOpenGL(window, true);
   ImGui_ImplOpenGL3_Init(info_.glsl_version.c_str());
 
-  spdlog::info("Vendor: {}", (char*)(glGetString(GL_VENDOR)));
-  spdlog::info("Renderer: {}", (char*)(glGetString(GL_RENDERER)));
-  spdlog::info("Version: {}", (char*)(glGetString(GL_VERSION)));
-  spdlog::info("GLSL : {}", (char*)(glGetString(GL_SHADING_LANGUAGE_VERSION)));
+  spdlog::info("Vendor: {}", (char *)(glGetString(GL_VENDOR)));
+  spdlog::info("Renderer: {}", (char *)(glGetString(GL_RENDERER)));
+  spdlog::info("Version: {}", (char *)(glGetString(GL_VERSION)));
+  spdlog::info("GLSL : {}", (char *)(glGetString(GL_SHADING_LANGUAGE_VERSION)));
 }
 RenderBase::~RenderBase() {
   ImGui_ImplOpenGL3_Shutdown();

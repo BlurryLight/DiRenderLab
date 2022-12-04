@@ -14,6 +14,8 @@
 #include <assimp/scene.h>
 #include <fstream>
 #include <glm/glm.hpp>
+#include <glm/gtc/quaternion.hpp>
+#include <glm/gtx/quaternion.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <iostream>
 #include <map>
@@ -45,13 +47,23 @@ namespace DRL {
 enum Camera_Movement { FORWARD, BACKWARD, LEFT, RIGHT };
 
 // Default camera values
-constexpr inline float YAW = -90.0f;
+constexpr inline float YAW = 90.0f; // 相机面朝负向，根据右手法则，Yaw应该为正90度 (逆时针为正)
 constexpr inline float PITCH = 0.0f;
 constexpr inline float SPEED = 2.5f;
 constexpr inline float SENSITIVITY = 0.1f;
 constexpr inline float ZOOM = 45.0f;
 
 float get_random_float(float min = 0.0f, float max = 1.0f);
+
+// God save us:
+// https://paroj.github.io/gltut/Positioning/Tut08%20Quaternions.html
+// > In particular, pay attention to the difference between right multiplication and left multiplication. 
+// When you right-multiply, the offset orientation is in model space. When you left-multiply, the offset is in world space. 
+// Both of these can be useful for different purposes.
+// 对于普通的MVP变换，其旋转应该发生在model空间
+// 所以默认right 应该是true
+glm::quat OffsetOrientation(const glm::vec3 &_axis, float fAngDeg,
+                            glm::quat inQuat, bool right);
 
 // An abstract camera class that processes input and calculates the
 // corresponding Euler Angles, Vectors and Matrices for use in OpenGL
@@ -63,9 +75,10 @@ public:
   glm::vec3 Up{};
   glm::vec3 Right{};
   glm::vec3 WorldUp{};
-  // Euler Angles
-  float Yaw;
-  float Pitch;
+
+//https://community.khronos.org/t/how-to-limit-x-axis-rotation/75515/11
+  float pitch; // to limit pitch it has to be stored seperately
+  glm::quat Rotation;
   // Camera options
   float MovementSpeed;
   float MouseSensitivity;
@@ -82,6 +95,11 @@ public:
   // Returns the view matrix calculated using Euler Angles and the LookAt Matrix
   glm::mat4 GetViewMatrix() {
     return glm::lookAt(Position, Position + Front, Up);
+
+    // if we need to constraint pitch
+    // https://community.khronos.org/t/how-to-limit-x-axis-rotation/75515/10
+    // auto pitchMat = glm::rotate(glm::mat4(1.0), glm::radians(-pitch), glm::vec3(1.0,0.0,0.0));
+    // return pitchMat * glm::lookAt(Position, Position + Front, Up);
   }
 
   // Processes input received from any keyboard-like input system. Accepts input
