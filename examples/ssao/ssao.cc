@@ -99,12 +99,12 @@ int main() {
   // load models
   // -----------
   Model spotModel(resMgr.find_path("spot_triangulated_good.obj").string());
-  auto texture_path = resMgr.find_path("spot_texture.png");
+  // auto texture_path = resMgr.find_path("spot_texture.png");
   //    auto spot_texture = TextureFromFile(texture_path.c_str(), "", false,
   //    false);
-  auto spot_texture = DRL::Texture2D(texture_path, 1, false, false);
-  glActiveTexture(GL_TEXTURE0);
-  glBindTexture(GL_TEXTURE_2D, spot_texture);
+  // auto spot_texture = DRL::Texture2D(texture_path, 1, false, false);
+  // glActiveTexture(GL_TEXTURE0);
+  // glBindTexture(GL_TEXTURE_2D, spot_texture);
 
   // configure gBuffer
   unsigned int gBuffer;
@@ -152,7 +152,7 @@ int main() {
   glGenFramebuffers(1, &ssaoFBO);
   glBindFramebuffer(GL_FRAMEBUFFER, ssaoFBO);
   uint ssaoColorBuffer;
-  init_texture(ssaoColorBuffer, GL_RED, GL_FLOAT);
+  init_texture(ssaoColorBuffer, GL_R16, GL_FLOAT);
   glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
                          ssaoColorBuffer, 0);
   if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
@@ -236,7 +236,8 @@ int main() {
 
     // render
     // ------
-    glClearColor(0.05f, 0.05f, 0.05f, 1.0f);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glClearColor(0.55f, 0.05f, 0.05f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     // gbuffer
@@ -283,6 +284,7 @@ int main() {
     gShader.set_uniform("model", model);
 
     spotModel.Draw(gShader);
+
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
     // ssao
@@ -302,14 +304,15 @@ int main() {
     glBindTexture(GL_TEXTURE_2D, gNormal);
     glActiveTexture(GL_TEXTURE2);
     glBindTexture(GL_TEXTURE_2D, noiseTexture);
-    renderQuad();
+    renderScreenQuad();
+
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glBindFramebuffer(GL_FRAMEBUFFER, blurFBuffer);
     glClear(GL_COLOR_BUFFER_BIT);
     blurShader.bind();
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, ssaoColorBuffer);
-    renderQuad();
+    renderScreenQuad();
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
     // blur stage
@@ -328,7 +331,7 @@ int main() {
       std::cout << "Current Mode"
                 << ((mode == kNormal) ? "kNormal" : "Position") << std::endl;
     }
-    renderQuad();
+    renderScreenQuad();
 
     // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved
     // etc.)
@@ -405,3 +408,4 @@ void key_callback(GLFWwindow *window, int key, int scancode, int action,
     mode = static_cast<decltype(kNormal)>(mode_num);
   }
 }
+
