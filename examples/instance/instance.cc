@@ -27,6 +27,8 @@ void InstanceRender::setup_states() {
   spotTexture.generateMipmap();
   update_model_matrics();
   glBindBuffer(GL_ARRAY_BUFFER, modelMatricsVBO);
+  // 覆盖 Mesh里的VAO的定义
+  // 原来VAO里定义的是Tex之类的坐标
   for (auto &mesh : spot_ptr->meshes) {
     unsigned int VAO = mesh.vao_;
     glBindVertexArray(VAO);

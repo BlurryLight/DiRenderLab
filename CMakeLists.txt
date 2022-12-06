@@ -85,6 +85,7 @@ set(CORE_EXAMPLES
         instance
         LTC
         oit
+        PboBench
         )
 foreach (EXAMPLE ${CORE_EXAMPLES})
     add_executable(${EXAMPLE} examples/${EXAMPLE}/${EXAMPLE}.cc)
