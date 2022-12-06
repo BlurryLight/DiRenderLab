@@ -53,3 +53,19 @@ interested, a good beginning is [the paper](https://eheitzresearch.wordpress.com
 and [webgl demo](https://blog.selfshadow.com/ltc/webgl/ltc_quad.html)
 
 ![LTC](images/ltc.jpg)
+
+
+- Pixel Buffer Object
+
+测试PBO的上传和下载。
+http://www.songho.ca/opengl/gl_pbo.html#pack
+注意: 实现上和文章描述的方式略有不同。文章中每次采用glBufferData创建了一个新的可变Buffer，而我的实现中采用glBufferStorage创建的不可变Buffer。
+原文章的实现中由于每次创建了一个新的Buffer，所以不用考虑同步问题，OpenGL驱动会维护旧的Buffer的生命周期。
+而我的实现每次都是在原有的Buffer上覆盖数据，所以要处理同步问题(避免上一帧还没写完下一帧就开始写了)。
+
+交替上传 1024x1024xRGBU8的纹理。性能基准数据:
+
+- 纹理只准备一次，Baseline: 约2900 fps
+- 每帧同步上传一张纹理:约800 fps
+- 单个PBO: 约1000~ FPS
+- 两个FBO交替上传: 约1200FPS

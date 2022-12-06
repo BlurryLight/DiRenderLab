@@ -4,7 +4,17 @@ using namespace DRL;
 #include "third_party/imgui/imgui_impl_glfw.h"
 #include "third_party/imgui/imgui_impl_opengl3.h"
 
+// 有两种做法:
+// 1. Orphan
+//  如文章内描述的http://www.songho.ca/opengl/gl_pbo.html#pack,
+// Buffer创建为glBufferData创建，每次调用的时候先调用 glbufferData(...,nullptr,..)创建个新得Buffer内存
+// 旧的内存如果其他地方仍在引用，则其他地方仍然维持这个引用，新的buffer可以直接写入
+// 这样不会引入复杂的同步问题
+
+// 2. Sync
+// 通过Sync同步
 GLuint PBOBuffers[2] = {0, 0};
+GLsync PBOFence[2] = {nullptr,nullptr};
 
 void PBOBench::setup_states() {
   glEnable(GL_DEPTH_TEST);
@@ -19,6 +29,24 @@ void PBOBench::setup_states() {
                              resMgr.find_path("asteroids.frag"));
 
   update_model_matrics();
+}
+
+static void HandleGLFence(GLsync& fence)
+{
+  if(glIsSync(fence))
+  {
+   GLenum result = glClientWaitSync(fence, 0, GL_TIMEOUT_IGNORED);
+   {
+    switch(result)
+    {
+      case GL_CONDITION_SATISFIED:
+        spdlog::warn("wait for fence");
+      // case GL_ALREADY_SIGNALED:
+    }
+   }
+   glDeleteSync(fence);
+   fence = nullptr;
+  }
 }
 
 std::shared_ptr<DRL::Texture2D>
@@ -46,6 +74,9 @@ PBOBench::BenchUpload(TextureUploadingMode mode) {
                          GL_DYNAMIC_STORAGE_BIT | GL_MAP_WRITE_BIT);
     glNamedBufferStorage(PBOBuffers[1], DataSize, nullptr,
                          GL_DYNAMIC_STORAGE_BIT | GL_MAP_WRITE_BIT);
+    
+    // PBOFence[0] = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+    // PBOFence[1] = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
   }
   switch (mode) {
   case TextureUploadingMode::Baseline: {
@@ -57,13 +88,18 @@ PBOBench::BenchUpload(TextureUploadingMode mode) {
     break;
   }
   case TextureUploadingMode::Sync: {
-    // 在构造函数里会同步上传
-    Res = std::make_shared<DRL::Texture2D>(
-        (FrameIdx++ % 2) ? originalTexture : DarkerTexture, 1, false, false);
+    Res = std::make_shared<DRL::Texture2D>(1024, 1024, 1, GL_RGB8);
+    glBindTexture(GL_TEXTURE_2D, Res->handle());
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 1024, 1024, GL_RGB,
+                    GL_UNSIGNED_BYTE, (FrameIdx++ % 2) ? data0 : data1);
+    glBindTexture(GL_TEXTURE_2D, 0);
     break;
   }
   case TextureUploadingMode::PBO: {
+    // 第一帧渲染的时候可能会出现纹理还没上传完的情况
     Res = std::make_shared<DRL::Texture2D>(1024, 1024, 1, GL_RGB8);
+    //创建屏障
+    HandleGLFence(PBOFence[0]);
     glBindBuffer(GL_PIXEL_UNPACK_BUFFER, PBOBuffers[0]);
     // glBufferSubData(GL_PIXEL_UNPACK_BUFFER,0, DataSize, data0);
     GLubyte *ptr =
@@ -72,26 +108,27 @@ PBOBench::BenchUpload(TextureUploadingMode mode) {
       memcpy(ptr, (FrameIdx++ % 2) ? data0 : data1, DataSize);
       glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER); // release the mapped buffer
     }
-
     glBindTexture(GL_TEXTURE_2D, Res->handle());
-    // glMemoryBarrier(GL_PIXEL_BUFFER_BARRIER_BIT);
     glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 1024, 1024, GL_RGB,
                     GL_UNSIGNED_BYTE, 0);
 
     glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
     glBindTexture(GL_TEXTURE_2D, 0);
+    PBOFence[0] = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
     break;
   }
   case TextureUploadingMode::PBO_Interval: {
     static int PBOIndex = 0;
     Res = std::make_shared<DRL::Texture2D>(1024, 1024, 1, GL_RGB8);
     glBindTexture(GL_TEXTURE_2D, Res->handle());
+    HandleGLFence(PBOFence[PBOIndex]);
     glBindBuffer(GL_PIXEL_UNPACK_BUFFER, PBOBuffers[PBOIndex]);
     glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 1024, 1024, GL_RGB,
                     GL_UNSIGNED_BYTE, 0);
 
     PBOIndex = (PBOIndex + 1) % 2;
-    glBindBuffer(GL_PIXEL_UNPACK_BUFFER, PBOBuffers[PBOIndex]);
+    auto NextIndex = PBOIndex;
+    glBindBuffer(GL_PIXEL_UNPACK_BUFFER, PBOBuffers[NextIndex]);
     // glBufferData(GL_PIXEL_UNPACK_BUFFER,DataSize, 0, GL_STREAM_DRAW);
     GLubyte *ptr =
         (GLubyte *)glMapBuffer(GL_PIXEL_UNPACK_BUFFER, GL_WRITE_ONLY);
@@ -101,6 +138,7 @@ PBOBench::BenchUpload(TextureUploadingMode mode) {
     }
     glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
     glBindTexture(GL_TEXTURE_2D, 0);
+    PBOFence[NextIndex] = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
     break;
   }
   }
