@@ -46,6 +46,8 @@ void DRL::glDebugOutput(GLenum source, GLenum type, unsigned int id,
   // clang-format off
     // ignore non-significant error/warning codes
     if(id == 131169 || id == 131185 || id == 131218 || id == 131204) return;
+    // ignore PBO Pixel-path performance warning: Pixel transfer is synchronized with 3D rendering.
+    if(id == 131154 ) return;
 
     std::stringstream ss;
     ss << "---------------" << "\n";
@@ -86,7 +88,7 @@ void DRL::glDebugOutput(GLenum source, GLenum type, unsigned int id,
   if (severity == GL_DEBUG_SEVERITY_HIGH ||
       severity == GL_DEBUG_SEVERITY_MEDIUM) {
     spdlog::shutdown();
-    std::quick_exit(-1);
+    std::abort();
   }
 }
 

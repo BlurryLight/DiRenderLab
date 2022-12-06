@@ -25,7 +25,7 @@ protected:
       PBO,
       PBO_Interval,
   };
-  TextureUploadingMode mUploadingMode = TextureUploadingMode::Baseline;
+  TextureUploadingMode mUploadingMode = TextureUploadingMode::PBO;
   std::shared_ptr<DRL::Texture2D> BenchUpload(TextureUploadingMode mode);
   void update_model_matrics();
 
