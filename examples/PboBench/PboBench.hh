@@ -5,6 +5,13 @@
 #include "GLwrapper/texture.hh"
 #include "GLwrapper/vertex_array.hh"
 using DRL::RenderBase;
+enum class TextureTransferMode : int 
+{
+    Baseline = 0, // 纹理一开始就上传了
+    Sync,
+    PBO,
+    PBO_Interval,
+};
 class PBOBench : public RenderBase {
 protected:
   DRL::ResourcePathSearcher resMgr;
@@ -18,15 +25,11 @@ protected:
   unsigned int modelMatricsVBO = 0;
   std::shared_ptr<DRL::Texture2D> spotTexture;
 
-  enum class TextureUploadingMode : int 
-  {
-      Baseline = 0, // 纹理一开始就上传了
-      Sync,
-      PBO,
-      PBO_Interval,
-  };
-  TextureUploadingMode mUploadingMode = TextureUploadingMode::PBO;
-  std::shared_ptr<DRL::Texture2D> BenchUpload(TextureUploadingMode mode);
+
+  TextureTransferMode mUploadingMode = TextureTransferMode::Baseline;
+  TextureTransferMode mDownloadingMode = TextureTransferMode::PBO_Interval;
+  std::shared_ptr<DRL::Texture2D> BenchUpload(TextureTransferMode mode);
+  void BenchDownload(TextureTransferMode mode);
   void update_model_matrics();
 
 public:

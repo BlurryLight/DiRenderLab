@@ -43,9 +43,13 @@ glm::quat DRL::OffsetOrientation(const glm::vec3 &_axis, float fAngDeg,
 void DRL::glDebugOutput(GLenum source, GLenum type, unsigned int id,
                         GLenum severity, GLsizei length, const char *message,
                         const void *userParam) {
-  // clang-format off
+    // clang-format off
     // ignore non-significant error/warning codes
-    if(id == 131169 || id == 131185 || id == 131218 || id == 131204) return;
+    // nvidia id 131185: Buffer detailed info: Buffer object  
+    // nvidia id 131218 Program/shader state performance warning: Vertex shader in program 2 is being recompiled based on GL state.
+    // nvidia id 131186: Buffer performance warning: Buffer object 8 (bound to GL_PIXEL_PACK_BUFFER_ARB, usage hint is GL_DYNAMIC_DRAW) is being copied/moved from VIDEO memory to DMA CACHED memory.
+    if(id == 131169 || id == 131185 || id == 131186 || id == 131218 || id == 131204) return;
+
     // ignore PBO Pixel-path performance warning: Pixel transfer is synchronized with 3D rendering.
     if(id == 131154 ) return;
 
@@ -84,7 +88,7 @@ void DRL::glDebugOutput(GLenum source, GLenum type, unsigned int id,
         case GL_DEBUG_SEVERITY_NOTIFICATION: ss << "Severity: notification"; break;
     } ss << "\n" <<std::endl;
   // clang-format on
-  spdlog::error(ss.str());
+  spdlog::warn(ss.str());
   if (severity == GL_DEBUG_SEVERITY_HIGH ||
       severity == GL_DEBUG_SEVERITY_MEDIUM) {
     spdlog::shutdown();

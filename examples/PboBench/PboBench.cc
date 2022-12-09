@@ -3,6 +3,7 @@ using namespace DRL;
 #include "third_party/imgui/imgui.h"
 #include "third_party/imgui/imgui_impl_glfw.h"
 #include "third_party/imgui/imgui_impl_opengl3.h"
+#include <stb_image_write.h>
 
 // 有两种做法:
 // 1. Orphan
@@ -13,8 +14,11 @@ using namespace DRL;
 
 // 2. Sync
 // 通过Sync同步
-GLuint PBOBuffers[2] = {0, 0};
-GLsync PBOFence[2] = {nullptr,nullptr};
+GLuint PBOUploadingBuffers[2] = {0, 0};
+GLsync PBOUploadingFence[2] = {nullptr,nullptr};
+
+GLuint PBODownloadingBuffers[2] = {0, 0};
+GLsync PBODownloadingFence[2] = {nullptr,nullptr};
 
 void PBOBench::setup_states() {
   glEnable(GL_DEPTH_TEST);
@@ -41,7 +45,12 @@ static void HandleGLFence(GLsync& fence)
     {
       case GL_CONDITION_SATISFIED:
         spdlog::warn("wait for fence");
+        break;
       // case GL_ALREADY_SIGNALED:
+      case GL_TIMEOUT_EXPIRED:
+      case GL_WAIT_FAILED:
+        spdlog::error("something goes wrong");
+        std::abort();
     }
    }
    glDeleteSync(fence);
@@ -49,8 +58,92 @@ static void HandleGLFence(GLsync& fence)
   }
 }
 
+
+
+void PBOBench::BenchDownload (TextureTransferMode mode) {
+  static double latency = 0;
+  static uint64_t FrameIdx = 0;
+  auto tp = std::chrono::high_resolution_clock::now();
+  auto DataSize = info_.width * info_.height * sizeof(uint8_t) * 4;
+  static void* data_ptr = malloc(DataSize);
+  assert(data_ptr);
+  if (PBODownloadingBuffers[0] == 0) {
+    glCreateBuffers(2, PBODownloadingBuffers);
+    glNamedBufferStorage(PBODownloadingBuffers[0], DataSize, nullptr,
+                         GL_MAP_READ_BIT);
+    glNamedBufferStorage(PBODownloadingBuffers[1], DataSize, nullptr,
+                         GL_MAP_READ_BIT);
+  }
+  switch (mode)
+  {
+    case TextureTransferMode::Baseline:
+    {
+      // do nothing
+      return;
+    }
+    case TextureTransferMode::Sync: {
+      glReadnPixels(0,0,info_.width,info_.height,GL_RGBA,GL_UNSIGNED_BYTE,DataSize,data_ptr);
+      break;
+    }
+    case TextureTransferMode::PBO: 
+    {
+      HandleGLFence(PBODownloadingFence[0]);
+      glBindBuffer(GL_PIXEL_PACK_BUFFER, PBODownloadingBuffers[0]);
+      // 第一帧会读到空数据，问题不大
+      GLubyte *ptr =
+        (GLubyte *)glMapBufferRange(GL_PIXEL_PACK_BUFFER,0,DataSize,GL_MAP_READ_BIT);
+        if (ptr) {
+          memcpy(data_ptr, ptr, DataSize);
+          glUnmapBuffer(GL_PIXEL_PACK_BUFFER); 
+      }
+      glReadnPixels(0,0,info_.width,info_.height,GL_RGBA,GL_UNSIGNED_BYTE,DataSize,0);
+      glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
+      PBODownloadingFence[0] = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+      break;
+    }
+    case TextureTransferMode::PBO_Interval:
+     {
+        static int PBOIndex = 0;
+        HandleGLFence(PBODownloadingFence[PBOIndex]);
+        glBindBuffer(GL_PIXEL_PACK_BUFFER, PBODownloadingBuffers[PBOIndex]);
+        GLubyte *ptr =
+          (GLubyte *)glMapBufferRange(GL_PIXEL_PACK_BUFFER,0,DataSize,GL_MAP_READ_BIT);
+          if (ptr) {
+            memcpy(data_ptr, ptr, DataSize);
+            glUnmapBuffer(GL_PIXEL_PACK_BUFFER); 
+        }
+
+        PBOIndex = (PBOIndex + 1) % 2;
+        auto NextIndex = PBOIndex;
+        glBindBuffer(GL_PIXEL_PACK_BUFFER, PBODownloadingBuffers[NextIndex]);
+        glReadnPixels(0,0,info_.width,info_.height,GL_RGBA,GL_UNSIGNED_BYTE,DataSize,0);
+        glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
+        PBODownloadingFence[NextIndex] = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+        break;
+    }
+  }
+
+  auto tp1 = std::chrono::high_resolution_clock::now();
+  latency =
+      0.9 * latency +
+      0.1 * std::chrono::duration_cast<std::chrono::milliseconds>(tp1 - tp)
+                .count();
+
+  if(FrameIdx == 10)
+  {
+    stbi_flip_vertically_on_write(true);
+    stbi_write_png("grab_col_buf.png", info_.width, info_.height, 4, data_ptr,4 * info_.width);
+  }
+
+  FrameIdx++;
+  if (FrameIdx > 0 && FrameIdx % 300 == 0) {
+    spdlog::info("Time for Downloading Texture: {}ms", latency);
+  }
+
+}
+
 std::shared_ptr<DRL::Texture2D>
-PBOBench::BenchUpload(TextureUploadingMode mode) {
+PBOBench::BenchUpload(TextureTransferMode mode) {
   static double latency = 0;
   static uint64_t FrameIdx = 0;
   // 1024 x 1024
@@ -68,18 +161,18 @@ PBOBench::BenchUpload(TextureUploadingMode mode) {
   assert(nrChannels == 3);
 
   auto DataSize = width * height * sizeof(unsigned char) * nrChannels;
-  if (PBOBuffers[0] == 0) {
-    glCreateBuffers(2, PBOBuffers);
-    glNamedBufferStorage(PBOBuffers[0], DataSize, nullptr,
+  if (PBOUploadingBuffers[0] == 0) {
+    glCreateBuffers(2, PBOUploadingBuffers);
+    glNamedBufferStorage(PBOUploadingBuffers[0], DataSize, nullptr,
                          GL_DYNAMIC_STORAGE_BIT | GL_MAP_WRITE_BIT);
-    glNamedBufferStorage(PBOBuffers[1], DataSize, nullptr,
+    glNamedBufferStorage(PBOUploadingBuffers[1], DataSize, nullptr,
                          GL_DYNAMIC_STORAGE_BIT | GL_MAP_WRITE_BIT);
-    
-    // PBOFence[0] = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
-    // PBOFence[1] = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+
+    PBOUploadingFence[0] = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+    PBOUploadingFence[1] = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
   }
   switch (mode) {
-  case TextureUploadingMode::Baseline: {
+  case TextureTransferMode::Baseline: {
     static auto spot0 =
         std::make_shared<DRL::Texture2D>(originalTexture, 1, false, false);
     static auto spot1 =
@@ -87,7 +180,7 @@ PBOBench::BenchUpload(TextureUploadingMode mode) {
     Res = (FrameIdx++ % 2 == 0) ? spot0 : spot1;
     break;
   }
-  case TextureUploadingMode::Sync: {
+  case TextureTransferMode::Sync: {
     Res = std::make_shared<DRL::Texture2D>(1024, 1024, 1, GL_RGB8);
     glBindTexture(GL_TEXTURE_2D, Res->handle());
     glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 1024, 1024, GL_RGB,
@@ -95,15 +188,15 @@ PBOBench::BenchUpload(TextureUploadingMode mode) {
     glBindTexture(GL_TEXTURE_2D, 0);
     break;
   }
-  case TextureUploadingMode::PBO: {
+  case TextureTransferMode::PBO: {
     // 第一帧渲染的时候可能会出现纹理还没上传完的情况
     Res = std::make_shared<DRL::Texture2D>(1024, 1024, 1, GL_RGB8);
     //创建屏障
-    HandleGLFence(PBOFence[0]);
-    glBindBuffer(GL_PIXEL_UNPACK_BUFFER, PBOBuffers[0]);
+    HandleGLFence(PBOUploadingFence[0]);
+    glBindBuffer(GL_PIXEL_UNPACK_BUFFER, PBOUploadingBuffers[0]);
     // glBufferSubData(GL_PIXEL_UNPACK_BUFFER,0, DataSize, data0);
     GLubyte *ptr =
-        (GLubyte *)glMapBuffer(GL_PIXEL_UNPACK_BUFFER, GL_WRITE_ONLY);
+        (GLubyte *)glMapBufferRange(GL_PIXEL_UNPACK_BUFFER,0,DataSize,GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
     if (ptr) {
       memcpy(ptr, (FrameIdx++ % 2) ? data0 : data1, DataSize);
       glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER); // release the mapped buffer
@@ -114,31 +207,38 @@ PBOBench::BenchUpload(TextureUploadingMode mode) {
 
     glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
     glBindTexture(GL_TEXTURE_2D, 0);
-    PBOFence[0] = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+    PBOUploadingFence[0] = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
     break;
   }
-  case TextureUploadingMode::PBO_Interval: {
+  case TextureTransferMode::PBO_Interval: {
     static int PBOIndex = 0;
     Res = std::make_shared<DRL::Texture2D>(1024, 1024, 1, GL_RGB8);
     glBindTexture(GL_TEXTURE_2D, Res->handle());
-    HandleGLFence(PBOFence[PBOIndex]);
-    glBindBuffer(GL_PIXEL_UNPACK_BUFFER, PBOBuffers[PBOIndex]);
+    glBindBuffer(GL_PIXEL_UNPACK_BUFFER, PBOUploadingBuffers[PBOIndex]);
     glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 1024, 1024, GL_RGB,
                     GL_UNSIGNED_BYTE, 0);
 
     PBOIndex = (PBOIndex + 1) % 2;
     auto NextIndex = PBOIndex;
-    glBindBuffer(GL_PIXEL_UNPACK_BUFFER, PBOBuffers[NextIndex]);
+
+    // 驱动会sync 上传的问题，真正需要保护的是下面的 MapBufferRange。在Map之前我们必须保护所有的用到这个Buffer的命令已经执行完了，否则会看到Corrupted的数据 
+    HandleGLFence(PBOUploadingFence[NextIndex]);
+    glBindBuffer(GL_PIXEL_UNPACK_BUFFER, PBOUploadingBuffers[NextIndex]);
+    // tragedy 2: orphaing
     // glBufferData(GL_PIXEL_UNPACK_BUFFER,DataSize, 0, GL_STREAM_DRAW);
+
+    // tragedy 3: mannually Fence
+    // GLubyte *ptr =
+    //     (GLubyte *)glMapBuffer(GL_PIXEL_UNPACK_BUFFER, GL_WRITE_ONLY);
     GLubyte *ptr =
-        (GLubyte *)glMapBuffer(GL_PIXEL_UNPACK_BUFFER, GL_WRITE_ONLY);
+        (GLubyte *)glMapBufferRange(GL_PIXEL_UNPACK_BUFFER,0,DataSize,GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
     if (ptr) {
       memcpy(ptr, (FrameIdx++ % 2) ? data0 : data1, DataSize);
       glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER); // release the mapped buffer
     }
     glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
     glBindTexture(GL_TEXTURE_2D, 0);
-    PBOFence[NextIndex] = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+    PBOUploadingFence[NextIndex] = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
     break;
   }
   }
@@ -158,6 +258,7 @@ PBOBench::BenchUpload(TextureUploadingMode mode) {
 void PBOBench::render() {
 
   static bool BenchUploading = false;
+  static bool BenchDownloading = false;
   ImGui::NewFrame();
   {
     ImGui::Begin("Background Color", 0); // Create a window called "Hello,
@@ -167,8 +268,16 @@ void PBOBench::render() {
 
     ImGui::Checkbox("Bench Uploading", &BenchUploading);
     if (BenchUploading) {
-      const char *modes[] = {"Baseline", "Sync", "PBO 1", "PBO 2"};
+      BenchDownloading = false;
+      static const char *modes[] = {"Baseline", "Sync", "PBO 1", "PBO 2"};
       ImGui::Combo("UpLoading Mode", (int *)&mUploadingMode, modes,
+                   IM_ARRAYSIZE(modes));
+    }
+    ImGui::Checkbox("Bench Downloading", &BenchDownloading);
+    if (BenchDownloading) {
+      BenchUploading = false;
+      static const char *modes[] = {"Baseline", "Sync", "PBO 1", "PBO 2"};
+      ImGui::Combo("Downloading Mode", (int *)&mDownloadingMode, modes,
                    IM_ARRAYSIZE(modes));
     }
     ImGui::End();
@@ -196,6 +305,10 @@ void PBOBench::render() {
   for (int i = 0; i < DrawNumbers; i++) {
     shader.set_uniform("model", model_mat4 * modelMatrics[i]);
     spot_ptr->Draw(shader);
+  }
+  if(BenchDownloading)
+  {
+    BenchDownload(mDownloadingMode);
   }
 }
 void PBOBench::update_model_matrics() {
