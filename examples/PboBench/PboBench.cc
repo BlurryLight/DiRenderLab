@@ -243,6 +243,13 @@ PBOBench::BenchUpload(TextureTransferMode mode) {
   }
   }
 
+  if(FrameIdx > 1)
+  {
+    ImGui::Begin("Uploading Texture", 0);
+      ImGui::Image((void*)(intptr_t)Res->handle(), ImVec2(256.0,256.0));
+    ImGui::End();
+  }
+
   auto tp1 = std::chrono::high_resolution_clock::now();
   // expotional moving averrage
   latency =
@@ -282,7 +289,7 @@ void PBOBench::render() {
     }
     ImGui::End();
   }
-  ImGui::Render();
+
   if (oldDrawNumbers != DrawNumbers) {
     oldDrawNumbers = DrawNumbers;
     update_model_matrics();
@@ -310,6 +317,7 @@ void PBOBench::render() {
   {
     BenchDownload(mDownloadingMode);
   }
+  ImGui::Render();
 }
 void PBOBench::update_model_matrics() {
 
