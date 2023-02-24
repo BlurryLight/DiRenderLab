@@ -431,7 +431,7 @@ void RenderBase::InitWindow() {
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, info_.minor_version);
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
   glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, info_.debug);
-
+  glfwWindowHint(GLFW_SAMPLES, info_.msaa_sample_num);
   // glfw window creation
   // --------------------
   GLFWwindow *window = glfwCreateWindow(info_.width, info_.height,
@@ -496,6 +496,12 @@ void RenderBase::InitWindow() {
       glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0,
                             nullptr, GL_TRUE);
     }
+  }
+
+  if(info_.msaa_sample_num > 1)
+  {
+    // redundant opengl default is on
+    glEnable(GL_MULTISAMPLE); 
   }
   IMGUI_CHECKVERSION();
   ImGui::CreateContext();

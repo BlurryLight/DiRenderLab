@@ -86,6 +86,7 @@ set(CORE_EXAMPLES
         LTC
         oit
         PboBench
+        DeferredMSAA
         )
 foreach (EXAMPLE ${CORE_EXAMPLES})
     add_executable(${EXAMPLE} examples/${EXAMPLE}/${EXAMPLE}.cc)

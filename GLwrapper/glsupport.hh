@@ -215,6 +215,7 @@ public:
     int major_version = 4;
     int minor_version = 5;
     bool resizeable = true;
+    int msaa_sample_num = 1;
 #ifdef NDEBUG
     bool debug = false;
 #else

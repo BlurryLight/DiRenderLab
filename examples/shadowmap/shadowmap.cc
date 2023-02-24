@@ -28,7 +28,7 @@ enum ShadowMode {
   kPCSS = 2,
 };
 
-class ShadowMapRender : public DRL::RenderBase {
+class DeferredMSAARender : public DRL::RenderBase {
 public:
   DRL::ResourcePathSearcher resMgr;
   DRL::Program shader;
@@ -48,13 +48,13 @@ public:
   int current_mode = kShadowMap;
   glm::vec3 lightPos = {-2.0f, 4.0f, -1.0f};
 
-  ShadowMapRender() = default;
-  explicit ShadowMapRender(const BaseInfo &info) : DRL::RenderBase(info) {}
+  DeferredMSAARender() = default;
+  explicit DeferredMSAARender(const BaseInfo &info) : DRL::RenderBase(info) {}
   void setup_states() override;
   void render() override;
   void renderScene(const DRL::Program &shader);
 };
-void ShadowMapRender::setup_states() {
+void DeferredMSAARender::setup_states() {
 
   // IMGUI
   ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
@@ -126,7 +126,7 @@ void ShadowMapRender::setup_states() {
   // lighting info
   // -------------
 }
-void ShadowMapRender::render() {
+void DeferredMSAARender::render() {
   ImGui::NewFrame();
   {
     ImGui::Begin("Background Color", 0); // Create a window called "Hello,
@@ -256,7 +256,7 @@ int main() {
   DRL::RenderBase::BaseInfo info;
   info.height = 900;
   info.width = 1600;
-  ShadowMapRender rd(info);
+  DeferredMSAARender rd(info);
   rd.camera_ = std::make_unique<DRL::Camera>(glm::vec3{0.0, 0.0, 3.0});
   rd.loop();
 
@@ -265,7 +265,7 @@ int main() {
 
 // renders the 3D scene
 // --------------------
-void ShadowMapRender::renderScene(const DRL::Program &shader) {
+void DeferredMSAARender::renderScene(const DRL::Program &shader) {
   // floor
   glm::mat4 model = glm::mat4(1.0f);
   shader.set_uniform("model", model);
