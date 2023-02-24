@@ -40,7 +40,8 @@ void main()
         tmp = projection * tmp;
         tmp.xyz /= tmp.w;
         tmp.xyz = tmp.xyz * 0.5 + 0.5;
-        float sampleDepth = texture(gPosition,tmp.xy).z;
+        vec2 uv = clamp(tmp.xy,0.0,1.0);
+        float sampleDepth = texture(gPosition,uv).z;
         //clamp大概也可以
         //防止在边缘处出现occlusion突变
         float rangeCheck = smoothstep(0.0, 1.0, radius / abs(fragPos.z - sampleDepth));
