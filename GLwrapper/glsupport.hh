@@ -132,7 +132,7 @@ struct Vertex {
 struct Texture {
   std::shared_ptr<DRL::Texture2D> tex_ptr;
   std::string type;
-  //  fs::path path;
+  fs::path path;
 };
 
 class Mesh {
@@ -160,10 +160,12 @@ public:
                        // make sure textures aren't loaded more than once.
   std::vector<details::Mesh> meshes;
   fs::path directory{};
-  bool gammaCorrection_ = false;
+  bool bGammaCorrection_ = false;
+  bool bTextureFlip_ = true;
 
   // constructor, expects a filepath to a 3D model.
-  Model(std::string const &path, bool gamma = false) : gammaCorrection_(gamma) {
+  Model(std::string const &path, bool gamma = false, bool flip = true)
+      : bGammaCorrection_(gamma), bTextureFlip_(flip) {
     loadModel(path);
   }
 

@@ -61,6 +61,7 @@ public:
   void set_slot(unsigned int value) { slot_ = value; }
   void bind();
   void unbind();
+  bool isBounded() { return bound_; }
   Texture(Texture &&other) = default;
   Texture &operator=(Texture &&) = default;
 };
@@ -73,7 +74,7 @@ class Texture2D : public Texture {
 public:
   Texture2D() : Texture(GL_TEXTURE_2D) {}
   ~Texture2D() {
-    AssertLog(first_bounded || (obj_.handle() == 0),
+    AssertWarning(first_bounded || (obj_.handle() == 0),
               "Texture2D {} from file {} is never bounded!", obj_,
               file_.string());
   }

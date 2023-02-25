@@ -25,12 +25,16 @@ class DeferredMSAARender : public DRL::RenderBase {
 public:
   DRL::ResourcePathSearcher resMgr;
   DRL::Program shader;
+  std::unique_ptr<DRL::Model> model_ptr;
+  std::unique_ptr<DRL::Texture2D> woodTexture;
 
   DeferredMSAARender() = default;
   explicit DeferredMSAARender(const BaseInfo &info) : DRL::RenderBase(info) {}
   void setup_states() override;
   void render() override;
   void renderScene(const DRL::Program &shader){};
+
+  bool wireframe_ = false;
 };
 void DeferredMSAARender::setup_states() {
 
@@ -42,11 +46,32 @@ void DeferredMSAARender::setup_states() {
   resMgr.add_path(decltype(resMgr)::root_path / "resources" / "shaders" /
                   "DeferredMSAA");
   resMgr.add_path(decltype(resMgr)::root_path / "resources" / "textures");
+  resMgr.add_path(decltype(resMgr)::root_path / "resources" / "models" /
+                  "sponza_compressed");
   // build and compile shaders
   // -------------------------
   shader = DRL::make_program(resMgr.find_path("mvp_pos_normal_texture.vert"),
                              resMgr.find_path("Shading.frag"));
 
+  woodTexture = std::make_unique<DRL::Texture2D>(resMgr.find_path("wood.png"),
+                                                 1, false, true);
+  woodTexture->set_wrap_s(GL_REPEAT);
+  woodTexture->set_wrap_t(GL_REPEAT);
+
+  model_ptr = std::make_unique<DRL::Model>(
+      resMgr.find_path("sponza.obj").string(), /*gamma*/ false, /*flip*/ false);
+
+  for(auto& Mesh : model_ptr->meshes)
+  {
+      for(auto & texture : Mesh.textures_)
+      {
+        if(texture.type == "texture_diffuse")
+        {
+          texture.tex_ptr->set_wrap_s(GL_REPEAT);
+          texture.tex_ptr->set_wrap_t(GL_REPEAT);
+        }
+      }
+  }
 }
 void DeferredMSAARender::render() {
   ImGui::NewFrame();
@@ -54,6 +79,7 @@ void DeferredMSAARender::render() {
     ImGui::Begin("Background Color", 0); // Create a window called "Hello,
     ImGui::Text("Application average %.3f ms/frame (%.1f FPS)",
                 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+    ImGui::Checkbox("wireframe", &wireframe_);
     ImGui::End();
   }
   ImGui::Render();
@@ -63,16 +89,23 @@ void DeferredMSAARender::render() {
   glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   glViewport(0, 0, info_.width, info_.height);
+  glPolygonMode( GL_FRONT_AND_BACK, wireframe_ ? GL_LINE : GL_FILL );
 
   shader.bind();
   glm::mat4 projection =
       glm::perspective(glm::radians(camera_->Zoom),
-                       (float)info_.width / (float)info_.height, 0.1f, 100.0f);
+                       (float)info_.width / (float)info_.height, 0.1f, 1000.0f);
   glm::mat4 view = camera_->GetViewMatrix();
   shader.set_uniform("projection", projection);
   shader.set_uniform("view", view);
   shader.set_uniform("model", glm::mat4(1.0));
-  DRL::renderCube();
+  {
+    DRL::bind_guard gd(this->woodTexture);
+    DRL::renderCube();
+  }
+
+  shader.set_uniform("model", glm::scale(glm::mat4(1.0),glm::vec3(0.01)));
+  model_ptr->Draw(shader);
 }
 
 int main() {

@@ -268,10 +268,10 @@ Model::loadMaterialTextures(aiMaterial *mat, aiTextureType type,
       details::Texture texture;
       auto path = directory / texture_path_str;
       texture.tex_ptr =
-          std::make_shared<DRL::Texture2D>(path, 3, gammaCorrection_, true);
+          std::make_shared<DRL::Texture2D>(path, 3, bGammaCorrection_, this->bTextureFlip_);
       texture.tex_ptr->generateMipmap();
       texture.type = typeName;
-      //      texture.path = str.C_Str();
+      texture.path = path;
       res.push_back(texture);
       textures_loaded.emplace(path.string(), texture);
       // store it as texture loaded for entire model, to ensure we
@@ -322,16 +322,24 @@ void Mesh::Draw(const Program &program) {
     //    glUniform1i(glGetUniformLocation(program.handle(), (name +
     //    number).c_str()),
     //                i);
-    program.set_uniform(name + number, i);
-    textures_[i].tex_ptr->set_slot(i);
-    textures_[i].tex_ptr->bind();
+
+    GLint loc = glGetUniformLocation(program.handle(), (name + number).c_str());
+    if(loc != -1)
+    {
+      program.set_uniform(name + number, (int)i);
+      textures_[i].tex_ptr->set_slot(i);
+      textures_[i].tex_ptr->bind();
+    }
   }
   {
     DRL::bind_guard gd(vao_);
     vao_.draw(GL_TRIANGLES, indices_nums_, GL_UNSIGNED_INT, nullptr);
   }
   for (auto &texture : textures_) {
-    texture.tex_ptr->unbind();
+    if(texture.tex_ptr->isBounded())
+    {
+      texture.tex_ptr->unbind();
+    }
   }
 }
 void Camera::ProcessKeyboard(Camera_Movement direction, float deltaTime) {
