@@ -236,3 +236,8 @@ TextureRect::TextureRect(int width, int height, int num_mipmaps,
   glTextureStorage2D(obj_, num_mipmaps, internal_format, width, height);
   updated_ = true;
 }
+
+void DRL::Texture::set_sampler(GLint value) {
+  AssertLog(glIsSampler(value),"value {} is not sampler!",value); 
+  glBindSampler(slot_, value);
+}

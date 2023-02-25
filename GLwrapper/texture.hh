@@ -50,6 +50,12 @@ public:
     set_min_filter(GL_LINEAR_MIPMAP_LINEAR);
     glGenerateTextureMipmap(obj_);
   }
+  /**
+   * @brief Set the sampler object
+   * 
+   * @param value 
+   */
+  void set_sampler(GLint value);
   void set_min_filter(GLint value);
   void set_mag_filter(GLint value);
   void set_wrap_s(GLint value);
