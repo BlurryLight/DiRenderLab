@@ -27,6 +27,7 @@ protected:
       std::variant<Texture2DPtr, TextureCubePtr /*,RenderbufferPtr*/>;
   std::set<attachable_obj> attachments_;
 
+  std::vector<GLenum> draw_buffers_;
 public:
   bool clear_when_bind = true;
   glm::vec4 clear_color_ = {};
@@ -92,13 +93,13 @@ public:
    * GL_COLOR_ATTACHMENT$m$: valid for MRT\n
    * @param buffer
    */
-  void set_draw_buffer(GLenum buffer) const;
+  void set_draw_buffer(GLenum buffer);
   /**
    * same as set_draw_buffer()
    * @param buffer
    */
-  void set_read_buffer(GLenum buffer) const;
-  void set_draw_buffer(const std::vector<GLenum> &buffers) const;
+  void set_read_buffer(GLenum buffer);
+  void set_draw_buffer(const std::vector<GLenum> &buffers);
   void bind();
   void unbind();
   /**

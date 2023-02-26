@@ -62,7 +62,9 @@ template <class... Ts> struct overloaded : Ts... { using Ts::operator()...; };
 template <class... Ts> overloaded(Ts...) -> overloaded<Ts...>;
 void Program::set_uniform(std::string_view name,
                           const Program::Uniform_t &value) const {
-  AssertLog(isBounded(), "Program {} needs to be used before setting value!");
+  AssertLog(isBounded(),
+            "Program {} is setting uniform, but  it has yet been bounded!",
+            obj_);
   GLint loc = glGetUniformLocation(obj_, name.data());
   AssertLog(loc != -1,
             "Program {} set value {} failed because "

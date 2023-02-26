@@ -19,14 +19,19 @@ void DRL::Framebuffer::bind() {
 }
 void DRL::Framebuffer::unbind() { glBindFramebuffer(GL_FRAMEBUFFER, 0); }
 void DRL::Framebuffer::set_draw_buffer(
-    const std::vector<GLenum> &buffers) const {
+    const std::vector<GLenum> &buffers) {
+  this->draw_buffers_.insert(draw_buffers_.end(), buffers.begin(), buffers.end());
   glNamedFramebufferDrawBuffers(obj_, static_cast<int>(buffers.size()),
                                 buffers.data());
 }
-void DRL::Framebuffer::set_read_buffer(GLenum buffer) const {
+void DRL::Framebuffer::set_read_buffer(GLenum buffer) {
   glNamedFramebufferReadBuffer(obj_, buffer);
 }
-void DRL::Framebuffer::set_draw_buffer(GLenum buffer) const {
+void DRL::Framebuffer::set_draw_buffer(GLenum buffer) {
+  if(std::find(draw_buffers_.begin(),draw_buffers_.end(),buffer) == draw_buffers_.end() )
+  {
+    draw_buffers_.push_back(buffer);
+  }
   glNamedFramebufferDrawBuffer(obj_, buffer);
 }
 
@@ -73,6 +78,12 @@ DRL::Framebuffer::Framebuffer(GLenum attachment,
   set_viewport(texture_obj, mipmap_level);
 }
 void DRL::Framebuffer::clear() {
-  glClearNamedFramebufferfv(obj_, GL_COLOR, 0, glm::value_ptr(clear_color_));
+  // glClearBuffer allows you to clear the color attachments to different
+  // colors, or to only clear certain attachments. glClear clears every color
+  // attachment to the color specified by glClearColor.
+  for(int i = 0; i < draw_buffers_.size();i++)
+  {
+    glClearNamedFramebufferfv(obj_, GL_COLOR, i, glm::value_ptr(clear_color_));
+  }
   glClearNamedFramebufferfv(obj_, GL_DEPTH, 0, &clear_depth_);
 }

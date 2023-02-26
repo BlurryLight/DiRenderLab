@@ -278,7 +278,7 @@ void DRL::TextureSampler::set_wrap_r(GLint value) {
 
 const TextureSampler *DRL::TextureSampler::GetLinearRepeat() {
   static TextureSampler obj;
-  obj.set_min_filter(GL_LINEAR);
+  obj.set_min_filter(GL_LINEAR_MIPMAP_LINEAR);
   obj.set_mag_filter(GL_LINEAR);
   obj.set_wrap_r(GL_REPEAT);
   obj.set_wrap_s(GL_REPEAT);
@@ -288,7 +288,7 @@ const TextureSampler *DRL::TextureSampler::GetLinearRepeat() {
 
 const TextureSampler *DRL::TextureSampler::GetPointRepeat() {
   static TextureSampler obj;
-  obj.set_min_filter(GL_NEAREST);
+  obj.set_min_filter(GL_NEAREST_MIPMAP_LINEAR);
   obj.set_mag_filter(GL_NEAREST);
   obj.set_wrap_r(GL_REPEAT);
   obj.set_wrap_s(GL_REPEAT);
@@ -298,7 +298,7 @@ const TextureSampler *DRL::TextureSampler::GetPointRepeat() {
 
 const TextureSampler *DRL::TextureSampler::GetLinearClamp() {
   static TextureSampler obj;
-  obj.set_min_filter(GL_LINEAR);
+  obj.set_min_filter(GL_LINEAR_MIPMAP_LINEAR);
   obj.set_mag_filter(GL_LINEAR);
   obj.set_wrap_r(GL_CLAMP_TO_EDGE);
   obj.set_wrap_s(GL_CLAMP_TO_EDGE);
@@ -308,7 +308,7 @@ const TextureSampler *DRL::TextureSampler::GetLinearClamp() {
 
 const TextureSampler *DRL::TextureSampler::GetPointClamp() {
   static TextureSampler obj;
-  obj.set_min_filter(GL_NEAREST);
+  obj.set_min_filter(GL_NEAREST_MIPMAP_LINEAR);
   obj.set_mag_filter(GL_NEAREST);
   obj.set_wrap_r(GL_CLAMP_TO_EDGE);
   obj.set_wrap_s(GL_CLAMP_TO_EDGE);

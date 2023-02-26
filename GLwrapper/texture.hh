@@ -55,10 +55,11 @@ protected:
   unsigned int slot_ = 0;
   explicit Texture(GLenum textureType);
   int num_mipmaps_ = 1;
+
+public:
   // for debug use
   fs::path file_;
 
-public:
   bool first_bounded = false; // maybe also updated by framebuffer attach
   operator GLuint() const { return obj_.handle(); }
   [[nodiscard]] GLuint handle() const { return obj_.handle(); }

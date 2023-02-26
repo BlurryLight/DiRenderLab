@@ -263,6 +263,7 @@ Model::loadMaterialTextures(aiMaterial *mat, aiTextureType type,
     if (textures_loaded.find(texture_path_str) != textures_loaded.end()) {
       res.push_back(textures_loaded[texture_path_str]);
       skip = true; // a texture with the same filepath has already been
+      spdlog::info("{} texture has been loaded. Skip",texture_path_str);
     }
     if (!skip) { // if texture hasn't been loaded already, load it
       details::Texture texture;
@@ -272,8 +273,9 @@ Model::loadMaterialTextures(aiMaterial *mat, aiTextureType type,
       texture.tex_ptr->generateMipmap();
       texture.type = typeName;
       texture.path = path;
+      texture.tex_ptr->file_ = path;
       res.push_back(texture);
-      textures_loaded.emplace(path.string(), texture);
+      textures_loaded.emplace(texture_path_str, texture);
       // store it as texture loaded for entire model, to ensure we
     }
   }
