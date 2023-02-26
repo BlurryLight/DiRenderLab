@@ -50,6 +50,11 @@ void DRL::Framebuffer::attach_buffer(GLenum attachment_slot,
   texture_obj->first_bounded = true;
   glNamedFramebufferTexture(obj_, attachment_slot, *texture_obj, mipmap_level);
 }
+void DRL::Framebuffer::attach_buffer(GLenum attachment_slot, const Texture2DMSPtr &texture_obj) {
+  attachments_.emplace(texture_obj);
+  texture_obj->first_bounded = true;
+  glNamedFramebufferTexture(obj_, attachment_slot, *texture_obj, 0);
+}
 void DRL::Framebuffer::set_viewport(int w, int h) {
   vwidth_ = w;
   vheight_ = h;

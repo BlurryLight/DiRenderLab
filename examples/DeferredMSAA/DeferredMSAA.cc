@@ -35,10 +35,10 @@ public:
   std::unique_ptr<DRL::Texture2D> woodTexture;
 
   DRL::Framebuffer GBufferFbo;
-  std::shared_ptr<DRL::Texture2D> gNormal;
-  std::shared_ptr<DRL::Texture2D> gPosition;
-  std::shared_ptr<DRL::Texture2D> gAlbedo;
-  std::shared_ptr<DRL::Texture2D> gDepth;
+  std::shared_ptr<DRL::Texture2DMS> gNormal;
+  std::shared_ptr<DRL::Texture2DMS> gPosition;
+  std::shared_ptr<DRL::Texture2DMS> gAlbedo;
+  std::shared_ptr<DRL::Texture2DMS> gDepth;
 
   DeferredMSAARender() = default;
   explicit DeferredMSAARender(const BaseInfo &info) : DRL::RenderBase(info) {}
@@ -88,19 +88,20 @@ void DeferredMSAARender::setup_states() {
   }
 
   // set up fbo
+  int mrt_msaa_samples = 4;
   gNormal =
-      std::make_shared<DRL::Texture2D>(info_.width, info_.height, 1, GL_RGB16F);
+      std::make_shared<DRL::Texture2DMS>(info_.width, info_.height, mrt_msaa_samples, GL_RGB16F);
   gPosition =
-      std::make_shared<DRL::Texture2D>(info_.width, info_.height, 1, GL_RGB16F);
+      std::make_shared<DRL::Texture2DMS>(info_.width, info_.height, mrt_msaa_samples, GL_RGB16F);
   gAlbedo =
-      std::make_shared<DRL::Texture2D>(info_.width, info_.height, 1, GL_RGBA8);
-  gDepth = std::make_shared<DRL::Texture2D>(info_.width, info_.height, 1,
+      std::make_shared<DRL::Texture2DMS>(info_.width, info_.height, mrt_msaa_samples, GL_RGBA8);
+  gDepth = std::make_shared<DRL::Texture2DMS>(info_.width, info_.height, mrt_msaa_samples,
                                             GL_DEPTH_COMPONENT32F);
 
-  GBufferFbo.attach_buffer(GL_COLOR_ATTACHMENT0, gNormal, 0);
-  GBufferFbo.attach_buffer(GL_COLOR_ATTACHMENT1, gPosition, 0);
-  GBufferFbo.attach_buffer(GL_COLOR_ATTACHMENT2, gAlbedo, 0);
-  GBufferFbo.attach_buffer(GL_DEPTH_ATTACHMENT, gDepth, 0);
+  GBufferFbo.attach_buffer(GL_COLOR_ATTACHMENT0, gNormal);
+  GBufferFbo.attach_buffer(GL_COLOR_ATTACHMENT1, gPosition);
+  GBufferFbo.attach_buffer(GL_COLOR_ATTACHMENT2, gAlbedo);
+  GBufferFbo.attach_buffer(GL_DEPTH_ATTACHMENT, gDepth);
   GBufferFbo.set_viewport(info_.width, info_.height);
   GBufferFbo.set_draw_buffer(
       {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2});
@@ -150,7 +151,7 @@ void DeferredMSAARender::render() {
   {
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     DRL::bind_guard ShaderGuard(ShadingShader);
-    DRL::Texture2D *tex;
+    DRL::Texture2DMS *tex;
     switch (gBufferMode_) {
       case kAlbedo: {
         tex = gAlbedo.get();

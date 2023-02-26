@@ -15,6 +15,7 @@ namespace DRL {
 // renderbuffer not implemented
 //    class Renderbuffer;
 using Texture2DPtr = std::shared_ptr<Texture2D>;
+using Texture2DMSPtr = std::shared_ptr<Texture2DMS>;
 using TextureCubePtr = std::shared_ptr<TextureCube>;
 //    using RenderbufferPtr = std::shared_ptr<Renderbuffer>;
 class Framebuffer {
@@ -24,7 +25,7 @@ protected:
   int vheight_ = -1;
   int vwidth_ = -1;
   using attachable_obj =
-      std::variant<Texture2DPtr, TextureCubePtr /*,RenderbufferPtr*/>;
+      std::variant<Texture2DPtr, TextureCubePtr,Texture2DMSPtr /*,RenderbufferPtr*/>;
   std::set<attachable_obj> attachments_;
 
   std::vector<GLenum> draw_buffers_;
@@ -74,6 +75,7 @@ public:
   void set_viewport(int w, int h);
   void attach_buffer(GLenum attachment_slot, const Texture2DPtr &texture_obj,
                      GLint mipmap_level);
+  void attach_buffer(GLenum attachment_slot, const Texture2DMSPtr &texture_obj);
   // currently doesn't support renderbuffer object
   //        void attach_buffer(GLenum attachment_slot, const RenderbufferPtr
   //        &renderbuf_obj, GLint mipmap_level) {

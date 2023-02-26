@@ -315,3 +315,11 @@ const TextureSampler *DRL::TextureSampler::GetPointClamp() {
   obj.set_wrap_t(GL_CLAMP_TO_EDGE);
   return &obj;
 }
+
+DRL::Texture2DMS::Texture2DMS(int width, int height, int num_samples, GLenum internal_format)
+    : Texture(GL_TEXTURE_2D_MULTISAMPLE) 
+{
+  AssertLog(num_samples>= 1, "Texture2DMS needs at least 1 sample!");
+  glTextureStorage2DMultisample(obj_, num_samples, internal_format, width, height,GL_TRUE);
+  updated_ = true;
+}

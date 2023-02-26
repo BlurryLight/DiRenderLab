@@ -104,6 +104,12 @@ public:
   TextureRect() : Texture(GL_TEXTURE_RECTANGLE) {}
   TextureRect(int width, int height, int num_mipmaps, GLenum internal_format);
 };
+
+class Texture2DMS : public Texture {
+public:
+  Texture2DMS() : Texture(GL_TEXTURE_2D_MULTISAMPLE) {}
+  Texture2DMS(int width, int height, int num_samples, GLenum internal_format);
+};
 class Texture2D : public Texture {
 public:
   Texture2D() : Texture(GL_TEXTURE_2D) {}
