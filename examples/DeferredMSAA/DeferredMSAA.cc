@@ -19,6 +19,7 @@
 #include "utils/resource_path_searcher.h"
 using DRL::Camera;
 
+unsigned int uboExampleBlock;
 #include <iostream>
 
 enum GBufferMode : int {
@@ -26,11 +27,23 @@ enum GBufferMode : int {
   kPosition = 1,
   kAlbedo = 2,
 };
+
+struct PointLight {
+  glm::vec4 position;
+  glm::vec4 color;
+
+  float constant;
+  float linear;
+  float quadratic;
+  float padding_;
+};
+std::vector<PointLight> lights;
 class DeferredMSAARender : public DRL::RenderBase {
 public:
   DRL::ResourcePathSearcher resMgr;
   DRL::Program MRTShader;
   DRL::Program ShadingShader;
+  DRL::Program DrawLightShader;
   std::unique_ptr<DRL::Model> model_ptr;
   std::unique_ptr<DRL::Texture2D> woodTexture;
 
@@ -48,7 +61,7 @@ public:
 
   bool wireframe_ = false;
   GBufferMode gBufferMode_ = kAlbedo;
-
+  glm::vec3 lightDir = glm::vec3(0, -1, 0);
 };
 void DeferredMSAARender::setup_states() {
 
@@ -70,6 +83,10 @@ void DeferredMSAARender::setup_states() {
 
   ShadingShader = DRL::make_program(resMgr.find_path("screen_quad.vert"),
                                     resMgr.find_path("Shading.frag"));
+
+  DrawLightShader =
+      DRL::make_program(resMgr.find_path("mvp_pos_normal_texture.vert"),
+                        resMgr.find_path("DebugPointLight.frag"));
   woodTexture = std::make_unique<DRL::Texture2D>(resMgr.find_path("wood.png"),
                                                  5, false, true);
   woodTexture->set_wrap_s(GL_REPEAT);
@@ -87,16 +104,34 @@ void DeferredMSAARender::setup_states() {
     }
   }
 
+  int LightNum = 50;
+  for (int j = 0; j < 5; j++) {
+    for (int i = 0; i < LightNum / 5; i++) {
+      PointLight light;
+      light.color = glm::vec4(DRL::get_random_float(), DRL::get_random_float(),
+                              DRL::get_random_float(), 0);
+      light.linear = 1.f;
+      light.constant = 1.0f;
+      light.quadratic = 0.032f;
+      light.position = glm::vec4(-10 + i * 2, 1, -5 + j * 2, 0);
+      lights.push_back(light);
+    }
+  }
+  glGenBuffers(1, &uboExampleBlock);
+  glBindBuffer(GL_UNIFORM_BUFFER, uboExampleBlock);
+  glBufferData(GL_UNIFORM_BUFFER, sizeof(PointLight) * lights.size(),
+               lights.data(), GL_STATIC_DRAW);
+  glBindBuffer(GL_UNIFORM_BUFFER, 0);
   // set up fbo
   int mrt_msaa_samples = 4;
-  gNormal =
-      std::make_shared<DRL::Texture2DMS>(info_.width, info_.height, mrt_msaa_samples, GL_RGB16F);
-  gPosition =
-      std::make_shared<DRL::Texture2DMS>(info_.width, info_.height, mrt_msaa_samples, GL_RGB16F);
-  gAlbedo =
-      std::make_shared<DRL::Texture2DMS>(info_.width, info_.height, mrt_msaa_samples, GL_RGBA8);
-  gDepth = std::make_shared<DRL::Texture2DMS>(info_.width, info_.height, mrt_msaa_samples,
-                                            GL_DEPTH_COMPONENT32F);
+  gNormal = std::make_shared<DRL::Texture2DMS>(info_.width, info_.height,
+                                               mrt_msaa_samples, GL_RGB16F);
+  gPosition = std::make_shared<DRL::Texture2DMS>(info_.width, info_.height,
+                                                 mrt_msaa_samples, GL_RGB16F);
+  gAlbedo = std::make_shared<DRL::Texture2DMS>(info_.width, info_.height,
+                                               mrt_msaa_samples, GL_RGBA8);
+  gDepth = std::make_shared<DRL::Texture2DMS>(
+      info_.width, info_.height, mrt_msaa_samples, GL_DEPTH_COMPONENT32F);
 
   GBufferFbo.attach_buffer(GL_COLOR_ATTACHMENT0, gNormal);
   GBufferFbo.attach_buffer(GL_COLOR_ATTACHMENT1, gPosition);
@@ -117,7 +152,9 @@ void DeferredMSAARender::render() {
     ImGui::Checkbox("wireframe", &wireframe_);
 
     const char *modes[] = {"Normal", "Position", "Albedo"};
-    ImGui::Combo("ShadowModes",(int*)&gBufferMode_, modes, IM_ARRAYSIZE(modes));
+    ImGui::Combo("ShadowModes", (int *)&gBufferMode_, modes,
+                 IM_ARRAYSIZE(modes));
+    ImGui::SliderFloat3("lightDir", glm::value_ptr(lightDir), -1, 1);
     ImGui::End();
   }
   ImGui::Render();
@@ -135,42 +172,50 @@ void DeferredMSAARender::render() {
   glm::mat4 view = camera_->GetViewMatrix();
   {
     DRL::bind_guard FboGuard(GBufferFbo);
-    DRL::bind_guard ShaderGuard(MRTShader);
-    MRTShader.set_uniform("projection", projection);
-    MRTShader.set_uniform("view", view);
-    MRTShader.set_uniform("model",
-                          glm::translate(glm::mat4(1.0), glm::vec3(0, 1, 0)));
     {
-      DRL::bind_guard TexGuard(this->woodTexture);
-      DRL::renderCube();
+      DRL::bind_guard ShaderGuard(MRTShader);
+      MRTShader.set_uniform("projection", projection);
+      MRTShader.set_uniform("view", view);
+      MRTShader.set_uniform("model",
+                            glm::translate(glm::mat4(1.0), glm::vec3(0, 1, 0)));
+      {
+        DRL::bind_guard TexGuard(this->woodTexture);
+        DRL::renderCube();
+      }
+      MRTShader.set_uniform("model",
+                            glm::scale(glm::mat4(1.0), glm::vec3(0.01)));
+      model_ptr->Draw(MRTShader);
     }
-    MRTShader.set_uniform("model", glm::scale(glm::mat4(1.0), glm::vec3(0.01)));
-    model_ptr->Draw(MRTShader);
+
+    {
+      DRL::bind_guard ShaderGuard(DrawLightShader);
+      DrawLightShader.set_uniform("projection", projection);
+      DrawLightShader.set_uniform("view", view);
+      for (const auto &light : lights) {
+        auto model = glm::mat4(1.0f);
+        model = glm::translate(model, glm::vec3(light.position));
+        model = glm::scale(model, glm::vec3(0.1));
+        DrawLightShader.set_uniform("model", model);
+        DrawLightShader.set_uniform("lightColor", glm::vec3(light.color));
+        DRL::renderSphere();
+      }
+    }
   }
 
   {
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     DRL::bind_guard ShaderGuard(ShadingShader);
-    DRL::Texture2DMS *tex;
-    switch (gBufferMode_) {
-      case kAlbedo: {
-        tex = gAlbedo.get();
-        break;
-      }
+    glUniformBlockBinding(
+        ShadingShader, glGetUniformBlockIndex(ShadingShader, "PointLightBlock"),
+        1);
+    glBindBufferBase(GL_UNIFORM_BUFFER, 1, uboExampleBlock);
+    ShadingShader.set_uniform("lightDir", normalize(lightDir));
+    gAlbedo->set_slot(0);
+    gNormal->set_slot(1);
+    gPosition->set_slot(2);
 
-      case kNormal: {
-        tex = gNormal.get();
-        break;
-      }
-
-      case kPosition: {
-        tex = gPosition.get();
-        break;
-      }
-    }
-    tex->bind();
+    DRL::bind_guard texGuard(gAlbedo, gNormal, gPosition);
     DRL::renderScreenQuad();
-    tex->unbind();
   }
 }
 
@@ -189,7 +234,7 @@ int main() {
   DRL::RenderBase::BaseInfo info;
   info.height = 900;
   info.width = 1600;
-  info.msaa_sample_num = 4;
+  info.msaa_sample_num = 0;
   DeferredMSAARender rd(info);
   rd.camera_ = std::make_unique<DRL::Camera>(glm::vec3{0.0, 0.0, 3.0});
   rd.loop();

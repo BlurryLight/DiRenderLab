@@ -69,3 +69,11 @@ and [webgl demo](https://blog.selfshadow.com/ltc/webgl/ltc_quad.html)
 - 每帧同步上传一张纹理:约800 fps
 - 单个PBO: 约1000~ FPS
 - 两个FBO交替上传: 约1200FPS
+
+
+- Deferred MSAA
+
+一个tech demo用以简易实现以下文章里描述的 Per-SubSample着色的方法，以在延迟管线下做MSAA。
+> 参考：[为什么延迟渲染和MSAA不搭 | Blurred code](https://www.blurredcode.com/2022/02/5b548f07/)
+
+![DeferredMSAA](images/DeferredMSAA.jpg)
