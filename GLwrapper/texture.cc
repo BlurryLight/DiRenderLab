@@ -237,7 +237,81 @@ TextureRect::TextureRect(int width, int height, int num_mipmaps,
   updated_ = true;
 }
 
-void DRL::Texture::set_sampler(GLint value) {
-  AssertLog(glIsSampler(value),"value {} is not sampler!",value); 
-  glBindSampler(slot_, value);
+void DRL::Texture::set_sampler(const TextureSampler* value) {
+  AssertLog(value->handle() > 0 && glIsSampler(value->handle()),
+            "value {} is not sampler!", value->handle());
+  glBindSampler(slot_, value->handle());
+}
+
+DRL::TextureSampler::TextureSampler() {
+  glSamplerParameteri(obj_.handle(), GL_TEXTURE_WRAP_S, wrap_s_);
+  glSamplerParameteri(obj_.handle(), GL_TEXTURE_WRAP_T, wrap_t_);
+  glSamplerParameteri(obj_.handle(), GL_TEXTURE_WRAP_R, wrap_r_);
+  glSamplerParameteri(obj_.handle(), GL_TEXTURE_MAG_FILTER, mag_filter_);
+  glSamplerParameteri(obj_.handle(), GL_TEXTURE_MIN_FILTER, min_filter_);
+}
+
+void DRL::TextureSampler::set_min_filter(GLint value) {
+  glSamplerParameteri(obj_.handle(), GL_TEXTURE_MIN_FILTER, value);
+  min_filter_ = value;
+}
+
+void DRL::TextureSampler::set_mag_filter(GLint value) {
+  glSamplerParameteri(obj_.handle(), GL_TEXTURE_MAG_FILTER, value);
+  mag_filter_ = value;
+}
+
+void DRL::TextureSampler::set_wrap_s(GLint value) {
+  glSamplerParameteri(obj_.handle(), GL_TEXTURE_WRAP_S, value);
+  wrap_s_ = value;
+}
+
+void DRL::TextureSampler::set_wrap_t(GLint value) {
+  glSamplerParameteri(obj_.handle(), GL_TEXTURE_WRAP_T, value);
+  wrap_t_ = value;
+}
+
+void DRL::TextureSampler::set_wrap_r(GLint value) {
+  glSamplerParameteri(obj_.handle(), GL_TEXTURE_WRAP_R, value);
+  wrap_r_ = value;
+}
+
+const TextureSampler *DRL::TextureSampler::GetLinearRepeat() {
+  static TextureSampler obj;
+  obj.set_min_filter(GL_LINEAR);
+  obj.set_mag_filter(GL_LINEAR);
+  obj.set_wrap_r(GL_REPEAT);
+  obj.set_wrap_s(GL_REPEAT);
+  obj.set_wrap_t(GL_REPEAT);
+  return &obj;
+}
+
+const TextureSampler *DRL::TextureSampler::GetPointRepeat() {
+  static TextureSampler obj;
+  obj.set_min_filter(GL_NEAREST);
+  obj.set_mag_filter(GL_NEAREST);
+  obj.set_wrap_r(GL_REPEAT);
+  obj.set_wrap_s(GL_REPEAT);
+  obj.set_wrap_t(GL_REPEAT);
+  return &obj;
+}
+
+const TextureSampler *DRL::TextureSampler::GetLinearClamp() {
+  static TextureSampler obj;
+  obj.set_min_filter(GL_LINEAR);
+  obj.set_mag_filter(GL_LINEAR);
+  obj.set_wrap_r(GL_CLAMP_TO_EDGE);
+  obj.set_wrap_s(GL_CLAMP_TO_EDGE);
+  obj.set_wrap_t(GL_CLAMP_TO_EDGE);
+  return &obj;
+}
+
+const TextureSampler *DRL::TextureSampler::GetPointClamp() {
+  static TextureSampler obj;
+  obj.set_min_filter(GL_NEAREST);
+  obj.set_mag_filter(GL_NEAREST);
+  obj.set_wrap_r(GL_CLAMP_TO_EDGE);
+  obj.set_wrap_s(GL_CLAMP_TO_EDGE);
+  obj.set_wrap_t(GL_CLAMP_TO_EDGE);
+  return &obj;
 }

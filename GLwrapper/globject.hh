@@ -131,6 +131,25 @@ public:
   }
 };
 
+class SamplerObject : public GLObject {
+public:
+  SamplerObject() : GLObject() {
+    glGenSamplers(1, &handle_);
+  }
+  
+  ~SamplerObject() {
+    if (handle()) {
+      glDeleteSamplers(1, &handle_);
+      handle_ = 0;
+    }
+  }
+  SamplerObject(SamplerObject &&other) noexcept : GLObject(std::move(other)) {}
+  SamplerObject &operator=(SamplerObject &&other) noexcept {
+    GLObject::operator=(std::move(other));
+    return *this;
+  }
+};
+
 class FramebufferObj : public GLObject {
 public:
   FramebufferObj() : GLObject() { glCreateFramebuffers(1, &handle_); }

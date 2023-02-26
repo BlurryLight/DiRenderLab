@@ -20,6 +20,33 @@ class Texture2DARB;
 class TextureCubeARB;
 #endif
 
+class TextureSampler{
+protected:
+  SamplerObject obj_;
+  GLint min_filter_ = GL_LINEAR;
+  GLint mag_filter_ = GL_LINEAR;
+  GLint wrap_s_ = GL_REPEAT;
+  GLint wrap_t_ = GL_REPEAT;
+  GLint wrap_r_ = GL_REPEAT;
+public:
+  operator GLuint() const { return obj_.handle(); }
+  [[nodiscard]] GLuint handle() const { return obj_.handle(); }
+  TextureSampler(TextureSampler &&other) = default;
+  TextureSampler&operator=(TextureSampler &&) = default;
+  TextureSampler();
+
+  void set_min_filter(GLint value);
+  void set_mag_filter(GLint value);
+  void set_wrap_s(GLint value);
+  void set_wrap_t(GLint value);
+  void set_wrap_r(GLint value);
+
+  static const TextureSampler* GetLinearRepeat();
+  static const TextureSampler* GetPointRepeat();
+  static const TextureSampler* GetLinearClamp();
+  static const TextureSampler* GetPointClamp();
+};
+
 class Texture {
 protected:
   TextureObject obj_;
@@ -55,7 +82,7 @@ public:
    * 
    * @param value 
    */
-  void set_sampler(GLint value);
+  void set_sampler(const TextureSampler* value);
   void set_min_filter(GLint value);
   void set_mag_filter(GLint value);
   void set_wrap_s(GLint value);

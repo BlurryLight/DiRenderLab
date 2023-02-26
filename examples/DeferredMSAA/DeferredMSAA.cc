@@ -61,12 +61,6 @@ void DeferredMSAARender::setup_states() {
   model_ptr = std::make_unique<DRL::Model>(
       resMgr.find_path("sponza.obj").string(), /*gamma*/ false, /*flip*/ false);
 
-  GLuint samplerLinearRepeat = 0;
-  glGenSamplers(1, &samplerLinearRepeat);
-  glSamplerParameteri(samplerLinearRepeat, GL_TEXTURE_WRAP_S, GL_REPEAT);
-  glSamplerParameteri(samplerLinearRepeat, GL_TEXTURE_WRAP_T, GL_REPEAT);
-  glSamplerParameteri(samplerLinearRepeat, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-  glSamplerParameteri(samplerLinearRepeat, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 
   for(auto& Mesh : model_ptr->meshes)
   {
@@ -74,7 +68,7 @@ void DeferredMSAARender::setup_states() {
       {
         if(texture.type == "texture_diffuse")
         {
-          texture.tex_ptr->set_sampler(samplerLinearRepeat);
+          texture.tex_ptr->set_sampler(DRL::TextureSampler::GetLinearRepeat());
         }
       }
   }
