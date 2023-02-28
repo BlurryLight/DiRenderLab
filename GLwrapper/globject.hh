@@ -80,18 +80,18 @@ public:
     return *this;
   }
 };
-class VertexBufferObject : public GLObject {
+class UniversalBufferObject : public GLObject {
 public:
-  VertexBufferObject() : GLObject() { glCreateBuffers(1, &handle_); }
-  ~VertexBufferObject() {
+  UniversalBufferObject() : GLObject() { glCreateBuffers(1, &handle_); }
+  ~UniversalBufferObject() {
     if (handle()) {
       glDeleteBuffers(1, &handle_);
       handle_ = 0;
     }
   }
-  VertexBufferObject(VertexBufferObject &&other) noexcept
+  UniversalBufferObject(UniversalBufferObject &&other) noexcept
       : GLObject(std::move(other)) {}
-  VertexBufferObject &operator=(VertexBufferObject &&other) noexcept {
+  UniversalBufferObject &operator=(UniversalBufferObject &&other) noexcept {
     GLObject::operator=(std::move(other));
     return *this;
   }

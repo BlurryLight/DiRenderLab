@@ -26,7 +26,7 @@ protected:
   int vwidth_ = -1;
   using attachable_obj =
       std::variant<Texture2DPtr, TextureCubePtr,Texture2DMSPtr /*,RenderbufferPtr*/>;
-  std::set<attachable_obj> attachments_;
+  std::unordered_map<GLenum,attachable_obj> attachments_;
 
   std::vector<GLenum> draw_buffers_;
 public:

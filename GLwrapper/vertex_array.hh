@@ -17,7 +17,7 @@ struct AttributeInfo {
   GLint offset;
 };
 using VboPtr = std::shared_ptr<VertexBuffer>;
-using EboPtr = std::shared_ptr<VertexBuffer>;
+using EboPtr = std::shared_ptr<ElementBuffer>;
 
 class VertexArray {
 protected:

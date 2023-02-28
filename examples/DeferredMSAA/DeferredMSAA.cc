@@ -19,14 +19,7 @@
 #include "utils/resource_path_searcher.h"
 using DRL::Camera;
 
-unsigned int uboExampleBlock;
 #include <iostream>
-
-enum GBufferMode : int {
-  kNormal = 0,
-  kPosition = 1,
-  kAlbedo = 2,
-};
 
 struct PointLight {
   glm::vec4 position;
@@ -44,14 +37,16 @@ public:
   DRL::Program MRTShader;
   DRL::Program ShadingShader;
   DRL::Program DrawLightShader;
+
+  std::unique_ptr<DRL::UniformBuffer> UniformBuffer;
   std::unique_ptr<DRL::Model> model_ptr;
   std::unique_ptr<DRL::Texture2D> woodTexture;
 
-  DRL::Framebuffer GBufferFbo;
-  std::shared_ptr<DRL::Texture2DMS> gNormal;
-  std::shared_ptr<DRL::Texture2DMS> gPosition;
-  std::shared_ptr<DRL::Texture2DMS> gAlbedo;
-  std::shared_ptr<DRL::Texture2DMS> gDepth;
+  DRL::Framebuffer GBufferFboMS;
+  std::shared_ptr<DRL::Texture2DMS> gNormalMS;
+  std::shared_ptr<DRL::Texture2DMS> gPositionMS;
+  std::shared_ptr<DRL::Texture2DMS> gAlbedoMS;
+  std::shared_ptr<DRL::Texture2DMS> gDepthMS;
 
   DeferredMSAARender() = default;
   explicit DeferredMSAARender(const BaseInfo &info) : DRL::RenderBase(info) {}
@@ -60,8 +55,12 @@ public:
   void renderScene(const DRL::Program &shader){};
 
   bool wireframe_ = false;
-  GBufferMode gBufferMode_ = kAlbedo;
   glm::vec3 lightDir = glm::vec3(0, -1, 0);
+
+  // 是否切换了MSAA选项
+  bool bFrameBufferDirty = true;
+  int MSAAMode = 0;
+  int CurrentMSAA = 0;
 };
 void DeferredMSAARender::setup_states() {
 
@@ -117,33 +116,37 @@ void DeferredMSAARender::setup_states() {
       lights.push_back(light);
     }
   }
-  glGenBuffers(1, &uboExampleBlock);
-  glBindBuffer(GL_UNIFORM_BUFFER, uboExampleBlock);
-  glBufferData(GL_UNIFORM_BUFFER, sizeof(PointLight) * lights.size(),
-               lights.data(), GL_STATIC_DRAW);
-  glBindBuffer(GL_UNIFORM_BUFFER, 0);
-  // set up fbo
-  int mrt_msaa_samples = 4;
-  gNormal = std::make_shared<DRL::Texture2DMS>(info_.width, info_.height,
-                                               mrt_msaa_samples, GL_RGB16F);
-  gPosition = std::make_shared<DRL::Texture2DMS>(info_.width, info_.height,
-                                                 mrt_msaa_samples, GL_RGB16F);
-  gAlbedo = std::make_shared<DRL::Texture2DMS>(info_.width, info_.height,
-                                               mrt_msaa_samples, GL_RGBA8);
-  gDepth = std::make_shared<DRL::Texture2DMS>(
-      info_.width, info_.height, mrt_msaa_samples, GL_DEPTH_COMPONENT32F);
-
-  GBufferFbo.attach_buffer(GL_COLOR_ATTACHMENT0, gNormal);
-  GBufferFbo.attach_buffer(GL_COLOR_ATTACHMENT1, gPosition);
-  GBufferFbo.attach_buffer(GL_COLOR_ATTACHMENT2, gAlbedo);
-  GBufferFbo.attach_buffer(GL_DEPTH_ATTACHMENT, gDepth);
-  GBufferFbo.set_viewport(info_.width, info_.height);
-  GBufferFbo.set_draw_buffer(
-      {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2});
-  GBufferFbo.clear_color_ = glm::vec4(0);
-  GBufferFbo.clear_when_bind = true;
+  UniformBuffer = std::make_unique<DRL::UniformBuffer>(
+      lights.data(), sizeof(PointLight) * lights.size(),
+      GL_DYNAMIC_STORAGE_BIT);
+  UniformBuffer->set_slot(1);
 }
 void DeferredMSAARender::render() {
+
+  if (bFrameBufferDirty) {
+    CurrentMSAA = 2 * MSAAMode + 2;
+    GBufferFboMS = DRL::Framebuffer();
+    gNormalMS = std::make_shared<DRL::Texture2DMS>(info_.width, info_.height,
+                                                   CurrentMSAA, GL_RGB16F);
+    gPositionMS = std::make_shared<DRL::Texture2DMS>(info_.width, info_.height,
+                                                     CurrentMSAA, GL_RGB16F);
+    gAlbedoMS = std::make_shared<DRL::Texture2DMS>(info_.width, info_.height,
+                                                   CurrentMSAA, GL_RGBA8);
+    gDepthMS = std::make_shared<DRL::Texture2DMS>(
+        info_.width, info_.height, CurrentMSAA, GL_DEPTH_COMPONENT32F);
+
+    GBufferFboMS.attach_buffer(GL_COLOR_ATTACHMENT0, gNormalMS);
+    GBufferFboMS.attach_buffer(GL_COLOR_ATTACHMENT1, gPositionMS);
+    GBufferFboMS.attach_buffer(GL_COLOR_ATTACHMENT2, gAlbedoMS);
+    GBufferFboMS.attach_buffer(GL_DEPTH_ATTACHMENT, gDepthMS);
+    GBufferFboMS.set_viewport(info_.width, info_.height);
+    GBufferFboMS.set_draw_buffer(
+        {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2});
+    GBufferFboMS.clear_color_ = glm::vec4(0);
+    GBufferFboMS.clear_when_bind = true;
+    bFrameBufferDirty = false;
+  }
+
   ImGui::NewFrame();
   {
     ImGui::Begin("Background Color", 0); // Create a window called "Hello,
@@ -151,9 +154,9 @@ void DeferredMSAARender::render() {
                 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
     ImGui::Checkbox("wireframe", &wireframe_);
 
-    const char *modes[] = {"Normal", "Position", "Albedo"};
-    ImGui::Combo("ShadowModes", (int *)&gBufferMode_, modes,
-                 IM_ARRAYSIZE(modes));
+    const char *modes[] = {"2X", "4X", "6X", "8X"};
+    bFrameBufferDirty = ImGui::Combo("MSAA Level", (int *)&MSAAMode, modes,
+                                     IM_ARRAYSIZE(modes));
     ImGui::SliderFloat3("lightDir", glm::value_ptr(lightDir), -1, 1);
     ImGui::End();
   }
@@ -171,7 +174,7 @@ void DeferredMSAARender::render() {
                        (float)info_.width / (float)info_.height, 0.1f, 1000.0f);
   glm::mat4 view = camera_->GetViewMatrix();
   {
-    DRL::bind_guard FboGuard(GBufferFbo);
+    DRL::bind_guard FboGuard(GBufferFboMS);
     {
       DRL::bind_guard ShaderGuard(MRTShader);
       MRTShader.set_uniform("projection", projection);
@@ -204,17 +207,16 @@ void DeferredMSAARender::render() {
 
   {
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-    DRL::bind_guard ShaderGuard(ShadingShader);
+    DRL::bind_guard ShaderGuard(ShadingShader, UniformBuffer);
     glUniformBlockBinding(
         ShadingShader, glGetUniformBlockIndex(ShadingShader, "PointLightBlock"),
         1);
-    glBindBufferBase(GL_UNIFORM_BUFFER, 1, uboExampleBlock);
     ShadingShader.set_uniform("lightDir", normalize(lightDir));
-    gAlbedo->set_slot(0);
-    gNormal->set_slot(1);
-    gPosition->set_slot(2);
+    gAlbedoMS->set_slot(0);
+    gNormalMS->set_slot(1);
+    gPositionMS->set_slot(2);
 
-    DRL::bind_guard texGuard(gAlbedo, gNormal, gPosition);
+    DRL::bind_guard texGuard(gAlbedoMS, gNormalMS, gPositionMS);
     DRL::renderScreenQuad();
   }
 }

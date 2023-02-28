@@ -38,7 +38,8 @@ void DRL::Framebuffer::set_draw_buffer(GLenum buffer) {
 void DRL::Framebuffer::attach_buffer(GLenum attachment_slot,
                                      const DRL::TextureCubePtr &texture_obj,
                                      GLint mipmap_level, GLint layer) {
-  attachments_.emplace(texture_obj);
+
+  attachments_[attachment_slot] = texture_obj;
   texture_obj->first_bounded = true;
   glNamedFramebufferTextureLayer(obj_, attachment_slot, *texture_obj,
                                  mipmap_level, layer);
@@ -46,12 +47,13 @@ void DRL::Framebuffer::attach_buffer(GLenum attachment_slot,
 void DRL::Framebuffer::attach_buffer(GLenum attachment_slot,
                                      const DRL::Texture2DPtr &texture_obj,
                                      GLint mipmap_level) {
-  attachments_.emplace(texture_obj);
+
+  attachments_[attachment_slot] = texture_obj;
   texture_obj->first_bounded = true;
   glNamedFramebufferTexture(obj_, attachment_slot, *texture_obj, mipmap_level);
 }
 void DRL::Framebuffer::attach_buffer(GLenum attachment_slot, const Texture2DMSPtr &texture_obj) {
-  attachments_.emplace(texture_obj);
+  attachments_[attachment_slot] = texture_obj;
   texture_obj->first_bounded = true;
   glNamedFramebufferTexture(obj_, attachment_slot, *texture_obj, 0);
 }

@@ -61,7 +61,7 @@ template <typename... T> struct bind_guard {
 
 private:
   template <typename U> static void bind(U &&t) {
-    if constexpr (is_pointer_like_arrow_dereferencable<U>::value)
+    if constexpr (is_pointer_like_arrow_dereferencable<U>::value || std::is_pointer<U>::value )
       t->bind();
     else
       t.bind();
@@ -72,7 +72,7 @@ private:
     bind(rest...);
   }
   template <typename U> static void unbind(U &&t) {
-    if constexpr (is_pointer_like_arrow_dereferencable<U>::value)
+    if constexpr (is_pointer_like_arrow_dereferencable<U>::value || std::is_pointer_v<U>)
       t->unbind();
     else
       t.unbind();

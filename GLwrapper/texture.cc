@@ -192,6 +192,7 @@ TextureCube::TextureCube(int width, int height, int num_mipmaps,
   updated_ = true;
 }
 Texture::Texture(GLenum textureType) : obj_(textureType) {
+  if(textureType == GL_TEXTURE_2D_MULTISAMPLE) return;
   glTextureParameteri(obj_, GL_TEXTURE_MIN_FILTER, min_filter_);
   glTextureParameteri(obj_, GL_TEXTURE_MAG_FILTER, mag_filter_);
   glTextureParameteri(obj_, GL_TEXTURE_WRAP_S, wrap_s_);
