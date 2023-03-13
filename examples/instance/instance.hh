@@ -8,6 +8,7 @@
 #include "GLwrapper/glsupport.hh"
 #include "GLwrapper/texture.hh"
 #include "GLwrapper/vertex_array.hh"
+#include "Utils/text_overlay.hh"
 using DRL::RenderBase;
 class InstanceRender : public RenderBase {
 protected:
@@ -26,6 +27,8 @@ protected:
   enum Mode { kDraw = 0, kInstance = 1, kIndirectInstance = 2 };
   int mode_ = kInstance;
   void update_model_matrics();
+  std::string mScreenText;
+  DRL::TextOverlay mTextOverlay;
 
 public:
   InstanceRender() = default;

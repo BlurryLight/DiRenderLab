@@ -53,15 +53,25 @@ void InstanceRender::setup_states() {
 
     glBindVertexArray(0);
   }
+
+  mScreenText = "Hello TextOverlay!";
+  mScreenText.resize(512,0);
+  mTextOverlay.drawText(mScreenText, 0, 2);
 }
 void InstanceRender::render() {
 
+  
   ImGui::NewFrame();
   {
     ImGui::Begin("Background Color", 0); // Create a window called "Hello,
     ImGui::Text("Application average %.3f ms/frame (%.1f FPS)",
                 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
     ImGui::InputInt("Draw Numbers", &DrawNumbers);
+    ImGui::SliderInt("Text Overlay Size", &mTextOverlay.mScale,1,5);
+    if(ImGui::Button("Scroll"))
+    {
+      mTextOverlay.scroll(1);
+    }
     const char *modes[] = {"Draw", "Instance"};
     ImGui::Combo("render Mode", &(mode_), modes, IM_ARRAYSIZE(modes));
     ImGui::End();
@@ -106,6 +116,7 @@ void InstanceRender::render() {
       glBindVertexArray(0);
     }
   }
+  mTextOverlay.draw();
 }
 void InstanceRender::update_model_matrics() {
 

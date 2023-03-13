@@ -26,10 +26,10 @@ protected:
 #ifdef GL_ARB_BINDLESS
   using Uniform_t =
       std::variant<bool, int, unsigned int, float, glm::mat3, glm::mat4,
-                   glm::vec2, glm::vec3, glm::vec4, GLuint64>;
+                   glm::vec2, glm::vec3, glm::vec4, GLuint64,glm::ivec4>;
 #else
   using Uniform_t = std::variant<bool, int, unsigned int, float, glm::mat3,
-                                 glm::mat4, glm::vec2, glm::vec3, glm::vec4>;
+                                 glm::mat4, glm::vec2, glm::vec3, glm::vec4,glm::ivec4>;
 #endif
 
 public:
