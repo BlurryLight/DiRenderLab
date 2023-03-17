@@ -21,7 +21,7 @@ protected:
   int oldDrawNumbers = DrawNumbers;
   std::vector<glm::mat4> modelMatrics;
   //    DRL::VertexBuffer modelMatricsVBO;
-  unsigned int modelMatricsVBO = 0;
+  unsigned int modelMatricsSSBO = 0;
   DRL::Texture2D spotTexture;
 
   enum Mode { kDraw = 0, kInstance = 1, kIndirectInstance = 2 };

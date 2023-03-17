@@ -65,7 +65,17 @@ void Program::set_uniform(std::string_view name,
   AssertLog(isBounded(),
             "Program {} is setting uniform, but  it has yet been bounded!",
             obj_);
-  GLint loc = glGetUniformLocation(obj_, name.data());
+  GLint loc = -1;
+  std::string key(name);
+  if(uniform_sheets_.find(key) != uniform_sheets_.end())
+  {
+    loc = uniform_sheets_.at(key);
+  }
+  else
+  {
+    loc = glGetUniformLocation(obj_, name.data());
+    uniform_sheets_[key] = loc;
+  }
   AssertLog(loc != -1,
             "Program {} set value {} failed because "
             "it does not correspond to an active uniform variable.",

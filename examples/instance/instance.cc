@@ -26,33 +26,6 @@ void InstanceRender::setup_states() {
       DRL::Texture2D(resMgr.find_path("spot_texture.png"), 1, false, false);
   spotTexture.generateMipmap();
   update_model_matrics();
-  glBindBuffer(GL_ARRAY_BUFFER, modelMatricsVBO);
-  // 覆盖 Mesh里的VAO的定义
-  // 原来VAO里定义的是Tex之类的坐标
-  for (auto &mesh : spot_ptr->meshes) {
-    unsigned int VAO = mesh.vao_;
-    glBindVertexArray(VAO);
-    // set attribute pointers for matrix (4 times vec4)
-    glEnableVertexAttribArray(3);
-    glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4),
-                          (void *)0);
-    glEnableVertexAttribArray(4);
-    glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4),
-                          (void *)(sizeof(glm::vec4)));
-    glEnableVertexAttribArray(5);
-    glVertexAttribPointer(5, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4),
-                          (void *)(2 * sizeof(glm::vec4)));
-    glEnableVertexAttribArray(6);
-    glVertexAttribPointer(6, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4),
-                          (void *)(3 * sizeof(glm::vec4)));
-
-    glVertexAttribDivisor(3, 1);
-    glVertexAttribDivisor(4, 1);
-    glVertexAttribDivisor(5, 1);
-    glVertexAttribDivisor(6, 1);
-
-    glBindVertexArray(0);
-  }
 
   mScreenText = "Hello TextOverlay!";
   mScreenText.resize(512,0);
@@ -102,6 +75,7 @@ void InstanceRender::render() {
   } else if (mode_ == kInstance) {
     InstanceShader.bind();
     InstanceShader.set_uniform("texture_diffuse1", 0);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER,0,modelMatricsSSBO);
     glm::mat4 projection = glm::perspective(
         glm::radians(camera_->Zoom), (float)info_.width / (float)info_.height,
         0.1f, 1000.0f);
@@ -115,6 +89,7 @@ void InstanceRender::render() {
                               GL_UNSIGNED_INT, nullptr, DrawNumbers);
       glBindVertexArray(0);
     }
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER,0,0);
   }
   mTextOverlay.draw();
 }
@@ -152,11 +127,13 @@ void InstanceRender::update_model_matrics() {
     //        modelMatrices[i] = model;
     modelMatrics[i] = model;
   }
-  if (modelMatricsVBO == 0)
-    glGenBuffers(1, &modelMatricsVBO);
-  glBindBuffer(GL_ARRAY_BUFFER, modelMatricsVBO);
-  glBufferData(GL_ARRAY_BUFFER, DrawNumbers * sizeof(glm::mat4),
-               modelMatrics.data(), GL_STATIC_DRAW);
+  if (modelMatricsSSBO == 0)
+  {
+    glGenBuffers(1, &modelMatricsSSBO);
+  }
+  glBindBuffer(GL_SHADER_STORAGE_BUFFER, modelMatricsSSBO);
+  glBufferData(GL_SHADER_STORAGE_BUFFER, DrawNumbers * sizeof(glm::mat4),
+               modelMatrics.data(), GL_DYNAMIC_DRAW);
 }
 int main() {
   // spdlog init

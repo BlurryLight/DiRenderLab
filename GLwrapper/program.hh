@@ -11,6 +11,7 @@
 #include <glm/glm.hpp>
 #include <optional>
 #include <variant>
+#include <unordered_map>
 namespace DRL {
 class Texture;
 class Program {
@@ -22,6 +23,7 @@ private:
 protected:
   ProgramObj obj_;
   bool linked_ = false;
+  mutable std::unordered_map<std::string,uint32_t>  uniform_sheets_;
 
 #ifdef GL_ARB_BINDLESS
   using Uniform_t =
