@@ -1,0 +1,31 @@
+// This shader is for rapid prototyping
+#version 450 core
+layout (local_size_x = 256) in;
+
+struct flock_member
+{
+    vec4 position; 
+    vec4 velocity;
+};
+
+layout(binding = 0,std430) buffer FlockMemberIn
+{
+    flock_member member[];
+} input_data;
+
+layout(binding = 1,std430) buffer FlockMemberOut
+{
+    flock_member member[];
+} output_data;
+
+void main()
+{
+    int global_id = int(gl_GlobalInvocationID.x);
+    int local_id  = int(gl_LocalInvocationID.x);
+
+    flock_member me = input_data.member[global_id];
+    flock_member new_me;
+    new_me.position = me.position + vec4(0.001,0,0,0);
+    new_me.velocity= me.velocity;
+    output_data.member[global_id] = new_me;
+}

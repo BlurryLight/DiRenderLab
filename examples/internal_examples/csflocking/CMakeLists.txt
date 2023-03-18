@@ -1,0 +1,6 @@
+set(EXAMPLE csflocking)
+add_executable(${EXAMPLE} csflocking.cc)
+target_include_directories(${EXAMPLE} PRIVATE ${CMAKE_SOURCE_DIR})
+target_compile_definitions(${EXAMPLE} PRIVATE -DIMGUI_IMPL_OPENGL_LOADER_GLAD)
+target_link_libraries(${EXAMPLE} PRIVATE glsupport_core)
+target_set_warning_flags(${EXAMPLE})

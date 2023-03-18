@@ -14,15 +14,17 @@
 #include <unordered_map>
 namespace DRL {
 class Texture;
+
 class Program {
 private:
-  // vertex, geometry, frag shaders
+  // vertex, geometry, fshader
   // A bits field to check whether the shaders are correctly attached
-  std::bitset<3> shaders_bits_;
+  std::bitset<ShaderType::kOtherShader> shaders_bits_=0;
 
 protected:
   ProgramObj obj_;
   bool linked_ = false;
+  bool bGraphics = true;
   mutable std::unordered_map<std::string,uint32_t>  uniform_sheets_;
 
 #ifdef GL_ARB_BINDLESS
@@ -55,28 +57,19 @@ public:
   void link();
   [[nodiscard]] bool linked() const { return linked_; }
   [[nodiscard]] bool isBounded() const { return current_using_program == this; }
-  void bind() {
-    AssertLog(linked(), "Program {} uses before linking!", obj_);
-    // this condition maybe too tough.
-    // we need a use_guard<Program> just like std::lock_guard<std::mutex>
-    // AssertWarning(!used_, "Program {} is using!", obj_);
-    if (current_using_program != this) {
-      glUseProgram(obj_);
-      current_using_program = this;
-    }
-  }
-  void unbind() {
-    AssertLog(isBounded(), "Program {} is not using!", obj_);
-    current_using_program = nullptr;
-    glUseProgram(0);
-  }
+  [[nodiscard]] bool isGraphics() const;
+  void bind();
+  void unbind();
   void set_uniform(std::string_view name, const Uniform_t &value) const;
+
   // TODO: unused interface
   //  void set_uniform(GLuint loc, const Uniform_t &value) const;
 };
 Program make_program(const fs::path &vpath,
                      std::optional<const fs::path> fpath = std::nullopt,
                      std::optional<const fs::path> gpath = std::nullopt);
+
+Program make_cs_program(const fs::path &cspath);
 } // namespace DRL
 
 #endif // DIRENDERLAB_PROGRAM_HH

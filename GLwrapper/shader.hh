@@ -11,22 +11,26 @@
 #include <string>
 namespace DRL {
 
-// current we only support v,g,f shader
-enum ShaderType {
+enum ShaderType : int {
   kVShader = 0,
   kGShader = 1,
   kFShader = 2,
-  kAdvancedShader = 3
+  kCShader = 3,
+  kOtherShader = 4,
 };
 inline ShaderType MapGLEnumToShaderType(GLenum t) {
-  if (t == GL_VERTEX_SHADER)
+  switch (t) {
+  case GL_VERTEX_SHADER:
     return kVShader;
-  else if (t == GL_FRAGMENT_SHADER)
+  case GL_FRAGMENT_SHADER:
     return kFShader;
-  else if (t == GL_GEOMETRY_SHADER)
+  case GL_GEOMETRY_SHADER:
     return kGShader;
-  else
-    return kAdvancedShader;
+  case GL_COMPUTE_SHADER:
+    return kCShader;
+  default:
+    return kOtherShader;
+  }
 }
 inline std::string MapShaderTypeToString(ShaderType t) {
   switch (t) {
@@ -36,10 +40,12 @@ inline std::string MapShaderTypeToString(ShaderType t) {
     return {"FShader"};
   case kGShader:
     return {"GShader"};
-  case kAdvancedShader:
-    return {"AdvancedShader"};
+  case kCShader:
+    return {"ComputeShader"};
+  case kOtherShader:
+  default:
+    return "Unknown shader";
   }
-  return "Unknown shader";
 }
 
 class Shader {

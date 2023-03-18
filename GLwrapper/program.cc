@@ -36,22 +36,32 @@ Program::Program(
 void Program::attach_shaders(
     std::initializer_list<std::reference_wrapper<const Shader>> shaders) {
   // shader is a const reference
+  auto check_bits = [this](ShaderType t) {
+    AssertLog(!this->shaders_bits_[t],
+              "{} Shader is attached by multiple times!",
+              MapShaderTypeToString(t));
+
+    if(this->shaders_bits_[kCShader] && t!=kCShader)
+    {
+      AssertLog(false,"Compute Shader Program are not allowed to attach other shader {}",
+              MapShaderTypeToString(t));
+    }
+  };
+
   AssertLog(!linked_, "AttachShader on an linked program!");
+
   for (auto shader : shaders) {
     if (!shader.get().compiled()) {
       spdlog::warn("Shader {} is not compiled when attaching!",
                    shader.get().handle());
     }
-    auto check_bits = [this](ShaderType t) {
-      AssertLog(!this->shaders_bits_[t],
-                "{} Shader is attached by multiple times!",
-                MapShaderTypeToString(t));
-    };
     auto type = shader.get().type();
     auto shader_handle = shader.get().handle();
-    if (type == kVShader || type == kFShader || type == kGShader) {
-      check_bits(type);
-      shaders_bits_[type] = true;
+    check_bits(type);
+    shaders_bits_[type] = true;
+    if(type == kCShader)
+    {
+      bGraphics = false;
     }
     glAttachShader(obj_, shader_handle);
   }
@@ -135,4 +145,34 @@ Program DRL::make_program(const fs::path &vpath,
   }
   prog.link();
   return prog;
+}
+Program DRL::make_cs_program(const fs::path &cspath) {
+  
+  DRL::Program prog;
+  Shader cs_shader(GL_COMPUTE_SHADER, cspath);
+  prog.attach_shaders({cs_shader});
+  prog.link();
+  return prog;
+
+}
+bool DRL::Program::isGraphics() const {
+  AssertLog(linked(), "Program {} should be linked first to check graphics!",
+            obj_);
+  return bGraphics;
+}
+void DRL::Program::bind() {
+  AssertLog(linked(), "Program {} uses before linking!", obj_);
+  // this condition maybe too tough.
+  // we need a use_guard<Program> just like std::lock_guard<std::mutex>
+  // AssertWarning(!used_, "Program {} is using!", obj_);
+  if (current_using_program != this) {
+    glUseProgram(obj_);
+    current_using_program = this;
+  }
+}
+
+void DRL::Program::unbind() {
+  AssertLog(isBounded(), "Program {} is not using!", obj_);
+  current_using_program = nullptr;
+  glUseProgram(0);
 }
