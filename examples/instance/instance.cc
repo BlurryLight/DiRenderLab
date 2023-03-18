@@ -75,7 +75,7 @@ void InstanceRender::render() {
   } else if (mode_ == kInstance) {
     InstanceShader.bind();
     InstanceShader.set_uniform("texture_diffuse1", 0);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER,0,modelMatricsSSBO);
+    modelMatricsSSBO->bind();
     glm::mat4 projection = glm::perspective(
         glm::radians(camera_->Zoom), (float)info_.width / (float)info_.height,
         0.1f, 1000.0f);
@@ -89,7 +89,7 @@ void InstanceRender::render() {
                               GL_UNSIGNED_INT, nullptr, DrawNumbers);
       glBindVertexArray(0);
     }
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER,0,0);
+    modelMatricsSSBO->unbind();
   }
   mTextOverlay.draw();
 }
@@ -127,13 +127,9 @@ void InstanceRender::update_model_matrics() {
     //        modelMatrices[i] = model;
     modelMatrics[i] = model;
   }
-  if (modelMatricsSSBO == 0)
-  {
-    glGenBuffers(1, &modelMatricsSSBO);
-  }
-  glBindBuffer(GL_SHADER_STORAGE_BUFFER, modelMatricsSSBO);
-  glBufferData(GL_SHADER_STORAGE_BUFFER, DrawNumbers * sizeof(glm::mat4),
-               modelMatrics.data(), GL_DYNAMIC_DRAW);
+
+  modelMatricsSSBO = std::make_unique<DRL::ShaderStorageBuffer>(modelMatrics.data(),DrawNumbers * sizeof(glm::mat4),GL_DYNAMIC_STORAGE_BIT);
+  modelMatricsSSBO->set_slot(0);
 }
 int main() {
   // spdlog init

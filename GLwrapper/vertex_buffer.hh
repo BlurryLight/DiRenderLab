@@ -59,6 +59,21 @@ public:
   void bind() { glBindBufferBase(GL_UNIFORM_BUFFER, slot_, handle()); }
   void unbind() { glBindBufferBase(GL_UNIFORM_BUFFER, slot_, 0); }
 };
+
+class ShaderStorageBuffer: public UniversalBuffer{
+private:
+  int slot_ = 0;
+public:
+  ShaderStorageBuffer() = default;
+  ShaderStorageBuffer(const void *data, size_t bytes_length, GLbitfield usage);
+  ShaderStorageBuffer(ShaderStorageBuffer &&other) = default;
+  ShaderStorageBuffer &operator=(ShaderStorageBuffer &&) = default;
+
+  int get_slot() const { return slot_; }
+  void set_slot(int slot) { slot_ = slot; }
+  void bind();
+  void unbind();
+};
 } // namespace DRL
 
 #endif // DIRENDERLAB_VERTEX_BUFFER_HH

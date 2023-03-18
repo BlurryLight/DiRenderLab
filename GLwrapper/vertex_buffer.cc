@@ -38,3 +38,12 @@ DRL::VertexBuffer::VertexBuffer(const void *data, size_t bytes_length,
 DRL::UniformBuffer::UniformBuffer(const void *data, size_t bytes_length,
                                   GLbitfield usage)
     : UniversalBuffer(data, bytes_length, usage){};
+
+DRL::ShaderStorageBuffer::ShaderStorageBuffer(const void *data, size_t bytes_length,
+                                  GLbitfield usage)
+    : UniversalBuffer(data, bytes_length, usage){};
+
+
+void DRL::ShaderStorageBuffer::unbind() { glBindBufferBase(GL_SHADER_STORAGE_BUFFER, slot_, 0); }
+
+void DRL::ShaderStorageBuffer::bind() { glBindBufferBase(GL_SHADER_STORAGE_BUFFER, slot_, handle()); }

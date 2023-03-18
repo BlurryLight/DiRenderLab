@@ -8,7 +8,7 @@
 #include "GLwrapper/glsupport.hh"
 #include "GLwrapper/texture.hh"
 #include "GLwrapper/vertex_array.hh"
-#include "Utils/text_overlay.hh"
+#include "utils/text_overlay.hh"
 using DRL::RenderBase;
 class InstanceRender : public RenderBase {
 protected:
@@ -20,8 +20,7 @@ protected:
   int DrawNumbers = 1'00;
   int oldDrawNumbers = DrawNumbers;
   std::vector<glm::mat4> modelMatrics;
-  //    DRL::VertexBuffer modelMatricsVBO;
-  unsigned int modelMatricsSSBO = 0;
+  std::unique_ptr<DRL::ShaderStorageBuffer> modelMatricsSSBO = nullptr;
   DRL::Texture2D spotTexture;
 
   enum Mode { kDraw = 0, kInstance = 1, kIndirectInstance = 2 };
