@@ -10,10 +10,6 @@ using namespace DRL;
 Program *Program::current_using_program = nullptr;
 void Program::link() {
   AssertLog(!linked_, "Program {} linked multiple times!", obj_.handle());
-  if (!(shaders_bits_[0] && shaders_bits_[2])) // check vshader and fshader
-  {
-    spdlog::warn("Be cautious! Program {} lacks vshader or fshader!", obj_);
-  }
   glLinkProgram(obj_);
   GLint status;
   glGetProgramiv(obj_, GL_LINK_STATUS, &status);

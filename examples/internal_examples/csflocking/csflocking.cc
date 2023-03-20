@@ -71,6 +71,7 @@ void CSFlockingRender::setup_states() {
       glm::vec3(5.0f, 1.0f, 0.0f),
 
       // Normals
+      // the data is in local space
       glm::vec3(0.0f),
       glm::vec3(0.0f),
       glm::vec3(0.107f, -0.859f, 0.00f),
@@ -90,27 +91,29 @@ void CSFlockingRender::setup_states() {
 
   this->FlightBuffer = std::make_shared<DRL::VertexBuffer>(PaperFlight,sizeof(PaperFlight),0);
   FlightVAO.lazy_bind_attrib(0, GL_FLOAT, 3, 0);
-  FlightVAO.lazy_bind_attrib(1, GL_FLOAT, 3, 8 * sizeof(glm::vec3));
-  FlightVAO.update_bind(FlightBuffer, 0, 3, sizeof(float));
+  FlightVAO.lazy_bind_attrib(1, GL_FLOAT, 3, 8);
+  FlightVAO.update_bind(FlightBuffer, 0, 1, sizeof(glm::vec3));
 
-  for(int j = 0; j < 2;j++)
-  {
-    SSBOs[j] = DRL::ShaderStorageBuffer(nullptr,sizeof(flock_member) * kFlockSize,GL_DYNAMIC_STORAGE_BIT | GL_MAP_WRITE_BIT);
-    SSBOs[j].set_slot(0);
-    flock_member *ptr = reinterpret_cast<flock_member *>(
-        glMapNamedBufferRange(SSBOs[j], 0, kFlockSize * sizeof(flock_member),
-                         GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT));
+  SSBOs[0] =
+      DRL::ShaderStorageBuffer(nullptr, sizeof(flock_member) * kFlockSize,
+                               GL_DYNAMIC_STORAGE_BIT | GL_MAP_WRITE_BIT);
+  SSBOs[1] =
+      DRL::ShaderStorageBuffer(nullptr, sizeof(flock_member) * kFlockSize,
+                               GL_DYNAMIC_STORAGE_BIT | GL_MAP_WRITE_BIT);
+  SSBOs[0].set_slot(0);
+  flock_member *ptr = reinterpret_cast<flock_member *>(
+      glMapNamedBufferRange(SSBOs[0], 0, kFlockSize * sizeof(flock_member),
+                            GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT));
 
-    for (int i = 0; i < kFlockSize; i++)
-    {
-        float x = DRL::get_random_float();
-        float y = DRL::get_random_float();
-        float z = DRL::get_random_float();
-        ptr[i].position = (glm::vec3(x,y,z) - glm::vec3(0.5f)) * 300.0f;
-        ptr[i].velocity = glm::vec3(0);
-    }
-    glUnmapNamedBuffer(SSBOs[j]);
+  // 只填充SSBO[0], SSBO[1]由compute shader填充
+  for (int i = 0; i < kFlockSize; i++) {
+    float x = DRL::get_random_float();
+    float y = DRL::get_random_float();
+    float z = DRL::get_random_float();
+    ptr[i].position = (glm::vec3(x, y, z) - glm::vec3(0.5f)) * 100.0f;
+    ptr[i].velocity = glm::vec3(0,0,0.001);
   }
+  glUnmapNamedBuffer(SSBOs[0]);
 
 }
 void CSFlockingRender::render() {
@@ -123,35 +126,42 @@ void CSFlockingRender::render() {
   }
   ImGui::Render();
 
+  float t = glfwGetTime();
+  int curFrame = mFrameIndex;
+  int nextFrame = (mFrameIndex + 1) % 2;
   // compute
   {
 
-  SSBOs[mFrameIndex].set_slot(0);
-  SSBOs[(mFrameIndex + 1) % 2].set_slot(1);
+  SSBOs[curFrame].set_slot(0);
+  SSBOs[nextFrame].set_slot(1);
   DRL::bind_guard gd(CsShader,SSBOs[0],SSBOs[1]);
+    glm::vec3 goal = glm::vec3(sinf(t * 0.34f) * 10.0f, cosf(t * 0.29f) * 50.0,
+                              sinf(t * 0.12f) * cosf(t * 0.5f) * 60);
+    CsShader.set_uniform("goal", goal);
    glDispatchCompute(kFlockSize / 256, 1, 1);
   }
+
   // render
   // ------
   glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   glViewport(0, 0, info_.width, info_.height);
+  glDisable(GL_CULL_FACE);
 
   shader.bind();
   glm::mat4 projection =
       glm::perspective(glm::radians(camera_->Zoom),
-                       (float)info_.width / (float)info_.height, 0.1f, 100.0f);
+                       (float)info_.width / (float)info_.height, 0.1f, 1000.0f);
   glm::mat4 view = camera_->GetViewMatrix();
   shader.set_uniform("projection", projection);
   shader.set_uniform("view", view);
-  shader.set_uniform("model", glm::scale(glm::mat4(1.0),glm::vec3(0.1)));
+  // shader.set_uniform("model", glm::mat4(1.0));
   {
-  SSBOs[mFrameIndex].set_slot(0);
-  DRL::bind_guard gd(FlightVAO,SSBOs[mFrameIndex]);
-  glDrawArraysInstanced(GL_TRIANGLE_STRIP,0,8,kFlockSize);
+    SSBOs[curFrame].set_slot(0);
+    DRL::bind_guard gd(FlightVAO, SSBOs[curFrame]);
+    glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 8, kFlockSize);
   }
-
-  mFrameIndex = (mFrameIndex + 1) % 2;
+  mFrameIndex = nextFrame;
 }
 
 int main() {
@@ -170,7 +180,8 @@ int main() {
   info.height = 900;
   info.width = 1600;
   CSFlockingRender rd(info);
-  rd.camera_ = std::make_unique<DRL::Camera>(glm::vec3{0.0, 0.0, 3.0});
+  rd.camera_ = std::make_unique<DRL::Camera>(glm::vec3{100.0, 0.0, 400.0});
+  rd.camera_->Front = normalize(glm::vec3(0) - rd.camera_->Position);
   rd.loop();
 
   return 0;

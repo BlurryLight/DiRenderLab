@@ -43,16 +43,29 @@ vec3 choose_color(float f)
 }
 void main()
 {
-    vec4 worldPos = model * vec4(aPos, 1.0) + flock_data.member[gl_InstanceID].position;
+    //calc normal
+    vec3 forward = normalize(flock_data.member[gl_InstanceID].velocity.xyz);
+    vec3 world_up = vec3(0,1,0);
+    vec3 right_side = cross(forward,world_up);
+    vec3 bird_up = cross(right_side,forward);
+    // 获得了bird的局部坐标系 right_side(x), bird_up(y),forward(z)
+    mat4 ToWorld = mat4(
+        vec4(right_side,0),
+        vec4(bird_up,0),
+        vec4(forward,0) ,
+        vec4(0,0,0,1));
+
+    vec3 Normal = mat3(ToWorld) * aNormal;
+    // cs更新的是delta Pos，需要乘以ToWorld矩阵
+    // aPos传入的是初始的WorldPos，直接加，注意w轴的1.0不要加两次
+    vec4 worldPos = ToWorld * vec4(flock_data.member[gl_InstanceID].position.xyz,1.0) + vec4(aPos,0.0);
     vs_out.wFragPos = worldPos.xyz;
     vec4 viewPos = view * worldPos;
     vs_out.vFragPos = viewPos.xyz;
 
-    mat3 inverse_transpose = transpose(inverse(mat3(view *model)));
-    vs_out.vNormal = normalize(inverse_transpose * aNormal);
 
-    inverse_transpose = transpose(inverse(mat3(model)));
-    vs_out.wNormal = normalize(inverse_transpose * aNormal);
+    vs_out.wNormal = Normal;
+    vs_out.vNormal = mat3(view) * Normal;
 
     vs_out.Color = choose_color(fract(gl_InstanceID / float(1237))); 
     gl_Position = projection * viewPos;

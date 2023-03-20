@@ -35,6 +35,14 @@ public:
   VertexArray(VertexArray &&other) = default;
   VertexArray &operator=(VertexArray &&) = default;
   VertexArray() = default;
+  /**
+   * @brief 设置IntpuLayout属性
+   * 
+   * @param location attribute对应的location 
+   * @param type  GL_FLOAT/***
+   * @param count 占据多少个Float或其他
+   * @param num_offset 偏移量，注意不要填字节数，因为后面会和elem_size相乘
+   */
   void lazy_bind_attrib(GLuint location, GLenum type, GLint count,
                         GLint num_offset) {
     attribs_.push_back({location, type, count, num_offset});

@@ -11,4 +11,5 @@ in VS_OUT
 void main()
 {
     FragColor = vec4(fs_in.Color, 1.0);
+    // FragColor = vec4(0.5 * fs_in.wNormal + 0.5, 1.0);
 }
