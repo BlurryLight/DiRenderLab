@@ -61,6 +61,7 @@ void main()
                               local_id];
         shared_member[local_id] = them;
         flock_center += them.position; 
+        barrier();
         memoryBarrierShared(); // make sure all write ends
         // O(N^2) many body algos
         // 需要检查其他所有entity的位置，来确定自身的目标

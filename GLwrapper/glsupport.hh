@@ -91,6 +91,7 @@ public:
   Camera(float posX, float posY, float posZ, float upX, float upY, float upZ,
          float yaw, float pitch);
 
+  void SetTarget(glm::vec3 targetPos);
   // Returns the view matrix calculated using Euler Angles and the LookAt Matrix
   glm::mat4 GetViewMatrix() {
     return glm::lookAt(Position, Position + Front, Up);

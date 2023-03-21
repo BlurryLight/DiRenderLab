@@ -618,3 +618,7 @@ void RenderBase::processInput() {
   if (glfwGetKey(window_, GLFW_KEY_D) == GLFW_PRESS)
     camera_->ProcessKeyboard(DRL::RIGHT, deltaTime_);
 }
+
+void DRL::Camera::SetTarget(glm::vec3 targetPos) {
+  this->Front = glm::normalize(targetPos - this->Position) ;
+}

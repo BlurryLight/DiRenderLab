@@ -129,6 +129,7 @@ void CSFlockingRender::render() {
   float t = glfwGetTime();
   int curFrame = mFrameIndex;
   int nextFrame = (mFrameIndex + 1) % 2;
+  glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT); // ping-pong时确保上一帧的写入已经完成
   // compute
   {
 
@@ -181,7 +182,7 @@ int main() {
   info.width = 1600;
   CSFlockingRender rd(info);
   rd.camera_ = std::make_unique<DRL::Camera>(glm::vec3{100.0, 0.0, 400.0});
-  rd.camera_->Front = normalize(glm::vec3(0) - rd.camera_->Position);
+  rd.camera_->SetTarget(glm::vec3(0));
   rd.loop();
 
   return 0;
