@@ -173,37 +173,17 @@ public:
   // for legacy api
   [[nodiscard]] GLuint tex_handle() const { return obj_.handle(); }
   // for bind-less API
-  [[nodiscard]] GLuint64 tex_handle_ARB() {
-    if (updated_ && ARB_handle_ == 0 && obj_.handle()) {
-      ARB_handle_ = glGetTextureHandleARB(obj_.handle());
-    }
-    AssertLog(ARB_handle_,
-              "Texture2DARB {} from {} has no ARB handle! You need to update "
-              "data first!",
-              obj_.handle(), file_.string());
-    return ARB_handle_;
-  }
+  [[nodiscard]] GLuint64 tex_handle_ARB();
 
-  Texture2DARB(const fs::path &path, int num_mipmaps, bool gamma, bool flip)
-      : Texture2D(path, num_mipmaps, gamma, flip),
-        ARB_handle_(glGetTextureHandleARB(obj_)) {}
+  Texture2DARB(const fs::path &path, int num_mipmaps, bool gamma, bool flip);
 
   Texture2DARB(int width, int height, int num_mipmaps, GLenum internal_format,
-               GLenum img_format, GLenum img_data_format, const void *data)
-      : Texture2D(width, height, num_mipmaps, internal_format, img_format,
-                  img_data_format, data),
-        ARB_handle_(glGetTextureHandleARB(obj_)) {}
+               GLenum img_format, GLenum img_data_format, const void *data);
   // glGetTextureHandleARB for an un-updated texture will throw error
   Texture2DARB() = default;
 
-  Texture2DARB(int width, int height, int num_mipmaps, GLenum internal_format)
-      : Texture2D(width, height, num_mipmaps, internal_format),
-        ARB_handle_(glGetTextureHandleARB(obj_)) {}
-  ~Texture2DARB() {
-    AssertLog(first_residentd_ || (ARB_handle_ == 0),
-              "Texture2DARB {} from file {} is never used!", obj_.handle(),
-              file_.string());
-  }
+  Texture2DARB(int width, int height, int num_mipmaps, GLenum internal_format);
+  ~Texture2DARB();
   Texture2DARB(Texture2DARB &&other) noexcept : Texture2D(std::move(other)) {
     ARB_handle_ = other.ARB_handle_;
     other.ARB_handle_ = 0;
@@ -211,41 +191,9 @@ public:
   Texture2DARB(Texture2D &&other) noexcept : Texture2D(std::move(other)) {
     ARB_handle_ = glGetTextureHandleARB(obj_);
   }
-  Texture2DARB &operator=(Texture2DARB &&other) noexcept {
-    ARB_handle_ = other.ARB_handle_;
-    other.ARB_handle_ = 0;
-    Texture2D::operator=(std::move(other));
-    return *this;
-  }
-  void make_resident() {
-    AssertLog(
-        tex_handle_ARB(),
-        "Texture2DARB {} from file {} has no valid ARB handle! You should "
-        "update data "
-        "first!",
-        obj_, file_.string());
-    if (num_mipmaps_ > 1 && (min_filter_ == GL_LINEAR)) {
-      spdlog::warn("Texture2DARB has mipmaps {} from file {} but the min "
-                   "filter is not set to "
-                   "mipmap related filter!",
-                   num_mipmaps_, file_.string());
-    }
-    if (!first_residentd_) {
-      first_bounded = true; // just to make the check in assertion happy. No
-                            // bind really happens
-      first_residentd_ = true;
-    }
-    if (!residentd_) {
-      residentd_ = true;
-      glMakeTextureHandleResidentARB(tex_handle_ARB());
-    }
-  }
-  void make_non_resident() {
-    AssertLog(residentd_, "Texture2DARB {} from file {} is not resident!", obj_,
-              file_.string());
-    residentd_ = false;
-    glMakeTextureHandleNonResidentARB(tex_handle_ARB());
-  }
+  Texture2DARB &operator=(Texture2DARB &&other) noexcept;
+  void make_resident();
+  void make_non_resident();
   static Texture2DARB CreateDummyTexture(glm::vec4 color);
 };
 #endif
@@ -296,16 +244,7 @@ public:
   // for legacy api
   [[nodiscard]] GLuint tex_handle() const { return obj_.handle(); }
   // for bind-less API
-  [[nodiscard]] GLuint64 tex_handle_ARB() {
-    if (updated_ && ARB_handle_ == 0 && obj_.handle()) {
-      ARB_handle_ = glGetTextureHandleARB(obj_.handle());
-    }
-    AssertLog(ARB_handle_,
-              "TextureCubeARB {} from file {} has no ARB handle! You need to "
-              "update data first!",
-              obj_.handle(), file_.string());
-    return ARB_handle_;
-  }
+  [[nodiscard]] GLuint64 tex_handle_ARB();
   TextureCubeARB(const std::vector<fs::path> &paths, int num_mipmaps,
                  bool gamma, bool flip)
       : TextureCube(paths, num_mipmaps, gamma, flip) {}
@@ -318,49 +257,11 @@ public:
                     img_data_type, data) {}
 
   TextureCubeARB() = default;
-  ~TextureCubeARB() {
-    AssertLog(first_residentd_ || (ARB_handle_ == 0),
-              "TextureCubeARB {} from file {} is never used!", ARB_handle_,
-              file_.string());
-  }
-  TextureCubeARB(TextureCubeARB &&other) noexcept
-      : TextureCube(std::move(other)) {
-    ARB_handle_ = other.ARB_handle_;
-    other.ARB_handle_ = 0;
-  }
-  TextureCubeARB &operator=(TextureCubeARB &&other) noexcept {
-    ARB_handle_ = other.ARB_handle_;
-    other.ARB_handle_ = 0;
-    TextureCube::operator=(std::move(other));
-    return *this;
-  }
-  void make_resident() {
-    AssertLog(tex_handle_ARB(),
-              "TextureCubeARB {} from file {} has no valid ARB handle! You "
-              "should update data "
-              "first!",
-              obj_, file_.string());
-    if (num_mipmaps_ > 1 && (min_filter_ == GL_LINEAR)) {
-      spdlog::warn("Texture has mipmaps {} from file {} but the min filter is "
-                   "not set to "
-                   "mipmap related filter!",
-                   num_mipmaps_, file_.string());
-    }
-    if (!first_residentd_) {
-      first_bounded = true; // just to make the check in assertion happy
-      first_residentd_ = true;
-    }
-    if (!residentd_) {
-      residentd_ = true;
-      glMakeTextureHandleResidentARB(tex_handle_ARB());
-    }
-  }
-  void make_non_resident() {
-    AssertLog(residentd_, "TextureCubeARB {} from file {} is not resident!",
-              obj_, file_.string());
-    residentd_ = false;
-    glMakeTextureHandleNonResidentARB(tex_handle_ARB());
-  }
+  ~TextureCubeARB();
+  TextureCubeARB(TextureCubeARB &&other) noexcept;
+  TextureCubeARB &operator=(TextureCubeARB &&other) noexcept;
+  void make_resident();
+  void make_non_resident();
 };
 #endif
 } // namespace DRL
