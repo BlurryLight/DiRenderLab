@@ -22,32 +22,60 @@ using DRL::Shader;
 
 #include <iostream>
 
-class TemplateRenderer : public DRL::RenderBase {
+static constexpr int kDrawNums = 1024;
+class DynamicIndexRenderer : public DRL::RenderBase {
 public:
   DRL::ResourcePathSearcher resMgr;
   DRL::Program shader;
+  std::vector<DRL::Texture2DARB> bindlessTextures;
 
-  TemplateRenderer() = default;
-  explicit TemplateRenderer(const BaseInfo &info) : DRL::RenderBase(info) {}
+  std::unique_ptr<DRL::ShaderStorageBuffer> modelMatricsSSBO = nullptr;
+
+  DynamicIndexRenderer() = default;
+  explicit DynamicIndexRenderer(const BaseInfo &info) : DRL::RenderBase(info) {}
   void setup_states() override;
   void render() override;
   void renderScene(const DRL::Program &shader){};
 };
-void TemplateRenderer::setup_states() {
+void DynamicIndexRenderer::setup_states() {
 
   // configure global opengl state
   // -----------------------------
   glEnable(GL_DEPTH_TEST);
 
   resMgr.add_path(decltype(resMgr)::root_path / "resources" / "shaders");
+  resMgr.add_path(decltype(resMgr)::root_path / "resources" / "shaders" / "dynamicIndex");
   resMgr.add_path(decltype(resMgr)::root_path / "resources" / "textures");
   // build and compile shaders
   // -------------------------
-  shader = DRL::make_program(resMgr.find_path("mvp_pos_normal_texture.vert"),
-                             resMgr.find_path("mvp_pos_normal_texture.frag"));
+  shader = DRL::make_program(resMgr.find_path("mvp_pos_normal_texture_instance.vert"),
+                             resMgr.find_path("mvp_pos_normal_texture_instance.frag"));
 
+  // set matrix
+  srand(1234);
+  std::vector<glm::mat4>  matrices(kDrawNums,glm::mat4(1.0));
+  for (int i = 0; i < kDrawNums; i++) {
+    float x_offset = (2 * ((float)rand() / RAND_MAX) - 1.0) * 50;
+    float y_offset = (2 * ((float)rand() / RAND_MAX) - 1.0) * 50;
+    float z_offset = (float)rand() / RAND_MAX * -50;
+    matrices[i] = glm::translate(glm::mat4(1.0), glm::vec3(x_offset, y_offset, z_offset));
+  }
+  modelMatricsSSBO = std::make_unique<DRL::ShaderStorageBuffer>(
+      matrices.data(), kDrawNums * sizeof(glm::mat4), GL_DYNAMIC_STORAGE_BIT);
+  modelMatricsSSBO->set_slot(0);
+
+  // textures
+
+  for(int i = 0; i < 128 ;i++)
+  {
+    float r = (float)rand() / RAND_MAX;
+    float g = (float)rand() / RAND_MAX;
+    float b = (float)rand() / RAND_MAX;
+    bindlessTextures.push_back(
+      DRL::Texture2DARB::CreateDummyTexture(glm::vec4(r,g,b,1)));
+  }
 }
-void TemplateRenderer::render() {
+void DynamicIndexRenderer::render() {
   ImGui::NewFrame();
   {
     ImGui::Begin("Background Color", 0); // Create a window called "Hello,
@@ -70,8 +98,17 @@ void TemplateRenderer::render() {
   glm::mat4 view = camera_->GetViewMatrix();
   shader.set_uniform("projection", projection);
   shader.set_uniform("view", view);
-  shader.set_uniform("model", glm::mat4(1.0));
-  DRL::renderCube();
+    
+  for(int i = 0; i < 128;i++)
+  {
+    bindlessTextures[i].make_resident();
+    shader.set_uniform("diffuseMaps[" + std::to_string(i) + "]",
+                       bindlessTextures[i].tex_handle_ARB());
+  }
+  modelMatricsSSBO->bind();
+  glBindVertexArray(DRL::GetCubeVAO());
+  glDrawArraysInstanced(GL_TRIANGLES,0,36,kDrawNums);
+  glBindVertexArray(0);
 }
 
 int main() {
@@ -89,8 +126,9 @@ int main() {
   DRL::RenderBase::BaseInfo info;
   info.height = 900;
   info.width = 1600;
-  TemplateRenderer rd(info);
+  DynamicIndexRenderer rd(info);
   rd.camera_ = std::make_unique<DRL::Camera>(glm::vec3{0.0, 0.0, 3.0});
+  rd.camera_->SetTarget(glm::vec3(0));
   rd.loop();
 
   return 0;

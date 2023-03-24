@@ -324,3 +324,16 @@ DRL::Texture2DMS::Texture2DMS(int width, int height, int num_samples, GLenum int
   glTextureStorage2DMultisample(obj_, num_samples, internal_format, width, height,GL_TRUE);
   updated_ = true;
 }
+
+Texture2D DRL::Texture2D::CreateDummyTexture(glm::vec4 color) {
+  uint8_t bytes[4];
+  bytes[0] = uint8_t(color.x * 255.0);
+  bytes[1] = uint8_t(color.y * 255.0);
+  bytes[2] = uint8_t(color.z * 255.0);
+  bytes[3] = uint8_t(color.w * 255.0);
+  return DRL::Texture2D(1,1,1,GL_RGBA8,GL_RGBA,GL_UNSIGNED_BYTE,bytes);
+}
+
+Texture2DARB DRL::Texture2DARB::CreateDummyTexture(glm::vec4 color) {
+   return DRL::Texture2DARB(Texture2D::CreateDummyTexture(color));
+}

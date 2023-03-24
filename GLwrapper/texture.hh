@@ -149,6 +149,8 @@ public:
                    bool flip);
   Texture2D(Texture2D &&other) = default;
   Texture2D &operator=(Texture2D &&) = default;
+
+  static Texture2D CreateDummyTexture(glm::vec4 color);
 };
 
 #ifdef GL_ARB_BINDLESS
@@ -206,6 +208,9 @@ public:
     ARB_handle_ = other.ARB_handle_;
     other.ARB_handle_ = 0;
   }
+  Texture2DARB(Texture2D &&other) noexcept : Texture2D(std::move(other)) {
+    ARB_handle_ = glGetTextureHandleARB(obj_);
+  }
   Texture2DARB &operator=(Texture2DARB &&other) noexcept {
     ARB_handle_ = other.ARB_handle_;
     other.ARB_handle_ = 0;
@@ -241,6 +246,7 @@ public:
     residentd_ = false;
     glMakeTextureHandleNonResidentARB(tex_handle_ARB());
   }
+  static Texture2DARB CreateDummyTexture(glm::vec4 color);
 };
 #endif
 

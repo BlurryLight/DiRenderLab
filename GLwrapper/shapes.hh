@@ -7,6 +7,9 @@
 
 namespace DRL {
 
+// pos normal tex
+unsigned int GetCubeVAO();
+
 void renderScreenQuad();
 void renderQuad();
 void renderCube();
