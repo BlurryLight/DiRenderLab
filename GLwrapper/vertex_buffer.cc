@@ -22,7 +22,7 @@ void DRL::UniversalBuffer::update_allocated_data(const void *data,
                                                  size_t bytes_length,
                                                  size_t bytes_offset) {
   AssertLog(allocated_, "Buffer must be allocated before sub data!");
-  AssertLog((bytes_offset + bytes_length) < bytes_length_,
+  AssertLog((bytes_offset + bytes_length) <= bytes_length_,
             "Buffer update data overflow!");
   glNamedBufferSubData(obj_, (int)bytes_offset, (int)bytes_length, data);
 }
